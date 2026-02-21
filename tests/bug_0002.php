@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_bug_0002_' . uniqid();
+$path = __DIR__ . '/../test_dbs/bug_0002_' . uniqid();
 
 try {
     $schema = new ZVecSchema('bug0002');

@@ -2,7 +2,7 @@
 
 ## Priority: MEDIUM
 
-## Status: TODO
+## Status: DONE
 
 ## Difficulty: 2/5 ⭐⭐
 
@@ -66,10 +66,42 @@ Based on: https://zvec.org/en/docs/data-operations/query/
 
 ---
 
-## Notes
+## Implementation
 
-- Score ordering depends on metric type:
-  - IP, COSINE: higher is better (descending)
-  - L2: lower is better (ascending)
-- Filter syntax: SQL-like WHERE clause
-- Query params are optional, defaults should work
+All test files created and passing:
+
+### test_query_basic.phpt
+- Single vector search with default and custom topk
+- Query with includeVector=true/false
+- Score ordering verification (descending for IP, ascending for L2)
+
+### test_query_filtered.phpt
+- Vector search with simple and compound filters
+- Filter only (queryByFilter) with various conditions
+- Complex filters with AND/OR, numeric comparisons, IN operator
+- Zero result scenarios
+
+### test_query_output_fields.phpt
+- Query returning all fields (default)
+- Query with specific outputFields (field selection)
+- outputFields with queryByFilter
+- Missing fields return null correctly
+
+### test_query_hnsw_params.phpt
+- Query with different hnswEf values (50, 200, 400)
+- Recall comparison between ef settings
+- QUERY_PARAM_NONE and QUERY_PARAM_HNSW
+- Score ordering verification
+
+### test_groupby_query.phpt
+- API verification for future GroupBy feature
+- Manual grouping demonstration (client-side)
+- Documents zvec "Coming Soon" status
+
+### Notes
+
+All tests:
+- Use unique temp directories with `uniqid()`
+- Clean up with try-finally
+- Test both success and edge cases
+- Pass with 100% success rate

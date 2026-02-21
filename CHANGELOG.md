@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.14] - 2026-02-21
+
+### Added
+
+- **Query Operations Tests** (#21) - MEDIUM priority task
+  - New test: `test_query_basic.phpt` - single vector search, topk parameter, includeVector flag
+  - New test: `test_query_filtered.phpt` - vector + scalar filter, filter-only queries (queryByFilter)
+  - New test: `test_query_output_fields.phpt` - outputFields parameter for field selection
+  - New test: `test_query_hnsw_params.phpt` - hnswEf parameter, QUERY_PARAM_HNSW/NONE
+  - New test: `test_groupby_query.phpt` - API verification for future GroupBy feature
+  - Total test count: 38 tests (37 PASS + 1 expected XFAIL)
+
+### Changed
+
+- **AGENTS.md Documentation**
+  - Added "After Implementation Checklist" section
+  - Documented requirement to move completed tasks from `tasks/todo/` to `tasks/done/`
+
+- **Test Maintenance**
+  - Fixed `tests/bug_0002.php` to use `test_dbs/` directory pattern
+  - Task #21 moved from `tasks/todo/` to `tasks/done/`
+
 ## [0.3.13] - 2026-02-21
 
 ### Changed

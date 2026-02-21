@@ -417,6 +417,15 @@ Before starting a new feature:
 3. **Check Python SDK** in `zvec/python/zvec/` for actual implementation details
 4. **Look at C++ headers** in `zvec/src/include/zvec/db/` to verify what's supported
 
+### After Implementation Checklist
+
+When a task is completed:
+
+1. **Update task file status**: Change `## Status: TODO` to `## Status: DONE` in the task file
+2. **Move to done folder**: Move the task file from `tasks/todo/` to `tasks/done/`
+3. **Update implementation section**: Document what was actually implemented
+4. **Verify all tests pass** (see Testing Requirements section above)
+
 ### Example: Researching QuantizeType
 
 When implementing quantize type support:
