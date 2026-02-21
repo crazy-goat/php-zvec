@@ -169,6 +169,17 @@ $collection->alterColumn('value', newDataType: ZVec::TYPE_FLOAT, nullable: true)
 - The FFI shared library must be at the path expected by `ZVec.php`
   (currently `__DIR__ . '/../ffi/build/libzvec_ffi.dylib'`).
 
+## Useful Resources
+
+When unsure about API behavior, implementation details, or feature requirements, consult the official zvec documentation first.
+
+### Documentation Links
+
+- [Node.js API Reference](https://zvec.org/api-reference/nodejs/) - Reference implementation for API patterns
+- [Configuration Docs](https://zvec.org/en/docs/config/) - zvec configuration options
+- [Collections Docs](https://zvec.org/en/docs/collections/) - Collection management documentation
+- [Data Operations Docs](https://zvec.org/en/docs/data-operations/) - CRUD and query operations
+
 ## Workflow Guidelines
 
 ### Release Command (`/release` or "wydaj wersję")
