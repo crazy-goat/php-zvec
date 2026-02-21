@@ -166,6 +166,13 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
         }
     }
 
+    private function checkClosed(): void
+    {
+        if ($this->closed) {
+            throw new ZVecException("Collection is closed or destroyed");
+        }
+    }
+
     public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true): self
     {
         $ffi = self::ffi();
@@ -204,11 +211,13 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function flush(): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_flush($this->handle));
     }
 
     public function optimize(): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_optimize($this->handle));
     }
 
@@ -222,6 +231,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function schema(): string
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $buf = $ffi->new('char[8192]');
         self::checkStatus($ffi->zvec_collection_schema($this->handle, $buf, 8192));
@@ -230,6 +240,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function path(): string
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $buf = $ffi->new('char[4096]');
         self::checkStatus($ffi->zvec_collection_path($this->handle, $buf, 4096));
@@ -241,6 +252,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
      */
     public function options(): array
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $readOnly = $ffi->new('int');
         $enableMmap = $ffi->new('int');
@@ -253,31 +265,37 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function addColumnInt64(string $name, bool $nullable = true, string $defaultExpr = '0'): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_int64($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
     }
 
     public function addColumnFloat(string $name, bool $nullable = true, string $defaultExpr = '0'): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_float($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
     }
 
     public function addColumnDouble(string $name, bool $nullable = true, string $defaultExpr = '0'): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_double($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
     }
 
     public function dropColumn(string $name): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_drop_column($this->handle, $name));
     }
 
     public function renameColumn(string $oldName, string $newName): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_rename_column($this->handle, $oldName, $newName));
     }
 
     public function alterColumn(string $columnName, ?string $newName = null, ?int $newDataType = null, ?bool $nullable = null): void
     {
+        $this->checkClosed();
         // Data type constants for alter column (scalar numeric only)
         // INT32 = 4, INT64 = 5, UINT32 = 6, UINT64 = 7, FLOAT = 8, DOUBLE = 9
         $dataType = $newDataType ?? 0; // 0 = UNDEFINED (no type change)
@@ -289,26 +307,31 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function createInvertIndex(string $fieldName, bool $enableRange = true, bool $enableWildcard = false): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_create_invert_index($this->handle, $fieldName, $enableRange ? 1 : 0, $enableWildcard ? 1 : 0));
     }
 
     public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500, int $quantizeType = 0): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_create_hnsw_index($this->handle, $fieldName, $metricType, $m, $efConstruction, $quantizeType));
     }
 
     public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $quantizeType = 0): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_create_flat_index($this->handle, $fieldName, $metricType, $quantizeType));
     }
 
     public function dropIndex(string $fieldName): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_drop_index($this->handle, $fieldName));
     }
 
     public function insert(ZVecDoc ...$docs): void
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $count = count($docs);
         $arr = $ffi->new("zvec_doc_t[$count]");
@@ -320,6 +343,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function upsert(ZVecDoc ...$docs): void
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $count = count($docs);
         $arr = $ffi->new("zvec_doc_t[$count]");
@@ -331,6 +355,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function update(ZVecDoc ...$docs): void
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $count = count($docs);
         $arr = $ffi->new("zvec_doc_t[$count]");
@@ -342,6 +367,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function delete(string ...$pks): void
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $count = count($pks);
         $cStrings = [];
@@ -362,6 +388,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function deleteByFilter(string $filter): void
     {
+        $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_delete_by_filter($this->handle, $filter));
     }
 
@@ -370,6 +397,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
      */
     public function fetch(string ...$pks): array
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $count = count($pks);
         $cStrings = [];
@@ -467,6 +495,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
         int $hnswEf = 200,
         int $ivfNprobe = 10
     ): array {
+        $this->checkClosed();
         $ffi = self::ffi();
         $dim = count($queryVector);
         $vecData = $ffi->new("float[$dim]");
@@ -528,6 +557,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
      */
     public function queryByFilter(string $filter, int $topk = 100, ?array $outputFields = null): array
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $result = $ffi->new('zvec_query_result_t');
 
@@ -585,6 +615,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
         int $hnswEf = 200,
         int $ivfNprobe = 10
     ): array {
+        $this->checkClosed();
         $ffi = self::ffi();
         $dim = count($queryVector);
         $vecData = $ffi->new("float[$dim]");
@@ -641,6 +672,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 
     public function stats(): string
     {
+        $this->checkClosed();
         $ffi = self::ffi();
         $buf = $ffi->new('char[4096]');
         self::checkStatus($ffi->zvec_collection_stats($this->handle, $buf, 4096));

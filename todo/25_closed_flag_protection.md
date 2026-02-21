@@ -2,84 +2,62 @@
 
 ## Priority: HIGH
 
-## Status: TODO
-
-## Difficulty: 2/5 ⭐⭐
-
-## Description
-
-Add `$closed` boolean flag to ZVec collection class to track if collection was closed/destroyed. Block all operations on closed collection with clear PHP exception instead of C++ segfault.
-
-## Problem
-
-Currently, calling any method on a closed/destroyed collection causes segfault (exit code 139):
-```php
-$c->close();
-$c->insert($doc);  // SEGFAULT!
-$c->query(...);     // SEGFAULT!
-$c->stats();        // SEGFAULT!
-```
-
-This is documented in `tests/bug_0003.php` as known limitation.
-
-## Solution
-
-Add `private bool $closed = false` property to ZVec class:
-
-1. Set `$closed = true` in `close()` method
-2. Set `$closed = true` in `destroy()` method  
-3. Add check at start of every public method:
-   ```php
-   if ($this->closed) {
-       throw new ZVecException("Collection is closed");
-   }
-   ```
+## Status: ✅ DONE
 
 ## Implementation
 
-### PHP Layer (php/ZVec.php)
+Added `checkClosed()` method to `ZVec` class that throws `ZVecException` when any operation is attempted on a closed/destroyed collection.
 
+### Changes in `php/ZVec.php`:
+
+1. Added `checkClosed()` helper method:
+   ```php
+   private function checkClosed(): void
+   {
+       if ($this->closed) {
+           throw new ZVecException("Collection is closed or destroyed");
+       }
+   }
+   ```
+
+2. Added `$this->checkClosed()` call at start of all public methods:
+   - Data operations: `insert()`, `upsert()`, `update()`, `delete()`, `deleteByFilter()`, `fetch()`
+   - Query operations: `query()`, `queryByFilter()`, `groupByQuery()`
+   - Maintenance: `flush()`, `optimize()`, `destroy()`
+   - Schema operations: `schema()`, `path()`, `options()`, `stats()`
+   - Column DDL: `addColumn*()`, `dropColumn()`, `renameColumn()`, `alterColumn()`
+   - Index operations: `createInvertIndex()`, `createHnswIndex()`, `createFlatIndex()`, `dropIndex()`
+
+### Result
+
+**Before fix:**
 ```php
-class ZVec {
-    private bool $closed = false;
-    
-    public function close(): void {
-        if ($this->closed) return;
-        // ... existing code ...
-        $this->closed = true;
-    }
-    
-    public function insert(ZVecDoc $doc): void {
-        $this->ensureOpen();
-        // ... existing code ...
-    }
-    
-    public function query(...): array {
-        $this->ensureOpen();
-        // ... existing code ...
-    }
-    
-    // ... all other public methods ...
-    
-    private function ensureOpen(): void {
-        if ($this->closed) {
-            throw new ZVecException("Collection is closed or destroyed");
-        }
-    }
-}
+$c->close();
+$c->insert($doc);  // SEGFAULT (exit 139)
 ```
 
-## Tests
+**After fix:**
+```php
+$c->close();
+$c->insert($doc);  // ZVecException: Collection is closed or destroyed
+```
 
-Update `tests/test_error_handling.php` to test closed collection operations:
-- `insert()` after close - should throw ZVecException
-- `query()` after close - should throw ZVecException  
-- `stats()` after close - should throw ZVecException
-- Double close should be safe (no-op)
+### Tests
 
-## Notes
+- `tests/test_closed_collection_protection.phpt` - PASS: Verifies all operations throw ZVecException instead of segfault
+- `tests/test_segfault_example.php` - Demonstrates fix working  
+- All existing tests PASS (6/6)
 
-- This is PHP-layer protection only - C++ layer still segfaults
-- FFI handle becomes invalid after close(), we can't prevent that
-- But we CAN prevent PHP code from using it
-- Reference: `tests/bug_0003.php` for segfault reproduction
+### Before vs After
+
+**Before fix:**
+```php
+$c->close();
+$c->insert($doc);  // SEGFAULT (exit 139)
+```
+
+**After fix:**
+```php
+$c->close();
+$c->insert($doc);  // ZVecException: Collection is closed or destroyed
+```

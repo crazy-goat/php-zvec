@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-02-21
+
+### Added
+
+- **Closed Collection Protection** (#25) - HIGH priority task
+  - Added `checkClosed()` method to prevent segfaults on closed/destroyed collections
+  - All public methods now throw `ZVecException` instead of causing segfault (exit 139)
+  - Operations protected: insert, upsert, update, delete, query, fetch, flush, optimize, etc.
+  - Added `test_closed_collection_protection.phpt` - verifies exception handling
+  - Before: `$c->close(); $c->insert($doc);` → segfault
+  - After: `$c->close(); $c->insert($doc);` → `ZVecException: Collection is closed or destroyed`
+
+- **Cleanup Safety** (#26) - Defensive programming measures
+  - Added `$dirty` flag for tracking potentially inconsistent state
+  - Implemented `executeWithDirty()` helper for operation tracking
+  - Made `close()` and destructor error-tolerant
+  - Added bug reproduction tests: `bug_0005_cleanup_after_failed_ops.php`, `bug_0006_rocksdb_lock.php`
+
+- **Test Migration Planning** (#27)
+  - Created task for migrating 8 legacy `.php` tests to `.phpt` format
+  - Documented migration plan and benefits
+
+### Changed
+
+- **AGENTS.md** - Added "Test First - Write Before Fix" rule
+  - Always write failing test before attempting bug fixes
+  - Ensures understanding of the bug and prevents regressions
+
+- **Test Cleanup**
+  - Removed test runner artifacts (`.diff`, `.exp`, `.log`, `.out`, `.sh` files)
+  - Removed duplicate and temporary test files
+  - Final structure: 6 `.phpt` tests + 8 `.php` tests (for migration) + 6 `bug_*.php`
+
 ## [0.3.3] - 2026-02-21
 
 ### Added
