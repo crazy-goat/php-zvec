@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.18] - 2026-02-22
+
+### Added
+
+- **Embedding Functions** (#10) - LOW priority task
+  - Added support for converting text to vector representations via external APIs
+  - `DenseEmbeddingFunction` interface with `embed()`, `embedBatch()`, `getDimension()` methods
+  - `OpenAIDenseEmbedding` - OpenAI API implementation supporting text-embedding-3-small, text-embedding-3-large, text-embedding-ada-002
+  - `QwenDenseEmbedding` - DashScope/Qwen API implementation supporting text-embedding-v4, v3, v2, v1
+  - Base class `ApiEmbeddingFunction` with HTTP client functionality (curl-based)
+  - Batch embedding support (up to 2048 inputs for OpenAI, 25 for Qwen)
+  - Configurable dimensions for OpenAI v3 models
+  - New examples:
+    - `examples/embeddings_basic.php` - Basic embedding usage with mock implementation
+    - `examples/embeddings_with_zvec.php` - Full ZVec integration (store/query embeddings)
+  - New tests:
+    - `tests/test_embeddings_interfaces.phpt` - Interface validation
+    - `tests/test_embeddings_integration.phpt` - Integration tests with mock embedding
+  - Total test count: 42 tests (41 PASS + 1 expected XFAIL)
+
+### Changed
+
+- **Task Status** (#10)
+  - Marked Extensions: Embedding Functions task as DONE
+  - Moved task file from `tasks/todo/` to `tasks/done/`
+
 ## [0.3.17] - 2026-02-21
 
 ### Added
