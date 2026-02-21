@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.16] - 2026-02-21
+
+### Added
+
+- **Add Column: STRING type** (#13) - MEDIUM priority task
+  - Added `addColumnString()` method for future STRING column support
+  - FFI layer: `zvec_collection_add_column_string()` function
+  - PHP API: `addColumnString(string $name, bool $nullable = true, string $defaultExpr = '')`
+  - Note: C++ API currently only supports numeric types for AddColumn - STRING support "coming soon"
+  - Implementation ready - will automatically work when zvec adds upstream support
+
+### Changed
+
+- **Task Status** (#13)
+  - Marked Add Column STRING/BOOL task as DONE
+  - Moved task file from `tasks/todo/` to `tasks/done/`
+
 ## [0.3.15] - 2026-02-21
 
 ### Added

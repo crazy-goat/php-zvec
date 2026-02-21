@@ -76,6 +76,7 @@ class ZVec
                 zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
                 zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
                 zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+                zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
                 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name);
                 zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name);
                 zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable);
@@ -300,6 +301,12 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_double($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+    }
+
+    public function addColumnString(string $name, bool $nullable = true, string $defaultExpr = ''): void
+    {
+        $this->checkClosed();
+        self::checkStatus(self::ffi()->zvec_collection_add_column_string($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
     }
 
     public function addColumnBool(string $name, bool $nullable = true, string $defaultExpr = 'false'): void

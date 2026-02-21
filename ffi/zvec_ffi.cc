@@ -309,6 +309,13 @@ zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const ch
     return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
 }
 
+zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+    auto* c = static_cast<Collection*>(coll);
+    c->Flush();
+    auto field = std::make_shared<FieldSchema>(name, DataType::STRING, (bool)nullable);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : ""));
+}
+
 zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();

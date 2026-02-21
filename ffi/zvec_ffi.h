@@ -74,6 +74,7 @@ zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const ch
 zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
 zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
 zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name);
 zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name);
 
