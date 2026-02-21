@@ -1,0 +1,823 @@
+<?php
+
+declare(strict_types=1);
+
+class ZVecException extends RuntimeException {}
+
+class ZVec
+{
+    private static ?FFI $ffi = null;
+    private FFI\CData $handle;
+    private bool $closed = false;
+
+    private static function ffi(): FFI
+    {
+        if (self::$ffi === null) {
+            $libPath = __DIR__ . '/../ffi/build/libzvec_ffi.dylib';
+
+            if (!file_exists($libPath)) {
+                throw new ZVecException("Library not found: $libPath. Run build_zvec.sh first.");
+            }
+
+            self::$ffi = FFI::cdef('
+                typedef void* zvec_collection_t;
+                typedef void* zvec_schema_t;
+                typedef void* zvec_doc_t;
+
+                typedef struct {
+                    int code;
+                    char message[512];
+                } zvec_status_t;
+
+                typedef struct {
+                    zvec_doc_t* docs;
+                    int count;
+                } zvec_query_result_t;
+
+                zvec_status_t zvec_init(int log_type, int log_level,
+                                        const char* log_dir, const char* log_basename,
+                                        uint32_t log_file_size, uint32_t log_overdue_days,
+                                        uint32_t query_threads, uint32_t optimize_threads,
+                                        float invert_to_forward_scan_ratio,
+                                        float brute_force_by_keys_ratio,
+                                        uint64_t memory_limit_mb);
+
+                zvec_schema_t zvec_schema_create(const char* name);
+                void zvec_schema_free(zvec_schema_t schema);
+                void zvec_schema_set_max_doc_count_per_segment(zvec_schema_t schema, uint64_t count);
+                void zvec_schema_add_field_int64(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+                void zvec_schema_add_field_string(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+                void zvec_schema_add_field_float(zvec_schema_t schema, const char* name, int nullable);
+                void zvec_schema_add_field_double(zvec_schema_t schema, const char* name, int nullable);
+                void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
+                void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
+
+                zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, zvec_collection_t* out);
+                zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, zvec_collection_t* out);
+                void zvec_collection_free(zvec_collection_t coll);
+                zvec_status_t zvec_collection_flush(zvec_collection_t coll);
+                zvec_status_t zvec_collection_optimize(zvec_collection_t coll);
+                zvec_status_t zvec_collection_destroy(zvec_collection_t coll);
+
+                zvec_status_t zvec_collection_schema(zvec_collection_t coll, char* buf, size_t buf_size);
+                zvec_status_t zvec_collection_path(zvec_collection_t coll, char* buf, size_t buf_size);
+                zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap);
+
+                zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+                zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+                zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+                zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name);
+                zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name);
+
+                zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard);
+                zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction);
+                zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type);
+                zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name);
+
+                zvec_doc_t zvec_doc_create(const char* pk);
+                void zvec_doc_free(zvec_doc_t doc);
+                void zvec_doc_set_int64(zvec_doc_t doc, const char* field, int64_t value);
+                void zvec_doc_set_string(zvec_doc_t doc, const char* field, const char* value);
+                void zvec_doc_set_float(zvec_doc_t doc, const char* field, float value);
+                void zvec_doc_set_double(zvec_doc_t doc, const char* field, double value);
+                void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* data, uint32_t dim);
+
+                const char* zvec_doc_get_pk(zvec_doc_t doc);
+                float zvec_doc_get_score(zvec_doc_t doc);
+                int zvec_doc_get_int64(zvec_doc_t doc, const char* field, int64_t* out);
+                int zvec_doc_get_string(zvec_doc_t doc, const char* field, const char** out);
+                int zvec_doc_get_float(zvec_doc_t doc, const char* field, float* out);
+                int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
+                int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
+
+                zvec_status_t zvec_collection_insert(zvec_collection_t coll, zvec_doc_t* docs, int count);
+                zvec_status_t zvec_collection_upsert(zvec_collection_t coll, zvec_doc_t* docs, int count);
+                zvec_status_t zvec_collection_update(zvec_collection_t coll, zvec_doc_t* docs, int count);
+                zvec_status_t zvec_collection_delete(zvec_collection_t coll, const char** pks, int count);
+                zvec_status_t zvec_collection_delete_by_filter(zvec_collection_t coll, const char* filter);
+
+                zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result);
+
+                zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_name,
+                                                     const float* query_vector, uint32_t dim,
+                                                     int topk, int include_vector,
+                                                     const char* filter,
+                                                     zvec_query_result_t* result);
+                zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field_name,
+                                                        const float* query_vector, uint32_t dim,
+                                                        int topk, int include_vector,
+                                                        const char* filter,
+                                                        const char** output_fields, int output_fields_count,
+                                                        int query_param_type,
+                                                        int hnsw_ef,
+                                                        int ivf_nprobe,
+                                                        zvec_query_result_t* result);
+                zvec_status_t zvec_collection_query_filter(zvec_collection_t coll, const char* filter,
+                                                            int topk, zvec_query_result_t* result);
+                zvec_status_t zvec_collection_query_filter_ex(zvec_collection_t coll, const char* filter,
+                                                               int topk,
+                                                               const char** output_fields, int output_fields_count,
+                                                               zvec_query_result_t* result);
+
+                typedef struct {
+                    zvec_doc_t* docs;
+                    int count;
+                    const char* group_by_value;
+                } zvec_group_result_t;
+
+                typedef struct {
+                    zvec_group_result_t* groups;
+                    int count;
+                } zvec_group_results_t;
+
+                zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char* field_name,
+                                                              const float* query_vector, uint32_t dim,
+                                                              const char* group_by_field,
+                                                              uint32_t group_count, uint32_t group_topk,
+                                                              int include_vector,
+                                                              const char* filter,
+                                                              const char** output_fields, int output_fields_count,
+                                                              int query_param_type,
+                                                              int hnsw_ef,
+                                                              int ivf_nprobe,
+                                                              zvec_group_results_t* result);
+                void zvec_group_results_free(zvec_group_results_t* result);
+
+                void zvec_query_result_free(zvec_query_result_t* result);
+                void zvec_query_result_free_array(zvec_query_result_t* result);
+
+                zvec_status_t zvec_collection_stats(zvec_collection_t coll, char* buf, size_t buf_size);
+            ', $libPath);
+        }
+        return self::$ffi;
+    }
+
+    private static function checkStatus(FFI\CData $status): void
+    {
+        if ($status->code !== 0) {
+            throw new ZVecException(FFI::string($status->message), $status->code);
+        }
+    }
+
+    public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true): self
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('zvec_collection_t');
+        $status = $ffi->zvec_collection_create($path, $schema->getHandle(), $readOnly ? 1 : 0, $enableMmap ? 1 : 0, FFI::addr($out));
+        self::checkStatus($status);
+        return new self($out);
+    }
+
+    public static function open(string $path, bool $readOnly = false, bool $enableMmap = true): self
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('zvec_collection_t');
+        $status = $ffi->zvec_collection_open($path, $readOnly ? 1 : 0, $enableMmap ? 1 : 0, FFI::addr($out));
+        self::checkStatus($status);
+        return new self($out);
+    }
+
+    private function __construct(FFI\CData $handle)
+    {
+        $this->handle = $handle;
+    }
+
+    public function __destruct()
+    {
+        $this->close();
+    }
+
+    public function close(): void
+    {
+        if (!$this->closed) {
+            self::ffi()->zvec_collection_free($this->handle);
+            $this->closed = true;
+        }
+    }
+
+    public function flush(): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_flush($this->handle));
+    }
+
+    public function optimize(): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_optimize($this->handle));
+    }
+
+    public function destroy(): void
+    {
+        if (!$this->closed) {
+            self::checkStatus(self::ffi()->zvec_collection_destroy($this->handle));
+            $this->closed = true;
+        }
+    }
+
+    public function schema(): string
+    {
+        $ffi = self::ffi();
+        $buf = $ffi->new('char[8192]');
+        self::checkStatus($ffi->zvec_collection_schema($this->handle, $buf, 8192));
+        return FFI::string($buf);
+    }
+
+    public function path(): string
+    {
+        $ffi = self::ffi();
+        $buf = $ffi->new('char[4096]');
+        self::checkStatus($ffi->zvec_collection_path($this->handle, $buf, 4096));
+        return FFI::string($buf);
+    }
+
+    /**
+     * @return array{read_only: bool, enable_mmap: bool}
+     */
+    public function options(): array
+    {
+        $ffi = self::ffi();
+        $readOnly = $ffi->new('int');
+        $enableMmap = $ffi->new('int');
+        self::checkStatus($ffi->zvec_collection_options($this->handle, FFI::addr($readOnly), FFI::addr($enableMmap)));
+        return [
+            'read_only' => $readOnly->cdata !== 0,
+            'enable_mmap' => $enableMmap->cdata !== 0,
+        ];
+    }
+
+    public function addColumnInt64(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_add_column_int64($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+    }
+
+    public function addColumnFloat(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_add_column_float($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+    }
+
+    public function addColumnDouble(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_add_column_double($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+    }
+
+    public function dropColumn(string $name): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_drop_column($this->handle, $name));
+    }
+
+    public function renameColumn(string $oldName, string $newName): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_rename_column($this->handle, $oldName, $newName));
+    }
+
+    public function createInvertIndex(string $fieldName, bool $enableRange = true, bool $enableWildcard = false): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_create_invert_index($this->handle, $fieldName, $enableRange ? 1 : 0, $enableWildcard ? 1 : 0));
+    }
+
+    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_create_hnsw_index($this->handle, $fieldName, $metricType, $m, $efConstruction));
+    }
+
+    public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_create_flat_index($this->handle, $fieldName, $metricType));
+    }
+
+    public function dropIndex(string $fieldName): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_drop_index($this->handle, $fieldName));
+    }
+
+    public function insert(ZVecDoc ...$docs): void
+    {
+        $ffi = self::ffi();
+        $count = count($docs);
+        $arr = $ffi->new("zvec_doc_t[$count]");
+        foreach ($docs as $i => $doc) {
+            $arr[$i] = $doc->getHandle();
+        }
+        self::checkStatus($ffi->zvec_collection_insert($this->handle, $arr, $count));
+    }
+
+    public function upsert(ZVecDoc ...$docs): void
+    {
+        $ffi = self::ffi();
+        $count = count($docs);
+        $arr = $ffi->new("zvec_doc_t[$count]");
+        foreach ($docs as $i => $doc) {
+            $arr[$i] = $doc->getHandle();
+        }
+        self::checkStatus($ffi->zvec_collection_upsert($this->handle, $arr, $count));
+    }
+
+    public function update(ZVecDoc ...$docs): void
+    {
+        $ffi = self::ffi();
+        $count = count($docs);
+        $arr = $ffi->new("zvec_doc_t[$count]");
+        foreach ($docs as $i => $doc) {
+            $arr[$i] = $doc->getHandle();
+        }
+        self::checkStatus($ffi->zvec_collection_update($this->handle, $arr, $count));
+    }
+
+    public function delete(string ...$pks): void
+    {
+        $ffi = self::ffi();
+        $count = count($pks);
+        $cStrings = [];
+        $arr = $ffi->new("char*[$count]");
+        foreach ($pks as $i => $pk) {
+            $len = strlen($pk) + 1;
+            $cStr = $ffi->new("char[$len]", false);
+            FFI::memcpy($cStr, $pk, strlen($pk));
+            $cStr[$len - 1] = "\0";
+            $cStrings[] = $cStr;
+            $arr[$i] = $cStr;
+        }
+        self::checkStatus($ffi->zvec_collection_delete($this->handle, $arr, $count));
+        foreach ($cStrings as $cStr) {
+            FFI::free($cStr);
+        }
+    }
+
+    public function deleteByFilter(string $filter): void
+    {
+        self::checkStatus(self::ffi()->zvec_collection_delete_by_filter($this->handle, $filter));
+    }
+
+    /**
+     * @return ZVecDoc[]
+     */
+    public function fetch(string ...$pks): array
+    {
+        $ffi = self::ffi();
+        $count = count($pks);
+        $cStrings = [];
+        $arr = $ffi->new("char*[$count]");
+        foreach ($pks as $i => $pk) {
+            $len = strlen($pk) + 1;
+            $cStr = $ffi->new("char[$len]", false);
+            FFI::memcpy($cStr, $pk, strlen($pk));
+            $cStr[$len - 1] = "\0";
+            $cStrings[] = $cStr;
+            $arr[$i] = $cStr;
+        }
+
+        $result = $ffi->new('zvec_query_result_t');
+        $status = $ffi->zvec_collection_fetch($this->handle, $arr, $count, FFI::addr($result));
+        foreach ($cStrings as $cStr) {
+            FFI::free($cStr);
+        }
+        self::checkStatus($status);
+
+        $docs = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $docs[] = new ZVecDoc($result->docs[$i], true);
+        }
+        $ffi->zvec_query_result_free_array(FFI::addr($result));
+
+        return $docs;
+    }
+
+    public const QUERY_PARAM_NONE = 0;
+    public const QUERY_PARAM_HNSW = 1;
+    public const QUERY_PARAM_IVF = 2;
+    public const QUERY_PARAM_FLAT = 3;
+
+    public const LOG_CONSOLE = 0;
+    public const LOG_FILE = 1;
+
+    public const LOG_DEBUG = 0;
+    public const LOG_INFO = 1;
+    public const LOG_WARN = 2;
+    public const LOG_ERROR = 3;
+    public const LOG_FATAL = 4;
+
+    public static function init(
+        int $logType = self::LOG_CONSOLE,
+        int $logLevel = self::LOG_WARN,
+        ?string $logDir = null,
+        ?string $logBasename = null,
+        int $logFileSize = 0,
+        int $logOverdueDays = 0,
+        int $queryThreads = 0,
+        int $optimizeThreads = 0,
+        float $invertToForwardScanRatio = 0.0,
+        float $bruteForceByKeysRatio = 0.0,
+        int $memoryLimitMb = 0
+    ): void {
+        self::checkStatus(self::ffi()->zvec_init(
+            $logType, $logLevel,
+            $logDir, $logBasename,
+            $logFileSize, $logOverdueDays,
+            $queryThreads, $optimizeThreads,
+            $invertToForwardScanRatio,
+            $bruteForceByKeysRatio,
+            $memoryLimitMb
+        ));
+    }
+
+    /**
+     * @param float[] $queryVector
+     * @param string[]|null $outputFields
+     * @return ZVecDoc[]
+     */
+    public function query(
+        string $fieldName,
+        array $queryVector,
+        int $topk = 10,
+        bool $includeVector = false,
+        ?string $filter = null,
+        ?array $outputFields = null,
+        int $queryParamType = self::QUERY_PARAM_NONE,
+        int $hnswEf = 200,
+        int $ivfNprobe = 10
+    ): array {
+        $ffi = self::ffi();
+        $dim = count($queryVector);
+        $vecData = $ffi->new("float[$dim]");
+        foreach ($queryVector as $i => $v) {
+            $vecData[$i] = $v;
+        }
+
+        $result = $ffi->new('zvec_query_result_t');
+
+        if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
+            $ofArr = null;
+            $ofCount = -1;
+            $ofCStrings = [];
+            if ($outputFields !== null) {
+                $ofCount = count($outputFields);
+                $ofArr = $ffi->new("char*[$ofCount]");
+                foreach ($outputFields as $i => $f) {
+                    $len = strlen($f) + 1;
+                    $cStr = $ffi->new("char[$len]", false);
+                    FFI::memcpy($cStr, $f, strlen($f));
+                    $cStr[$len - 1] = "\0";
+                    $ofCStrings[] = $cStr;
+                    $ofArr[$i] = $cStr;
+                }
+            }
+
+            $status = $ffi->zvec_collection_query_ex(
+                $this->handle, $fieldName, $vecData, $dim,
+                $topk, $includeVector ? 1 : 0, $filter ?? '',
+                $ofArr, $ofCount,
+                $queryParamType, $hnswEf, $ivfNprobe,
+                FFI::addr($result)
+            );
+
+            foreach ($ofCStrings as $cStr) {
+                FFI::free($cStr);
+            }
+        } else {
+            $status = $ffi->zvec_collection_query(
+                $this->handle, $fieldName, $vecData, $dim,
+                $topk, $includeVector ? 1 : 0, $filter ?? '',
+                FFI::addr($result)
+            );
+        }
+        self::checkStatus($status);
+
+        $docs = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $docs[] = new ZVecDoc($result->docs[$i], true);
+        }
+        $ffi->zvec_query_result_free_array(FFI::addr($result));
+
+        return $docs;
+    }
+
+    /**
+     * @param string[]|null $outputFields
+     * @return ZVecDoc[]
+     */
+    public function queryByFilter(string $filter, int $topk = 100, ?array $outputFields = null): array
+    {
+        $ffi = self::ffi();
+        $result = $ffi->new('zvec_query_result_t');
+
+        if ($outputFields !== null) {
+            $ofCount = count($outputFields);
+            $ofArr = $ffi->new("char*[$ofCount]");
+            $ofCStrings = [];
+            foreach ($outputFields as $i => $f) {
+                $len = strlen($f) + 1;
+                $cStr = $ffi->new("char[$len]", false);
+                FFI::memcpy($cStr, $f, strlen($f));
+                $cStr[$len - 1] = "\0";
+                $ofCStrings[] = $cStr;
+                $ofArr[$i] = $cStr;
+            }
+
+            $status = $ffi->zvec_collection_query_filter_ex(
+                $this->handle, $filter, $topk,
+                $ofArr, $ofCount,
+                FFI::addr($result)
+            );
+
+            foreach ($ofCStrings as $cStr) {
+                FFI::free($cStr);
+            }
+        } else {
+            $status = $ffi->zvec_collection_query_filter($this->handle, $filter, $topk, FFI::addr($result));
+        }
+        self::checkStatus($status);
+
+        $docs = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $docs[] = new ZVecDoc($result->docs[$i], true);
+        }
+        $ffi->zvec_query_result_free_array(FFI::addr($result));
+
+        return $docs;
+    }
+
+    /**
+     * @param float[] $queryVector
+     * @param string[]|null $outputFields
+     * @return array<array{group_value: string, docs: ZVecDoc[]}>
+     */
+    public function groupByQuery(
+        string $fieldName,
+        array $queryVector,
+        string $groupByField,
+        int $groupCount = 2,
+        int $groupTopk = 3,
+        bool $includeVector = false,
+        ?string $filter = null,
+        ?array $outputFields = null,
+        int $queryParamType = self::QUERY_PARAM_NONE,
+        int $hnswEf = 200,
+        int $ivfNprobe = 10
+    ): array {
+        $ffi = self::ffi();
+        $dim = count($queryVector);
+        $vecData = $ffi->new("float[$dim]");
+        foreach ($queryVector as $i => $v) {
+            $vecData[$i] = $v;
+        }
+
+        $ofArr = null;
+        $ofCount = -1;
+        $ofCStrings = [];
+        if ($outputFields !== null) {
+            $ofCount = count($outputFields);
+            $ofArr = $ffi->new("char*[$ofCount]");
+            foreach ($outputFields as $i => $f) {
+                $len = strlen($f) + 1;
+                $cStr = $ffi->new("char[$len]", false);
+                FFI::memcpy($cStr, $f, strlen($f));
+                $cStr[$len - 1] = "\0";
+                $ofCStrings[] = $cStr;
+                $ofArr[$i] = $cStr;
+            }
+        }
+
+        $result = $ffi->new('zvec_group_results_t');
+        $status = $ffi->zvec_collection_group_by_query(
+            $this->handle, $fieldName, $vecData, $dim,
+            $groupByField, $groupCount, $groupTopk,
+            $includeVector ? 1 : 0, $filter ?? '',
+            $ofArr, $ofCount,
+            $queryParamType, $hnswEf, $ivfNprobe,
+            FFI::addr($result)
+        );
+
+        foreach ($ofCStrings as $cStr) {
+            FFI::free($cStr);
+        }
+        self::checkStatus($status);
+
+        $groups = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $group = $result->groups[$i];
+            $gv = $group->group_by_value;
+            $groupValue = is_string($gv) ? $gv : FFI::string($gv);
+            $docs = [];
+            for ($j = 0; $j < $group->count; $j++) {
+                $docs[] = new ZVecDoc($group->docs[$j], true);
+            }
+            $groups[] = ['group_value' => $groupValue, 'docs' => $docs];
+        }
+        $ffi->zvec_group_results_free(FFI::addr($result));
+
+        return $groups;
+    }
+
+    public function stats(): string
+    {
+        $ffi = self::ffi();
+        $buf = $ffi->new('char[4096]');
+        self::checkStatus($ffi->zvec_collection_stats($this->handle, $buf, 4096));
+        return FFI::string($buf);
+    }
+}
+
+class ZVecSchema
+{
+    private FFI\CData $handle;
+
+    public function __construct(string $name)
+    {
+        $this->handle = self::ffi()->zvec_schema_create($name);
+    }
+
+    public function __destruct()
+    {
+        self::ffi()->zvec_schema_free($this->handle);
+    }
+
+    public function getHandle(): FFI\CData
+    {
+        return $this->handle;
+    }
+
+    public function setMaxDocCountPerSegment(int $count): self
+    {
+        self::ffi()->zvec_schema_set_max_doc_count_per_segment($this->handle, $count);
+        return $this;
+    }
+
+    public function addInt64(string $name, bool $nullable = false, bool $withInvertIndex = false): self
+    {
+        self::ffi()->zvec_schema_add_field_int64($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
+        return $this;
+    }
+
+    public function addString(string $name, bool $nullable = false, bool $withInvertIndex = false): self
+    {
+        self::ffi()->zvec_schema_add_field_string($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
+        return $this;
+    }
+
+    public function addFloat(string $name, bool $nullable = true): self
+    {
+        self::ffi()->zvec_schema_add_field_float($this->handle, $name, $nullable ? 1 : 0);
+        return $this;
+    }
+
+    public function addDouble(string $name, bool $nullable = true): self
+    {
+        self::ffi()->zvec_schema_add_field_double($this->handle, $name, $nullable ? 1 : 0);
+        return $this;
+    }
+
+    public const METRIC_L2 = 1;
+    public const METRIC_IP = 2;
+    public const METRIC_COSINE = 3;
+
+    public function addVectorFp32(string $name, int $dimension, int $metricType = self::METRIC_IP): self
+    {
+        self::ffi()->zvec_schema_add_field_vector_fp32($this->handle, $name, $dimension, $metricType);
+        return $this;
+    }
+
+    public function addSparseVectorFp32(string $name, int $metricType = self::METRIC_IP): self
+    {
+        self::ffi()->zvec_schema_add_field_sparse_vector_fp32($this->handle, $name, $metricType);
+        return $this;
+    }
+
+    private static function ffi(): FFI
+    {
+        return (new ReflectionClass(ZVec::class))->getMethod('ffi')->invoke(null);
+    }
+}
+
+class ZVecDoc
+{
+    private FFI\CData $handle;
+    private bool $ownsHandle;
+
+    public function __construct(FFI\CData|string $handleOrPk, bool $ownsHandle = true)
+    {
+        if (is_string($handleOrPk)) {
+            $this->handle = self::ffi()->zvec_doc_create($handleOrPk);
+            $this->ownsHandle = true;
+        } else {
+            $this->handle = $handleOrPk;
+            $this->ownsHandle = $ownsHandle;
+        }
+    }
+
+    public function __destruct()
+    {
+        if ($this->ownsHandle) {
+            self::ffi()->zvec_doc_free($this->handle);
+        }
+    }
+
+    public function getHandle(): FFI\CData
+    {
+        return $this->handle;
+    }
+
+    public function setInt64(string $field, int $value): self
+    {
+        self::ffi()->zvec_doc_set_int64($this->handle, $field, $value);
+        return $this;
+    }
+
+    public function setString(string $field, string $value): self
+    {
+        self::ffi()->zvec_doc_set_string($this->handle, $field, $value);
+        return $this;
+    }
+
+    public function setFloat(string $field, float $value): self
+    {
+        self::ffi()->zvec_doc_set_float($this->handle, $field, $value);
+        return $this;
+    }
+
+    public function setDouble(string $field, float $value): self
+    {
+        self::ffi()->zvec_doc_set_double($this->handle, $field, $value);
+        return $this;
+    }
+
+    /**
+     * @param float[] $vector
+     */
+    public function setVectorFp32(string $field, array $vector): self
+    {
+        $ffi = self::ffi();
+        $dim = count($vector);
+        $data = $ffi->new("float[$dim]");
+        foreach ($vector as $i => $v) {
+            $data[$i] = $v;
+        }
+        $ffi->zvec_doc_set_vector_fp32($this->handle, $field, $data, $dim);
+        return $this;
+    }
+
+    public function getPk(): string
+    {
+        $result = self::ffi()->zvec_doc_get_pk($this->handle);
+        if (is_string($result)) {
+            return $result;
+        }
+        return FFI::string($result);
+    }
+
+    public function getScore(): float
+    {
+        return self::ffi()->zvec_doc_get_score($this->handle);
+    }
+
+    public function getInt64(string $field): ?int
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('int64_t');
+        if ($ffi->zvec_doc_get_int64($this->handle, $field, FFI::addr($out))) {
+            return $out->cdata;
+        }
+        return null;
+    }
+
+    public function getString(string $field): ?string
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('char*');
+        if ($ffi->zvec_doc_get_string($this->handle, $field, FFI::addr($out))) {
+            return FFI::string($out);
+        }
+        return null;
+    }
+
+    public function getFloat(string $field): ?float
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('float');
+        if ($ffi->zvec_doc_get_float($this->handle, $field, FFI::addr($out))) {
+            return $out->cdata;
+        }
+        return null;
+    }
+
+    /**
+     * @return float[]|null
+     */
+    public function getVectorFp32(string $field): ?array
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('float*');
+        $dim = $ffi->new('uint32_t');
+        if ($ffi->zvec_doc_get_vector_fp32($this->handle, $field, FFI::addr($out), FFI::addr($dim))) {
+            $result = [];
+            for ($i = 0; $i < $dim->cdata; $i++) {
+                $result[] = $out[$i];
+            }
+            return $result;
+        }
+        return null;
+    }
+
+    private static function ffi(): FFI
+    {
+        return (new ReflectionClass(ZVec::class))->getMethod('ffi')->invoke(null);
+    }
+}

@@ -1,0 +1,11 @@
+build/
+tmp/
+*.dylib
+*.so
+*.o
+.DS_Store
+composer.lock
+vendor/
+zvec/
+cmake-3.28.3-macos-universal/
+ffi/build/
