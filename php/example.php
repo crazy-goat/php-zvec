@@ -112,6 +112,22 @@ $collection->optimize();
 echo "Switched back to HNSW.\n\n";
 
 // ============================================================
+// 6b. QUANTIZED INDEX
+// ============================================================
+echo "=== 6b. Quantized Index (INT8) ===\n";
+$collection->dropIndex('embedding');
+$collection->createHnswIndex('embedding', metricType: ZVecSchema::METRIC_IP, m: 16, efConstruction: 100, quantizeType: ZVec::QUANTIZE_INT8);
+$collection->optimize();
+echo "Created HNSW index with INT8 quantization (4x smaller).\n";
+$results = $collection->query('embedding', [0.1, 0.2, 0.3, 0.4], topk: 3);
+foreach ($results as $doc) {
+    echo "  pk={$doc->getPk()} score={$doc->getScore()}\n";
+}
+$collection->dropIndex('embedding');
+$collection->createHnswIndex('embedding', metricType: ZVecSchema::METRIC_IP);  // Restore original
+echo "Restored original non-quantized HNSW index.\n\n";
+
+// ============================================================
 // 7. QUERY - single vector
 // ============================================================
 echo "=== 7. Single-Vector Search ===\n";

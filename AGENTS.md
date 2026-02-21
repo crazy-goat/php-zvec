@@ -169,57 +169,90 @@ $collection->alterColumn('value', newDataType: ZVec::TYPE_FLOAT, nullable: true)
 - The FFI shared library must be at the path expected by `ZVec.php`
   (currently `__DIR__ . '/../ffi/build/libzvec_ffi.dylib'`).
 
-## Useful Resources
+## API Consistency
 
-When unsure about API behavior, implementation details, or feature requirements, consult the official zvec documentation first.
+When implementing new features, maintain consistency with the official zvec SDKs:
 
-### Documentation Links
+### Reference Implementations
 
-- [Node.js API Reference](https://zvec.org/api-reference/nodejs/) - Reference implementation for API patterns
-- [Configuration Docs](https://zvec.org/en/docs/config/) - zvec configuration options
-- [Collections Docs](https://zvec.org/en/docs/collections/) - Collection management documentation
-- [Data Operations Docs](https://zvec.org/en/docs/data-operations/) - CRUD and query operations
+1. **Node.js API** (https://zvec.org/api-reference/nodejs/)
+   - Best reference for TypeScript/JavaScript API patterns
+   - Shows exact enum values, parameter names, default values
+   - Example: `ZVecQuantizeType = { UNDEFINED: 0, FP16: 1, INT8: 2, INT4: 3 }`
 
-## Workflow Guidelines
+2. **Python SDK** (`zvec/python/zvec/`)
+   - Check `model/param/` for parameter classes (HnswIndexParam, etc.)
+   - Check `typing/` for enum definitions
+   - Check `tests/` for usage examples and edge cases
 
-### Release Command (`/release` or "wydaj wersję")
+3. **C++ API** (`zvec/src/include/zvec/db/`)
+   - Verify what the C++ layer actually supports
+   - Check constructors in `index_params.h`, `options.h`
+   - Confirm enum values in `type.h`
 
-When user requests a release, follow this procedure:
+### Keeping PHP API Compatible
 
-1. **Ask for version type** if not specified:
-   - **Major** (breaking changes): 1.x → 2.0.0
-   - **Minor** (new features): 1.2.x → 1.3.0
-   - Default to minor if user is unsure
+- Use identical enum values (e.g., `QUANTIZE_INT8 = 2` matches Node.js/Python)
+- Use similar method names (camelCase in PHP vs snake_case in Python)
+- Maintain same default values when applicable
+- Document any intentional deviations
 
-2. **Calculate new version** based on current git tags:
-   ```bash
-   git describe --tags --abbrev=0  # get current version
-   ```
+## Task Planning & Documentation
 
-3. **Update CHANGELOG.md** (create if doesn't exist):
-   - Add new section with version and date
-   - List changes since last tag (from git log or ask user)
+### Todo Directory Structure
 
-4. **Create git commit**:
-   ```bash
-   git add CHANGELOG.md
-   git commit -m "chore: release vX.Y.Z"
-   ```
+The `todo/` directory contains numbered task files (e.g., `01_ivf_index_creation.md`, `02_quantize_type.md`). Each task file should follow this format:
 
-5. **Create git tag**:
-   ```bash
-   git tag -a vX.Y.Z -m "Release vX.Y.Z"
-   ```
+```markdown
+# Task Title
 
-6. **NEVER do `git push`** - user must push manually
+## Priority: HIGH | MEDIUM | LOW
 
-### Git Commits
+## Status: TODO | DONE
 
-- **Never commit without explicit user request**. Always ask before creating commits.
-- When asked to commit, follow the standard git workflow described in system instructions.
-- Keep commit messages concise and descriptive, following conventional commits format:
-  - `feat:` for new features
-  - `fix:` for bug fixes  
-  - `docs:` for documentation
-  - `refactor:` for code refactoring
-  - `test:` for test changes
+## Difficulty: N/5 ⭐ (1-5 scale)
+
+## Description
+Brief explanation of what needs to be done.
+
+## Implementation
+
+### FFI Layer (ffi/zvec_ffi.h/.cc)
+- List changes needed in C++ wrapper
+
+### PHP Layer (php/ZVec.php)
+- List PHP changes
+- Constants to add
+- Method signatures
+
+### Tests
+- Test cases to add
+
+## Notes
+Any important limitations or dependencies.
+```
+
+### Before Implementation Checklist
+
+Before starting a new feature:
+
+1. **Check zvec documentation**: https://zvec.org/en/docs/
+2. **Check Node.js API**: https://zvec.org/api-reference/nodejs/ for reference implementation
+3. **Check Python SDK** in `zvec/python/zvec/` for actual implementation details
+4. **Look at C++ headers** in `zvec/src/include/zvec/db/` to verify what's supported
+
+### Example: Researching QuantizeType
+
+When implementing quantize type support:
+- Node.js API shows: `ZVecQuantizeType = { UNDEFINED: 0, FP16: 1, INT8: 2, INT4: 3 }`
+- Python SDK shows: `QuantizeType.UNDEFINED`, `.FP16`, `.INT8`, `.INT4`
+- C++ headers show: `QuantizeType` enum in `index_params.h`
+- This confirms: values 0-3, supported on all index types (HNSW, Flat, IVF)
+
+### Test Task Format
+
+Tasks for test migration should specify:
+- Which scenarios from `example.php` to migrate
+- Group tests by documentation category (Collections, Data Operations, etc.)
+- Dependencies on other tasks
+- Estimated difficulty (tests are usually 1-2⭐)

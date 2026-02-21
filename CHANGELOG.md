@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-21
+
+### Added
+
+- **QuantizeType Support** (#02)
+  - Added `$quantizeType` parameter to `createHnswIndex()` and `createFlatIndex()` methods
+  - New constants: `QUANTIZE_UNDEFINED=0`, `QUANTIZE_FP16=1`, `QUANTIZE_INT8=2`, `QUANTIZE_INT4=3`
+  - Enables vector compression for smaller indexes (FP16=2x smaller, INT8=4x, INT4=8x)
+  - FFI functions updated: `zvec_collection_create_hnsw_index()`, `zvec_collection_create_flat_index()`
+  - Test scenario added in `php/example.php` (scenario 6b)
+
+- **AGENTS.md Documentation** 
+  - Added API Consistency section with reference implementations (Node.js, Python, C++)
+  - Added Task Planning & Documentation section
+  - Added workflow guidelines for test migration tasks
+
+- **Test Suite Planning** (Tasks #18-23)
+  - Created 6 new task files for test migration from `example.php`
+  - Organized by documentation categories: Collections, Schema Evolution, Data Operations, Query Operations, Document Operations, Utility
+
+### Changed
+
+- Updated `todo/02_quantize_type.md` status to DONE
+
 ## [0.2.0] - 2026-02-21
 
 ### Added
@@ -75,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.0
 [0.2.0]: https://github.com/alibaba/zvec-php/releases/tag/v0.2.0
 [0.1.0]: https://github.com/alibaba/zvec-php/releases/tag/v0.1.0

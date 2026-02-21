@@ -37,6 +37,16 @@ static MetricType to_metric_type(uint32_t v) {
     }
 }
 
+static QuantizeType to_quantize_type(uint32_t v) {
+    switch (v) {
+        case 0: return QuantizeType::UNDEFINED;
+        case 1: return QuantizeType::FP16;
+        case 2: return QuantizeType::INT8;
+        case 3: return QuantizeType::INT4;
+        default: return QuantizeType::UNDEFINED;
+    }
+}
+
 // --- Init ---
 
 zvec_status_t zvec_init(int log_type, int log_level,
@@ -301,15 +311,15 @@ zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const 
     return make_status(c->CreateIndex(field_name, params));
 }
 
-zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction) {
+zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type) {
     auto* c = static_cast<Collection*>(coll);
-    auto params = std::make_shared<HnswIndexParams>(to_metric_type(metric_type), m, ef_construction);
+    auto params = std::make_shared<HnswIndexParams>(to_metric_type(metric_type), m, ef_construction, to_quantize_type(quantize_type));
     return make_status(c->CreateIndex(field_name, params));
 }
 
-zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type) {
+zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type) {
     auto* c = static_cast<Collection*>(coll);
-    auto params = std::make_shared<FlatIndexParams>(to_metric_type(metric_type));
+    auto params = std::make_shared<FlatIndexParams>(to_metric_type(metric_type), to_quantize_type(quantize_type));
     return make_status(c->CreateIndex(field_name, params));
 }
 

@@ -2,7 +2,7 @@
 
 ## Priority: HIGH
 
-## Status: TODO
+## Status: ✅ DONE
 
 ## Description
 
@@ -17,31 +17,66 @@ collection.create_index("embedding", HnswIndexParam(
     metric_type=MetricType.IP,
     m=50,
     ef_construction=500,
-    quantize_type=QuantizeType.INT8  # <-- this is missing
+    quantize_type=QuantizeType.INT8
 ))
 ```
 
 ## QuantizeType enum values
 
-- `UNDEFINED` (0) — no quantization (current default)
+- `UNDEFINED` (0) — no quantization (default)
 - `FP16` (1)
 - `INT8` (2)
 - `INT4` (3)
 
-## Changes needed
+## Implementation
 
 ### ffi/zvec_ffi.h
-- Add `quantize_type` param to `zvec_collection_create_hnsw_index`
-- Add `quantize_type` param to `zvec_collection_create_flat_index`
-- Add `quantize_type` param to `zvec_collection_create_ivf_index` (if task 01 done)
+- ✅ Added `uint32_t quantize_type` param to `zvec_collection_create_hnsw_index()`
+- ✅ Added `uint32_t quantize_type` param to `zvec_collection_create_flat_index()`
 
 ### ffi/zvec_ffi.cc
-- Check `HnswIndexParams`, `FlatIndexParams` constructors for quantize_type support
-- Map uint32_t to `QuantizeType` enum
+- ✅ Added `to_quantize_type()` mapping function to convert uint32_t to `QuantizeType` enum
+- ✅ Updated `zvec_collection_create_hnsw_index()` to pass quantize_type to `HnswIndexParams` constructor
+- ✅ Updated `zvec_collection_create_flat_index()` to pass quantize_type to `FlatIndexParams` constructor
 
 ### php/ZVec.php
-- Add `$quantizeType` param to `createHnswIndex()`, `createFlatIndex()`, `createIvfIndex()`
-- Add constants: `QUANTIZE_UNDEFINED`, `QUANTIZE_FP16`, `QUANTIZE_INT8`, `QUANTIZE_INT4`
+- ✅ Added constants:
+  - `QUANTIZE_UNDEFINED = 0`
+  - `QUANTIZE_FP16 = 1`
+  - `QUANTIZE_INT8 = 2`
+  - `QUANTIZE_INT4 = 3`
+- ✅ Added `$quantizeType = 0` parameter to `createHnswIndex()` method
+- ✅ Added `$quantizeType = 0` parameter to `createFlatIndex()` method
+- ✅ Updated FFI cdef declarations to include quantize_type parameter
 
 ### php/example.php
-- Test creating index with quantization
+- ✅ Added scenario 6b: "Quantized Index (INT8)" test case
+
+## Usage Example
+
+```php
+// Create HNSW index with INT8 quantization (4x smaller index)
+$collection->createHnswIndex(
+    fieldName: 'embedding',
+    metricType: ZVecSchema::METRIC_IP,
+    m: 50,
+    efConstruction: 500,
+    quantizeType: ZVec::QUANTIZE_INT8
+);
+
+// Create Flat index with FP16 quantization (2x smaller)
+$collection->createFlatIndex(
+    fieldName: 'embedding',
+    metricType: ZVecSchema::METRIC_IP,
+    quantizeType: ZVec::QUANTIZE_FP16
+);
+```
+
+## Notes
+
+- Default value is `QUANTIZE_UNDEFINED` (0) = no quantization
+- IVF index support pending (task 01)
+- Quantization trades off some accuracy for significant storage savings:
+  - FP16: 2x smaller
+  - INT8: 4x smaller  
+  - INT4: 8x smaller

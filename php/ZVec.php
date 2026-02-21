@@ -71,8 +71,8 @@ class ZVec
                 zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable);
 
                 zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard);
-                zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction);
-                zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type);
+zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type);
+zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type);
                 zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name);
 
                 zvec_doc_t zvec_doc_create(const char* pk);
@@ -292,14 +292,14 @@ class ZVec
         self::checkStatus(self::ffi()->zvec_collection_create_invert_index($this->handle, $fieldName, $enableRange ? 1 : 0, $enableWildcard ? 1 : 0));
     }
 
-    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500): void
+    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500, int $quantizeType = 0): void
     {
-        self::checkStatus(self::ffi()->zvec_collection_create_hnsw_index($this->handle, $fieldName, $metricType, $m, $efConstruction));
+        self::checkStatus(self::ffi()->zvec_collection_create_hnsw_index($this->handle, $fieldName, $metricType, $m, $efConstruction, $quantizeType));
     }
 
-    public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP): void
+    public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $quantizeType = 0): void
     {
-        self::checkStatus(self::ffi()->zvec_collection_create_flat_index($this->handle, $fieldName, $metricType));
+        self::checkStatus(self::ffi()->zvec_collection_create_flat_index($this->handle, $fieldName, $metricType, $quantizeType));
     }
 
     public function dropIndex(string $fieldName): void
@@ -420,6 +420,12 @@ class ZVec
     public const TYPE_UINT64 = 7;
     public const TYPE_FLOAT = 8;
     public const TYPE_DOUBLE = 9;
+
+    // Quantize types for index creation
+    public const QUANTIZE_UNDEFINED = 0;
+    public const QUANTIZE_FP16 = 1;
+    public const QUANTIZE_INT8 = 2;
+    public const QUANTIZE_INT4 = 3;
 
     public static function init(
         int $logType = self::LOG_CONSOLE,
