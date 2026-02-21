@@ -64,28 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PHP 8.1+ required
 - Sparse vector data operations not yet implemented (schema definition only)
 
-## Todo / Planned Features
-
-See `todo/` directory for detailed feature planning:
-
-- [x] Doc introspection methods (#08) ✅
-- [ ] IVF index creation (#01)
-- [ ] QuantizeType support on index creation (#02)
-- [ ] Concurrency options (#03)
-- [ ] Additional scalar data types (#04)
-- [ ] Multi-vector query (#05)
-- [ ] Extended HNSW query params (#06)
-- [ ] Alter column field schema (#07)
-- [ ] Extensions: rerankers (#09)
-- [ ] Extensions: embeddings (#10)
-- [ ] Vector query by ID (#11)
-- [ ] Vector query object (#12)
-- [ ] Add column STRING and BOOL (#13)
-- [ ] Sparse vector data operations (#14)
-- [ ] Segment options (#15)
-- [ ] Per-doc status on batch ops (#16)
-- [ ] Reranker in query (#17)
-
 ---
 
 [Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.1.0...HEAD

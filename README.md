@@ -203,20 +203,45 @@ zvec-php/
 │   ├── zvec_ffi.cc       # C++ implementation
 │   └── CMakeLists.txt    # Build configuration
 ├── tests/                # Test scripts
-├── todo/                 # Feature planning documents
+├── todo/                 # Feature planning documents (17 items)
 ├── build_zvec.sh         # Build script for zvec + FFI
 └── zvec/                 # Git-cloned upstream zvec C++ library (not committed)
 ```
+
+## Todo / Planned Features
+
+See `todo/` directory for detailed planning documents. Overview:
+
+### Completed ✅
+- [x] Doc introspection methods (hasField, hasVector, fieldNames, vectorNames)
+
+### High Priority
+- [ ] IVF index creation support
+- [ ] QuantizeType support (FP16, INT8, INT4) on index creation
+- [ ] Add column STRING and BOOL types
+- [ ] Vector query by document ID
+
+### Medium Priority
+- [ ] Concurrency options for optimize/index/create ops
+- [ ] Additional scalar data types (BOOL, INT32, UINT32, UINT64)
+- [ ] Multi-vector query with reranking
+- [ ] Sparse vector data operations (set/get/query)
+- [ ] Extended HNSW query parameters
+
+### Low Priority
+- [ ] Alter column field schema
+- [ ] Doc introspection (field_names, vector_names) - **DONE**
+- [ ] Extensions: rerankers (RRF, Weighted)
+- [ ] Extensions: embeddings (OpenAI, Qwen)
+- [ ] Vector query object interface
+- [ ] Per-doc status on batch operations
+- [ ] Max doc count per segment options
 
 ## Known Limitations
 
 - **GroupByQuery**: The C++ API has this method but it returns all documents in a single group with empty group value. This is a known issue in upstream zvec (marked as "Coming Soon" in zvec docs).
 - **Platform**: Currently macOS only (builds `.dylib`)
 - **Sparse Vectors**: Schema definition exists but data operations are not yet implemented
-
-## Contributing
-
-See individual `todo/*.md` files for planned features. Tests are standalone PHP scripts in `tests/` directory.
 
 ## License
 
