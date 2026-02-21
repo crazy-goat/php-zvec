@@ -2,22 +2,43 @@
 
 ## Priority: MEDIUM
 
-## Status: ✅ DONE
-
-## Difficulty: 2/5 ⭐⭐
+## Status: ⚠️ NOT REPRODUCIBLE
 
 ## Summary
 
-Implemented defensive programming measures to handle cleanup after failed operations. While the original issues could not be reproduced in testing (likely fixed in zvec C++ layer), the following safeguards were added:
+Attempted to implement defensive programming for cleanup after failed operations. **Could not reproduce** the original issues in testing. Added safeguards as preventive measures only.
 
-## Implementation
+## Investigation Results
+
+After extensive testing (2025-02-21), **cleanup issues could not be reproduced**:
+- Failed insert → close (works)
+- Failed insert → destroy (works)
+- Failed insert → DDL → close (works)
+- Rapid create/fail/cleanup cycles (works)
+- Multiple collections with mixed failures (works)
+
+### Possible Explanations:
+1. Fixed in zvec C++ library update
+2. Specific conditions not captured in tests
+3. Platform-specific issue (tested on macOS only)
+
+## Defensive Measures Added
+
+While the bug wasn't confirmed, the following safeguards remain in code:
 
 ### Changes in `php/ZVec.php`:
 
-1. **Added `$dirty` flag** - tracks if collection is in inconsistent state after failed operation
-2. **Implemented `executeWithDirty()` helper** - marks operations as dirty before execution, clears on success
-3. **Protected all modifying operations** with dirty tracking:
-   - Data operations: `insert()`, `upsert()`, `update()`, `delete()`, `deleteByFilter()`
+1. **Added `$dirty` flag** - tracks potentially inconsistent state
+2. **Implemented `executeWithDirty()` helper** - marks operations, clears on success  
+3. **Protected modifying operations** with dirty tracking (data ops, DDL, indexes)
+4. **Made `close()` error-tolerant** - ignores FFI errors when closing
+5. **Safe destructor** - try-catch prevents segfaults during cleanup
+
+## Recommendation
+
+If issue resurfaces:
+- Use bug test templates (`bug_0005_cleanup_after_failed_ops.php`, `bug_0006_rocksdb_lock.php`)
+- Capture exact sequence, zvec version, debug logs, process state
    - Maintenance: `flush()`, `optimize()`, `destroy()`
    - Schema operations: `addColumn*()`, `dropColumn()`, `renameColumn()`, `alterColumn()`
    - Index operations: `createHnswIndex()`, `createFlatIndex()`, `createInvertIndex()`, `dropIndex()`
