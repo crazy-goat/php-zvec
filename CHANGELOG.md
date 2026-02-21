@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.9] - 2026-02-21
+## [0.3.10] - 2026-02-21
+
+### Added
+
+- **Document Field Access Tests** (#22) - LOW priority task
+  - New test: `test_doc_field_access.phpt` - validates all doc getter/setter methods
+  - Coverage: setInt64, setFloat, setDouble, setString, setVectorFp32
+  - Coverage: getInt64, getFloat, getDouble, getString, getVectorFp32
+  - Tests non-existent field access (returns null)
+  - Tests type coercion (wrong getter returns null)
+  - Total test count: 27 tests (26 PASS + 1 expected XFAIL)
+
+### Changed
+
+- **Task Status** (#22)
+  - Marked Document Operations Tests as DONE
+  - Both introspection and field access tests now complete
 
 ### Added
 

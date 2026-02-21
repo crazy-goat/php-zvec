@@ -2,7 +2,7 @@
 
 ## Priority: LOW
 
-## Status: TODO
+## Status: DONE
 
 ## Difficulty: 1/5 ⭐
 
@@ -10,11 +10,13 @@
 
 Test document field access and introspection methods.
 
-Part of: Test Suite Migration (split from task #18)
+Both tests now exist in `tests/` directory.
 
 ---
 
-## Test: test_doc_field_access.php
+## Test: test_doc_field_access.phpt
+
+### Status: ✅ DONE
 
 ### Coverage
 - set/get Int64, Float, Double, String
