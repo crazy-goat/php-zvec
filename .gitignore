@@ -9,3 +9,17 @@ vendor/
 zvec/
 cmake-3.28.3-macos-universal/
 ffi/build/
+
+# PHP test runner artifacts (php run-tests.php generates these)
+tests/*.diff
+tests/*.exp
+tests/*.log
+tests/*.out
+tests/*.sh
+*.phar
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/php.xml
+/.idea/vcs.xml
+/.idea/zvec-php.iml

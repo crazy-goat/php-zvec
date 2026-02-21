@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-02-21
+
+### Changed
+
+- **Bug Test Migration** (#27 extension)
+  - Migrated 6 bug reproduction files from `.php` to `.phpt` format
+  - New files: `bug_0001.phpt` through `bug_0006.phpt`
+  - Removed old `bug_*.php` files (6 files deleted)
+  - Updated `.gitignore` to ignore PHP test runner artifacts (*.diff, *.exp, *.log, *.out, *.sh)
+  - Marked 4 bugs as FIXED (removed XFAIL): bug_0001, bug_0003, bug_0005, bug_0006
+  - 1 bug remains XFAIL (bug_0002): GroupByQuery "Coming Soon" in zvec
+  - All 19 tests now pass consistently (18 PASS + 1 expected XFAIL)
+
 ## [0.3.5] - 2026-02-21
 
 ### Changed
