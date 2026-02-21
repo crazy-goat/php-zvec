@@ -1,12 +1,12 @@
+--TEST--
+Doc introspection: hasField, hasVector, fieldNames, vectorNames
+--SKIPIF--
+<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
+--FILE--
 <?php
-/**
- * Test Doc introspection methods
- */
-
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_introspection';
-if (is_dir($path)) exec("rm -rf " . escapeshellarg($path));
+$path = __DIR__ . '/../test_doc_introspection_' . uniqid();
 
 $schema = new ZVecSchema('test');
 $schema->setMaxDocCountPerSegment(1000)
@@ -72,7 +72,7 @@ exec("rm -rf " . escapeshellarg($path));
 
 // Verify
 $ok = true;
-if (!$doc->hasField('id')) { echo "FAIL: hasField('id') should be true\n"; $ok = false; }
+if (!$doc->hasField('id')) { echo "\nFAIL: hasField('id') should be true\n"; $ok = false; }
 if (!$doc->hasField('name')) { echo "FAIL: hasField('name') should be true\n"; $ok = false; }
 if ($doc->hasField('nonexistent')) { echo "FAIL: hasField('nonexistent') should be false\n"; $ok = false; }
 if (!$doc->hasVector('embedding')) { echo "FAIL: hasVector('embedding') should be true\n"; $ok = false; }
@@ -86,3 +86,35 @@ if ($ok) {
     echo "\nFAIL: Some tests failed\n";
     exit(1);
 }
+?>
+--EXPECT--
+=== Testing Doc Introspection ===
+
+hasField tests:
+  hasField('id'): true (expected: true)
+  hasField('name'): true (expected: true)
+  hasField('weight'): true (expected: true)
+  hasField('embedding'): true (expected: true)
+  hasField('nonexistent'): false (expected: false)
+
+hasVector tests:
+  hasVector('embedding'): true (expected: true)
+  hasVector('id'): false (expected: false)
+  hasVector('name'): false (expected: false)
+  hasVector('nonexistent'): false (expected: false)
+
+fieldNames():
+  Count: 3 (expected: 3 - id, name, weight)
+  Fields: weight, name, id
+
+vectorNames():
+  Count: 1 (expected: 1 - embedding)
+  Vectors: embedding
+
+=== Testing on retrieved doc ===
+hasField('name'): true
+hasVector('embedding'): true
+fieldNames(): id, name, weight
+vectorNames(): embedding
+
+PASS: All introspection methods work correctly

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-02-21
+
+### Changed
+
+- **Test Migration to .phpt Format** (#27) - Complete
+  - Migrated all 7 legacy `.php` test files to standard `.phpt` format
+  - New files: `test_alter_column.phpt`, `test_collection_create.phpt`, `test_collection_destroy.phpt`, `test_collection_open.phpt`, `test_collection_optimize.phpt`, `test_collection_persist.phpt`, `test_doc_introspection.phpt`
+  - Removed old `.php` test files (7 files deleted)
+  - All 13 `.phpt` tests now pass consistently
+  - Benefits: standardized format, integration with `php run-tests.php`, better reporting
+
 ## [0.3.4] - 2026-02-21
 
 ### Added
