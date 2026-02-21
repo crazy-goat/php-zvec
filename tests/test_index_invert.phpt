@@ -6,7 +6,7 @@ Inverted index: createInvertIndex, dropIndex, filter queries
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_index_invert_' . uniqid();
+$path = __DIR__ . '/../test_dbs/index_invert_' . uniqid();
 
 try {
     // Create schema without invert index initially

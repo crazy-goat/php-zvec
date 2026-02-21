@@ -6,7 +6,7 @@ Column drop: dropColumn operation and error cases
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_column_drop_' . uniqid();
+$path = __DIR__ . '/../test_dbs/column_drop_' . uniqid();
 
 try {
     $schema = new ZVecSchema('drop_test');

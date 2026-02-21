@@ -6,7 +6,7 @@ Alter column: rename, change data type, nullable flag
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_alter_column_' . uniqid();
+$path = __DIR__ . '/../test_dbs/alter_column_' . uniqid();
 
 $schema = new ZVecSchema('alter_test');
 $schema->setMaxDocCountPerSegment(1000)

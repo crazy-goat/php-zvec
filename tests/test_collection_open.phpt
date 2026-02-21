@@ -8,7 +8,7 @@ require_once __DIR__ . '/../php/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
-$path = __DIR__ . '/../test_collection_open_' . uniqid();
+$path = __DIR__ . '/../test_dbs/collection_open_' . uniqid();
 
 $schema = new ZVecSchema('open_test');
 $schema->setMaxDocCountPerSegment(1000)
@@ -52,7 +52,7 @@ try {
 $c3->close();
 
 // Try to open non-existent collection (should fail)
-$nonExistentPath = __DIR__ . '/../non_existent_collection_' . uniqid();
+$nonExistentPath = __DIR__ . '/../test_dbs/non_existent_collection_' . uniqid();
 try {
     $c4 = ZVec::open($nonExistentPath, readOnly: false);
     echo "FAIL: Should fail for non-existent path\n";

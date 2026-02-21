@@ -8,7 +8,7 @@ require_once __DIR__ . '/../php/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
-$path = __DIR__ . '/../test_closed_protection_' . uniqid();
+$path = __DIR__ . '/../test_dbs/closed_protection_' . uniqid();
 
 $schema = new ZVecSchema('closed_test');
 $schema->addInt64('id', nullable: false, withInvertIndex: true)

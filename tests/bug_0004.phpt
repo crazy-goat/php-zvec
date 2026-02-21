@@ -8,8 +8,8 @@ require_once __DIR__ . '/../php/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
-$path1 = __DIR__ . '/../test_threshold_500_' . uniqid();
-$path2 = __DIR__ . '/../test_threshold_1000_' . uniqid();
+$path1 = __DIR__ . '/../test_dbs/threshold_500_' . uniqid();
+$path2 = __DIR__ . '/../test_dbs/threshold_1000_' . uniqid();
 
 try {
     // Try to set below minimum threshold (should fail)

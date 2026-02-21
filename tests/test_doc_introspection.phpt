@@ -6,7 +6,7 @@ Doc introspection: hasField, hasVector, fieldNames, vectorNames
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_doc_introspection_' . uniqid();
+$path = __DIR__ . '/../test_dbs/doc_introspection_' . uniqid();
 
 $schema = new ZVecSchema('test');
 $schema->setMaxDocCountPerSegment(1000)

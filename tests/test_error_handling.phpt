@@ -30,7 +30,7 @@ try {
 }
 
 // Test 2: Insert with missing required fields
-$path1 = __DIR__ . '/../test_error_handling_1_' . uniqid();
+$path1 = __DIR__ . '/../test_dbs/error_handling_1_' . uniqid();
 try {
     $c = ZVec::create($path1, $schema);
     $doc = new ZVecDoc('doc1');
@@ -44,7 +44,7 @@ try {
 }
 
 // Test 3: Insert with wrong data type (vector dimension mismatch)
-$path2 = __DIR__ . '/../test_error_handling_2_' . uniqid();
+$path2 = __DIR__ . '/../test_dbs/error_handling_2_' . uniqid();
 $c = null;
 try {
     $c = ZVec::create($path2, $schema);

@@ -6,7 +6,7 @@ Column add: addColumnInt64, addColumnFloat, addColumnDouble with defaults
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_column_add_' . uniqid();
+$path = __DIR__ . '/../test_dbs/column_add_' . uniqid();
 
 try {
     $schema = new ZVecSchema('add_test');

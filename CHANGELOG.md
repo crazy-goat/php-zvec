@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.12] - 2026-02-21
+
+### Changed
+
+- **Test Database Directory** (#27) - LOW priority task
+  - Updated all 27 test files to use `test_dbs/` directory pattern
+  - Test paths changed from `test_*_` to `test_dbs/*_`
+  - Prevents clutter in repository root when tests fail
+  - All tests now consistently create databases in `test_dbs/` directory
+
+### Changed
+
+- **Task Status** (#27)
+  - Marked Test Database Directory task as DONE
+  - Moved task file from `tasks/todo/` to `tasks/done/`
+
 ## [0.3.11] - 2026-02-21
 
 ### Added

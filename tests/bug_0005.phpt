@@ -7,7 +7,7 @@ Bug 0005: Cleanup failure after failed insert causes segfault or lock errors (FI
 require_once __DIR__ . '/../php/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
-$path = __DIR__ . '/../test_cleanup_fail_' . uniqid();
+$path = __DIR__ . '/../test_dbs/cleanup_fail_' . uniqid();
 
 try {
     // Create schema with required field

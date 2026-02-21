@@ -6,7 +6,7 @@ Quantized indexes: QUANTIZE_INT8, QUANTIZE_FP16 for HNSW and Flat
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_index_quantized_' . uniqid();
+$path = __DIR__ . '/../test_dbs/index_quantized_' . uniqid();
 
 try {
     $schema = new ZVecSchema('quantized_test');

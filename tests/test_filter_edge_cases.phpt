@@ -8,7 +8,7 @@ require_once __DIR__ . '/../php/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
-$path = __DIR__ . '/../test_filter_edge_' . uniqid();
+$path = __DIR__ . '/../test_dbs/filter_edge_' . uniqid();
 
 try {
     $schema = new ZVecSchema('filter_test');

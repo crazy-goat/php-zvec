@@ -8,7 +8,7 @@ require_once __DIR__ . '/../php/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
-$path = __DIR__ . '/../test_destroy_segfault_' . uniqid();
+$path = __DIR__ . '/../test_dbs/destroy_segfault_' . uniqid();
 
 try {
     $schema = new ZVecSchema('segfault_test');

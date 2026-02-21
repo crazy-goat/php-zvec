@@ -6,7 +6,7 @@ Bug 0001: Column DDL after delete causes "recovery delete store failed" on reope
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_bug_0001_' . uniqid();
+$path = __DIR__ . '/../test_dbs/bug_0001_' . uniqid();
 
 try {
     $schema = new ZVecSchema('bug0001');

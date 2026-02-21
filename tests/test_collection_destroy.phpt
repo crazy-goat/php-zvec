@@ -8,7 +8,7 @@ require_once __DIR__ . '/../php/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
-$path = __DIR__ . '/../test_collection_destroy_' . uniqid();
+$path = __DIR__ . '/../test_dbs/collection_destroy_' . uniqid();
 
 $schema = new ZVecSchema('destroy_test');
 $schema->setMaxDocCountPerSegment(1000)

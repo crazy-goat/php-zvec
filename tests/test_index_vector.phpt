@@ -6,7 +6,7 @@ Vector index operations: createFlatIndex, createHnswIndex, dropIndex, switching
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_index_vector_' . uniqid();
+$path = __DIR__ . '/../test_dbs/index_vector_' . uniqid();
 
 try {
     // Create schema with vector field but no index initially

@@ -6,7 +6,7 @@ Column rename: renameColumn operation and error cases
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
 
-$path = __DIR__ . '/../test_column_rename_' . uniqid();
+$path = __DIR__ . '/../test_dbs/column_rename_' . uniqid();
 
 try {
     $schema = new ZVecSchema('rename_test');

@@ -9,7 +9,7 @@ require_once __DIR__ . '/../php/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
 // Test 1: Empty collection operations
-$path1 = __DIR__ . '/../test_schema_edge_empty_' . uniqid();
+$path1 = __DIR__ . '/../test_dbs/schema_edge_empty_' . uniqid();
 
 try {
     $schema1 = new ZVecSchema('empty_test');
@@ -39,7 +39,7 @@ try {
 }
 
 // Test 2: Collection with primarily scalar fields
-$path2 = __DIR__ . '/../test_schema_edge_scalar_' . uniqid();
+$path2 = __DIR__ . '/../test_dbs/schema_edge_scalar_' . uniqid();
 
 try {
     $schema2 = new ZVecSchema('scalar_test');
@@ -71,7 +71,7 @@ try {
 }
 
 // Test 3: Collection with primarily vector fields
-$path3 = __DIR__ . '/../test_schema_edge_vectors_' . uniqid();
+$path3 = __DIR__ . '/../test_dbs/schema_edge_vectors_' . uniqid();
 
 try {
     $schema3 = new ZVecSchema('vectors_test');
@@ -101,7 +101,7 @@ try {
 }
 
 // Test 4: Long field names
-$path4 = __DIR__ . '/../test_schema_edge_long_' . uniqid();
+$path4 = __DIR__ . '/../test_dbs/schema_edge_long_' . uniqid();
 
 try {
     $longFieldName = 'long_field_name_20_123';
@@ -132,7 +132,7 @@ try {
 }
 
 // Test 5: Unicode in field values
-$path5 = __DIR__ . '/../test_schema_edge_unicode_' . uniqid();
+$path5 = __DIR__ . '/../test_dbs/schema_edge_unicode_' . uniqid();
 
 try {
     $schema5 = new ZVecSchema('unicode_test');
