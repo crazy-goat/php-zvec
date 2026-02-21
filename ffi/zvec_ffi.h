@@ -53,8 +53,8 @@ void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* 
 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
 
 // Collection lifecycle
-zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, zvec_collection_t* out);
-zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, zvec_collection_t* out);
+zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
+zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
 void zvec_collection_free(zvec_collection_t coll);
 zvec_status_t zvec_collection_flush(zvec_collection_t coll);
 zvec_status_t zvec_collection_optimize(zvec_collection_t coll);
@@ -64,7 +64,7 @@ zvec_status_t zvec_collection_destroy(zvec_collection_t coll);
 zvec_status_t zvec_collection_stats(zvec_collection_t coll, char* buf, size_t buf_size);
 zvec_status_t zvec_collection_schema(zvec_collection_t coll, char* buf, size_t buf_size);
 zvec_status_t zvec_collection_path(zvec_collection_t coll, char* buf, size_t buf_size);
-zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap);
+zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap, uint32_t* max_buffer_size);
 
 // Schema evolution - Column DDL
 zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);

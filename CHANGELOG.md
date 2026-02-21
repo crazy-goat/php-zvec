@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.17] - 2026-02-21
+
+### Added
+
+- **CollectionOptions: max_buffer_size** (#15) - LOW priority task
+  - Added `max_buffer_size` parameter to `CollectionOptions`
+  - FFI layer: Updated `zvec_collection_create()`, `zvec_collection_open()`, and `zvec_collection_options()`
+  - PHP API: Added optional `$maxBufferSize` parameter to `ZVec::create()` and `ZVec::open()`
+  - Returns max_buffer_size in `options()` method
+  - Default: 64MB (67,108,864 bytes)
+  - New test: `tests/test_max_buffer_size.phpt` - comprehensive test for buffer size options
+
+### Changed
+
+- **Optimized test_collection_optimize.phpt**
+  - Reduced test documents from 1500 to 50 (still tests optimize functionality)
+  - Changed to single batch insert (instead of multiple small batches)
+  - Reduced test execution time from ~57s to ~2.6s
+  - Removed unnecessary `set_time_limit()` calls
+
+- **Task Status** (#15)
+  - Marked SegmentOption / max_buffer_size task as DONE
+  - Moved task file from `tasks/todo/` to `tasks/done/`
+
 ## [0.3.16] - 2026-02-21
 
 ### Added

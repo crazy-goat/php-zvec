@@ -58,8 +58,8 @@ class ZVec
                 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
                 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
 
-                zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, zvec_collection_t* out);
-                zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, zvec_collection_t* out);
+                zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
+                zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
                 void zvec_collection_free(zvec_collection_t coll);
                 zvec_status_t zvec_collection_flush(zvec_collection_t coll);
                 zvec_status_t zvec_collection_optimize(zvec_collection_t coll);
@@ -67,7 +67,7 @@ class ZVec
 
                 zvec_status_t zvec_collection_schema(zvec_collection_t coll, char* buf, size_t buf_size);
                 zvec_status_t zvec_collection_path(zvec_collection_t coll, char* buf, size_t buf_size);
-                zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap);
+                zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap, uint32_t* max_buffer_size);
 
                 zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
                 zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
@@ -195,20 +195,20 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         }
     }
 
-    public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true): self
+    public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 0): self
     {
         $ffi = self::ffi();
         $out = $ffi->new('zvec_collection_t');
-        $status = $ffi->zvec_collection_create($path, $schema->getHandle(), $readOnly ? 1 : 0, $enableMmap ? 1 : 0, FFI::addr($out));
+        $status = $ffi->zvec_collection_create($path, $schema->getHandle(), $readOnly ? 1 : 0, $enableMmap ? 1 : 0, $maxBufferSize, FFI::addr($out));
         self::checkStatus($status);
         return new self($out);
     }
 
-    public static function open(string $path, bool $readOnly = false, bool $enableMmap = true): self
+    public static function open(string $path, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 0): self
     {
         $ffi = self::ffi();
         $out = $ffi->new('zvec_collection_t');
-        $status = $ffi->zvec_collection_open($path, $readOnly ? 1 : 0, $enableMmap ? 1 : 0, FFI::addr($out));
+        $status = $ffi->zvec_collection_open($path, $readOnly ? 1 : 0, $enableMmap ? 1 : 0, $maxBufferSize, FFI::addr($out));
         self::checkStatus($status);
         return new self($out);
     }
@@ -270,7 +270,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
     }
 
     /**
-     * @return array{read_only: bool, enable_mmap: bool}
+     * @return array{read_only: bool, enable_mmap: bool, max_buffer_size: int}
      */
     public function options(): array
     {
@@ -278,10 +278,12 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         $ffi = self::ffi();
         $readOnly = $ffi->new('int');
         $enableMmap = $ffi->new('int');
-        self::checkStatus($ffi->zvec_collection_options($this->handle, FFI::addr($readOnly), FFI::addr($enableMmap)));
+        $maxBufferSize = $ffi->new('uint32_t');
+        self::checkStatus($ffi->zvec_collection_options($this->handle, FFI::addr($readOnly), FFI::addr($enableMmap), FFI::addr($maxBufferSize)));
         return [
             'read_only' => $readOnly->cdata !== 0,
             'enable_mmap' => $enableMmap->cdata !== 0,
+            'max_buffer_size' => (int)$maxBufferSize->cdata,
         ];
     }
 

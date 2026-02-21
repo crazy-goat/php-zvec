@@ -183,9 +183,9 @@ void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, u
 
 static std::vector<Collection::Ptr> g_collections;
 
-zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, zvec_collection_t* out) {
+zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out) {
     auto* s = static_cast<CollectionSchema*>(schema);
-    CollectionOptions opts{(bool)read_only, (bool)enable_mmap};
+    CollectionOptions opts{(bool)read_only, (bool)enable_mmap, max_buffer_size};
     auto result = Collection::CreateAndOpen(path, *s, opts);
     if (!result.has_value()) {
         *out = nullptr;
@@ -198,8 +198,8 @@ zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int
     return ok_status();
 }
 
-zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, zvec_collection_t* out) {
-    CollectionOptions opts{(bool)read_only, (bool)enable_mmap};
+zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out) {
+    CollectionOptions opts{(bool)read_only, (bool)enable_mmap, max_buffer_size};
     auto result = Collection::Open(path, opts);
     if (!result.has_value()) {
         *out = nullptr;
@@ -272,7 +272,7 @@ zvec_status_t zvec_collection_path(zvec_collection_t coll, char* buf, size_t buf
     return ok_status();
 }
 
-zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap) {
+zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap, uint32_t* max_buffer_size) {
     auto* c = static_cast<Collection*>(coll);
     auto res = c->Options();
     if (!res.has_value()) {
@@ -280,6 +280,7 @@ zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, in
     }
     *read_only = res.value().read_only_ ? 1 : 0;
     *enable_mmap = res.value().enable_mmap_ ? 1 : 0;
+    *max_buffer_size = res.value().max_buffer_size_;
     return ok_status();
 }
 

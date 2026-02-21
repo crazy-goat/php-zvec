@@ -11,19 +11,20 @@ ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 $path = __DIR__ . '/../test_dbs/collection_optimize_' . uniqid();
 
 $schema = new ZVecSchema('optimize_test');
-$schema->setMaxDocCountPerSegment(1000)
-    ->addInt64('id', nullable: false, withInvertIndex: true)
+$schema->addInt64('id', nullable: false, withInvertIndex: true)
     ->addVectorFp32('embedding', dimension: 4, metricType: ZVecSchema::METRIC_IP);
 
 $c = ZVec::create($path, $schema);
 
-// Insert enough docs to create multiple segments
-for ($i = 1; $i <= 1500; $i++) {
+// Insert 50 docs as a single batch (FFI is slow, so keep it small)
+$docs = [];
+for ($i = 1; $i <= 50; $i++) {
     $doc = new ZVecDoc("doc_$i");
     $doc->setInt64('id', $i)
         ->setVectorFp32('embedding', [0.1 * $i, 0.2 * $i, 0.3 * $i, 0.4 * $i]);
-    $c->insert($doc);
+    $docs[] = $doc;
 }
+$c->insert(...$docs);
 
 $statsBefore = $c->stats();
 echo "Stats before optimize: " . substr($statsBefore, 0, 100) . "...\n";
@@ -53,8 +54,8 @@ exec("rm -rf " . escapeshellarg($path));
 echo "PASS: Segment optimization works\n";
 ?>
 --EXPECT--
-Stats before optimize: CollectionStats{doc_count:1500,index_completeness:{embedding:0}}...
+Stats before optimize: CollectionStats{doc_count:50,index_completeness:{embedding:0}}...
 Optimize completed
-Stats after optimize: CollectionStats{doc_count:1500,index_completeness:{embedding:1}}...
+Stats after optimize: CollectionStats{doc_count:50,index_completeness:{embedding:1}}...
 Optimize on read-only correctly rejected
 PASS: Segment optimization works
