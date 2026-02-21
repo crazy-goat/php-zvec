@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.13] - 2026-02-21
+
+### Changed
+
+- **Task Status Updates**
+  - Marked #04 (Extra Data Types) as DONE - moved to tasks/done/
+  - Marked #20 (Data Operations Tests) as DONE - moved to tasks/done/
+  - Marked #22 (Document Operations Tests) as DONE - moved to tasks/done/
+  - Marked #24 (Test Framework Migration to .phpt) as DONE - moved to tasks/done/
+  - Verified all corresponding tests exist and pass (100% success rate)
+
 ## [0.3.12] - 2026-02-21
 
 ### Changed
