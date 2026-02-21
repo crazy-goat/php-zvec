@@ -67,6 +67,12 @@ zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const ch
 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name);
 zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name);
 
+// Alter column with field schema support (rename + optional type change)
+// data_type: 4=INT32, 5=INT64, 6=UINT32, 7=UINT64, 8=FLOAT, 9=DOUBLE
+// nullable: 0=false, 1=true
+// new_name: can be NULL or empty for no rename
+zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable);
+
 // Schema evolution - Index DDL
 zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard);
 zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction);

@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.1] - 2026-02-21
+## [0.2.0] - 2026-02-21
 
 ### Added
+
+- **Alter Column with Field Schema** (#07)
+  - `ZVec::alterColumn(string $columnName, ?string $newName = null, ?int $newDataType = null, ?bool $nullable = null): void` - Change column type (scalar numeric only) and/or rename
+  - Data type constants: `TYPE_INT32=4`, `TYPE_INT64=5`, `TYPE_UINT32=6`, `TYPE_UINT64=7`, `TYPE_FLOAT=8`, `TYPE_DOUBLE=9`
+  - FFI function: `zvec_collection_alter_column()`
+  - Test: `tests/test_alter_column.php`
+  - Limitations: Cannot rename and change type in one call; cannot change nullable: true → false
 
 - **Doc Introspection Methods** (#08)
   - `ZVecDoc::hasField(string $name): bool` - Check if scalar field exists
@@ -68,6 +75,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/alibaba/zvec-php/releases/tag/v0.1.1
+[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/alibaba/zvec-php/releases/tag/v0.2.0
 [0.1.0]: https://github.com/alibaba/zvec-php/releases/tag/v0.1.0

@@ -299,6 +299,21 @@ foreach ($fetched as $doc) {
     echo "  pk={$doc->getPk()} score_val={$doc->getInt64('score_val')}\n";
 }
 
+// Test alterColumn - change type from INT64 to FLOAT
+$collection->addColumnInt64('temp_val', nullable: true, defaultExpr: '100');
+echo "Added 'temp_val' column (INT64).\n";
+$fetched = $collection->fetch('doc_1');
+foreach ($fetched as $doc) {
+    echo "  pk={$doc->getPk()} temp_val={$doc->getInt64('temp_val')}\n";
+}
+
+$collection->alterColumn('temp_val', newDataType: ZVec::TYPE_FLOAT, nullable: true);
+echo "Altered 'temp_val' column: INT64 -> FLOAT.\n";
+$fetched = $collection->fetch('doc_1');
+foreach ($fetched as $doc) {
+    echo "  pk={$doc->getPk()} temp_val={$doc->getFloat('temp_val')}\n";
+}
+
 $collection->dropColumn('score_val');
 echo "Dropped 'score_val'.\n";
 echo "Schema: " . $collection->schema() . "\n\n";

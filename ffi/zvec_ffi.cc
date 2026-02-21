@@ -269,6 +269,32 @@ zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* 
     return make_status(c->AlterColumn(old_name, new_name));
 }
 
+zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable) {
+    auto* c = static_cast<Collection*>(coll);
+    c->Flush();
+    
+    // Convert data_type to DataType enum
+    DataType dt = DataType::UNDEFINED;
+    switch (data_type) {
+        case 4: dt = DataType::INT32; break;
+        case 5: dt = DataType::INT64; break;
+        case 6: dt = DataType::UINT32; break;
+        case 7: dt = DataType::UINT64; break;
+        case 8: dt = DataType::FLOAT; break;
+        case 9: dt = DataType::DOUBLE; break;
+        default: dt = DataType::UNDEFINED; break;
+    }
+    
+    FieldSchema::Ptr new_schema = nullptr;
+    if (dt != DataType::UNDEFINED) {
+        // FieldSchema needs the column name to identify which field to alter
+        new_schema = std::make_shared<FieldSchema>(std::string(column_name), dt, (bool)nullable);
+    }
+    
+    std::string rename_str = new_name ? new_name : "";
+    return make_status(c->AlterColumn(column_name, rename_str, new_schema));
+}
+
 zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard) {
     auto* c = static_cast<Collection*>(coll);
     auto params = std::make_shared<InvertIndexParams>((bool)enable_range, (bool)enable_wildcard);

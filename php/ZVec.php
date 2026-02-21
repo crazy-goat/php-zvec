@@ -68,6 +68,7 @@ class ZVec
                 zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
                 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name);
                 zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name);
+                zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable);
 
                 zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard);
                 zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction);
@@ -275,6 +276,17 @@ class ZVec
         self::checkStatus(self::ffi()->zvec_collection_rename_column($this->handle, $oldName, $newName));
     }
 
+    public function alterColumn(string $columnName, ?string $newName = null, ?int $newDataType = null, ?bool $nullable = null): void
+    {
+        // Data type constants for alter column (scalar numeric only)
+        // INT32 = 4, INT64 = 5, UINT32 = 6, UINT64 = 7, FLOAT = 8, DOUBLE = 9
+        $dataType = $newDataType ?? 0; // 0 = UNDEFINED (no type change)
+        $isNullable = $nullable === null ? 0 : ($nullable ? 1 : 0);
+        $rename = $newName ?? '';
+        
+        self::checkStatus(self::ffi()->zvec_collection_alter_column($this->handle, $columnName, $rename, $dataType, $isNullable));
+    }
+
     public function createInvertIndex(string $fieldName, bool $enableRange = true, bool $enableWildcard = false): void
     {
         self::checkStatus(self::ffi()->zvec_collection_create_invert_index($this->handle, $fieldName, $enableRange ? 1 : 0, $enableWildcard ? 1 : 0));
@@ -400,6 +412,14 @@ class ZVec
     public const LOG_WARN = 2;
     public const LOG_ERROR = 3;
     public const LOG_FATAL = 4;
+
+    // Data types for alterColumn (scalar numeric only)
+    public const TYPE_INT32 = 4;
+    public const TYPE_INT64 = 5;
+    public const TYPE_UINT32 = 6;
+    public const TYPE_UINT64 = 7;
+    public const TYPE_FLOAT = 8;
+    public const TYPE_DOUBLE = 9;
 
     public static function init(
         int $logType = self::LOG_CONSOLE,
@@ -799,6 +819,16 @@ class ZVecDoc
         $ffi = self::ffi();
         $out = $ffi->new('float');
         if ($ffi->zvec_doc_get_float($this->handle, $field, FFI::addr($out))) {
+            return $out->cdata;
+        }
+        return null;
+    }
+
+    public function getDouble(string $field): ?float
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('double');
+        if ($ffi->zvec_doc_get_double($this->handle, $field, FFI::addr($out))) {
             return $out->cdata;
         }
         return null;
