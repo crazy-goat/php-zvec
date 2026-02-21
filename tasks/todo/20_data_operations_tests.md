@@ -2,7 +2,7 @@
 
 ## Priority: MEDIUM
 
-## Status: TODO
+## Status: DONE
 
 ## Difficulty: 1/5 ⭐
 
@@ -13,6 +13,14 @@ Test CRUD operations: insert, upsert, update, delete, fetch.
 Part of: Test Suite Migration (split from task #18)
 
 Based on: https://zvec.org/en/docs/data-operations/
+
+**Tests created:**
+- `test_insert.phpt` - insert single/batch, duplicates, validation
+- `test_upsert.phpt` - upsert new/existing, batch mix
+- `test_update.phpt` - partial update, field preservation
+- `test_delete_by_id.phpt` - delete by primary key
+- `test_delete_by_filter.phpt` - delete by filter conditions
+- `test_fetch.phpt` - fetch by primary key
 
 ---
 

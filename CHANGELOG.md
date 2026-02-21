@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.11] - 2026-02-21
+
+### Added
+
+- **Data Operations Tests** (#20) - MEDIUM priority task
+  - New test: `test_insert.phpt` - insert single and batch documents, duplicate handling, validation
+  - New test: `test_upsert.phpt` - upsert new/existing documents, batch mix operations
+  - New test: `test_update.phpt` - partial field updates, field preservation verification
+  - New test: `test_delete_by_id.phpt` - delete by primary key (single/multiple IDs)
+  - New test: `test_delete_by_filter.phpt` - delete by filter conditions (category, score)
+  - New test: `test_fetch.phpt` - fetch by primary key (single/multiple, error handling)
+  - Total test count: 33 tests (32 PASS + 1 expected XFAIL)
+
+### Changed
+
+- **Task Status Updates**
+  - Marked #20 (Data Operations Tests) as DONE
+  - Marked #24 (Migrate to .phpt format) as DONE - all tests now use .phpt format
+
 ## [0.3.10] - 2026-02-21
 
 ### Added
