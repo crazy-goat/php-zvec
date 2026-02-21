@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-02-21
+
+### Added
+
+- **PHP Test Runner** - Added `run-tests.php` from php-src for running .phpt tests
+- **Utility Tests Suite** (#23) - Migrated 5 tests to .phpt format
+  - `test_error_handling.phpt` - Exception catching, invalid parameters, type validation
+  - `test_concurrent_ops.phpt` - Sequence of inserts and interleaved queries  
+  - `test_large_dataset.phpt` - 1500+ documents insertion and performance checks
+  - `test_schema_edge_cases.phpt` - Empty collections, unicode handling, long field names
+  - `test_filter_edge_cases.phpt` - Filter operators, case sensitivity, special characters
+  - All tests use try-finally cleanup and unique temp directories
+
+### Changed
+
+- **Documentation** - Updated AGENTS.md with Testing Requirements section
+  - Pre-commit Test Checklist (build, run tests, verify cleanup)
+  - Test Requirements for New Features
+  - Example .phpt test template
+  - Updated test commands for .phpt format
+
 ## [0.3.2] - 2026-02-21
 
 ### Added

@@ -33,21 +33,103 @@ then builds the FFI wrapper (`ffi/build/libzvec_ffi.dylib`). macOS only currentl
 php php/example.php
 ```
 
-### Run a single bug reproduction test
+### Run .phpt tests (standard PHP test format)
 
 ```bash
-php tests/bug_0001.php
-php tests/bug_0002.php
+# Run all phpt tests
+php run-tests.php tests/
+
+# Run single phpt test
+php run-tests.php tests/test_error_handling.phpt
+
+# Run with verbose output
+php run-tests.php -v tests/
 ```
 
-### Run all tests
+The `run-tests.php` script is bundled with this project (from php-src).
+It parses `.phpt` files and executes the PHP code within `--FILE--` sections.
+
+### Run legacy PHP test scripts
 
 ```bash
-php php/example.php && php tests/bug_0001.php && php tests/bug_0002.php
+# Run a single test
+php tests/test_error_handling.php
+
+# Run all tests (old format)
+for f in tests/*.php; do php "$f"; done
 ```
 
-There is no PHPUnit, no composer, no formal test runner. Tests are standalone PHP
-scripts that output `PASS:` / `FAIL:` and `exit(1)` on failure.
+### Run all tests (both formats)
+
+```bash
+# Build first if needed
+./build_zvec.sh
+
+# Run all tests
+php run-tests.php tests/ && php php/example.php
+```
+
+## Testing Requirements
+
+After every feature implementation, **ALL tests must pass** before the task is considered complete:
+
+### Pre-commit Test Checklist
+
+Before marking any task as DONE:
+
+1. **Build the FFI library** (if C++ changes):
+   ```bash
+   ./build_zvec.sh
+   ```
+
+2. **Run all .phpt tests**:
+   ```bash
+   php run-tests.php tests/
+   ```
+
+3. **Run integration tests**:
+   ```bash
+   php php/example.php
+   ```
+
+4. **Verify no test directories left behind**:
+   ```bash
+   ls -la | grep test_
+   # Should return nothing
+   ```
+
+### Test Requirements for New Features
+
+Every new feature MUST include:
+
+1. **Unit test(s)** in `tests/test_<feature>.phpt` format
+2. **Cleanup with `try-finally`** to prevent temp directory leaks
+3. **Unique temp directory names** using `uniqid()` to avoid conflicts
+4. **No segfaults or crashes** on error conditions
+
+### Example Test Template
+
+```php
+--TEST--
+Feature name: brief description
+--SKIPIF--
+<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
+--FILE--
+<?php
+require_once __DIR__ . '/../php/ZVec.php';
+ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
+
+$path = __DIR__ . '/../test_feature_' . uniqid();
+try {
+    // Test code here
+    echo "Feature works\n";
+} finally {
+    exec("rm -rf " . escapeshellarg($path));
+}
+?>
+--EXPECT--
+Feature works
+```
 
 ## No Lint/Static Analysis/CI
 
@@ -187,23 +269,20 @@ require_once __DIR__ . '/../php/ZVec.php';
 
 ### Test Conventions
 
-Current tests use standalone PHP scripts with `PASS:/FAIL:` output. **Planned migration to `.phpt` format** (task #24):
-
-**Current format (temporary):**
-- Test files are standalone PHP scripts in `tests/` or `php/example.php`.
-- Each test creates its own temp directory and cleans up with `exec("rm -rf ...")`.
-- Output format: `PASS: <test_id> - <description>` or `FAIL: <test_id> - <description>`.
-- Exit with code 1 on any failure.
+**Current format (.phpt):**
+- Test files use `.phpt` format in `tests/` directory
+- Each test uses `--TEST--`, `--SKIPIF--`, `--FILE--`, `--EXPECT--` sections
+- Run via `php run-tests.php tests/`
+- Each test creates unique temp directory with `uniqid()` and cleans up with `try-finally`
 - **Test naming:**
-  - `tests/bug_NNNN.php` (zero-padded 4-digit number) - bug reproduction scripts
-  - `tests/test_*.php` - feature/functionality tests (e.g., `test_alter_column.php`)
-- Bug reproductions go in `tests/bug_NNNN.php`.
-- New feature tests go in `tests/test_*.php`.
+  - `tests/bug_NNNN.php` (zero-padded 4-digit number) - bug reproduction scripts  
+  - `tests/test_*.phpt` - feature/functionality tests (e.g., `test_alter_column.phpt`)
 
-**Future format (task #24):**
-- Migrate to `.phpt` files with `--TEST--`, `--FILE--`, `--EXPECT--` sections
-- Run via `php run-tests.php` (standard PHP testing)
-- Better integration with PHP ecosystem and CI/CD
+**Legacy format (being migrated):**
+- Old tests use standalone PHP scripts with `PASS:/FAIL:` output
+- Each test creates its own temp directory and cleans up with `exec("rm -rf ...")`
+- Exit with code 1 on any failure
+- Will be migrated to `.phpt` format (task #24)
 
 ### Platform Notes
 
