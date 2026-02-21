@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.15] - 2026-02-21
+
+### Added
+
+- **IVF Index Creation** (#01) - HIGH priority task
+  - Added `createIvfIndex()` method for creating IVF (Inverted File) indexes
+  - Parameters: nList (clusters), nIters (k-means iterations), useSoar (optimization), quantizeType
+  - FFI layer: `zvec_collection_create_ivf_index()` function
+  - PHP API: `createIvfIndex(string $fieldName, int $metricType, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = 0)`
+  - Query support: `queryParamType: ZVec::QUERY_PARAM_IVF` with `ivfNprobe` parameter
+  - New test: `tests/test_ivf_index.phpt` - comprehensive test suite for IVF operations
+  - Total test count: 39 tests (38 PASS + 1 expected XFAIL)
+
+### Changed
+
+- **Task Status** (#01)
+  - Marked IVF Index Creation task as DONE
+  - Moved task file from `tasks/todo/` to `tasks/done/`
+
 ## [0.3.14] - 2026-02-21
 
 ### Added
@@ -349,7 +368,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.15...HEAD
+[0.3.15]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.15
+[0.3.14]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.14
+[0.3.13]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.13
+[0.3.12]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.12
+[0.3.11]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.11
+[0.3.10]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.10
+[0.3.9]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.9
+[0.3.8]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.8
+[0.3.7]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.7
+[0.3.6]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.6
+[0.3.5]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.5
+[0.3.4]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.4
+[0.3.3]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.3
+[0.3.2]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.2
 [0.3.1]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.1
 [0.3.0]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.0
 [0.2.0]: https://github.com/alibaba/zvec-php/releases/tag/v0.2.0

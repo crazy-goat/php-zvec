@@ -393,6 +393,12 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
     return make_status(c->CreateIndex(field_name, params));
 }
 
+zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type) {
+    auto* c = static_cast<Collection*>(coll);
+    auto params = std::make_shared<IVFIndexParams>(to_metric_type(metric_type), n_list, n_iters, (bool)use_soar, to_quantize_type(quantize_type));
+    return make_status(c->CreateIndex(field_name, params));
+}
+
 zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name) {
     auto* c = static_cast<Collection*>(coll);
     return make_status(c->DropIndex(field_name));
