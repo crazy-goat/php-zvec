@@ -2,43 +2,36 @@
 
 ## Priority: LOW
 
-## Status: TODO
+## Status: ✅ DONE
 
-## Description
+## Implementation
 
-Python SDK's `Doc` class has introspection methods to check which fields/vectors are present.
+All methods implemented using C++ API (not PHP try/catch):
 
-## Missing methods
+### FFI Layer (ffi/zvec_ffi.h/.cc)
+- `zvec_doc_has_field(doc, field)` - Check if field exists
+- `zvec_doc_has_vector(doc, field)` - Check if field is FP32 vector
+- `zvec_doc_field_names(doc, buf, buf_size)` - Get scalar field names
+- `zvec_doc_vector_names(doc, buf, buf_size)` - Get vector field names
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `has_field(name)` | bool | Check if scalar field exists |
-| `has_vector(name)` | bool | Check if vector field exists |
-| `field_names()` | list[str] | All scalar field names |
-| `vector_names()` | list[str] | All vector field names |
+### PHP Layer (php/ZVec.php)
+- `ZVecDoc::hasField(string $name): bool`
+- `ZVecDoc::hasVector(string $name): bool`
+- `ZVecDoc::fieldNames(): string[]`
+- `ZVecDoc::vectorNames(): string[]`
 
-## C++ API
+## Test
 
-Check `zvec/src/include/zvec/db/doc.h`:
-- Does `Doc` have methods to enumerate fields?
-- Or is this Python SDK convenience built on top of try/catch get()?
+`tests/bug_0003_doc_introspection.php` - Full test coverage including:
+- Testing on newly created docs
+- Testing on retrieved docs from collection
+- Verification of scalar vs vector field detection
 
-## Changes needed
+## Notes
 
-### Option A: C++ API supports field enumeration
-- Add `zvec_doc_has_field`, `zvec_doc_has_vector`, `zvec_doc_field_names`, `zvec_doc_vector_names` to C wrapper
-- Implement in PHP
+C++ API `Doc` class provides:
+- `field_names()` - returns all field names
+- `has(field)` - checks if field exists
+- `get_field<T>(field)` - template getter for type checking
 
-### Option B: Pure PHP implementation
-- `has_field()` → try `get*()`, return true if not null
-- `field_names()` / `vector_names()` → would need C++ support to enumerate
-
-### php/ZVec.php (ZVecDoc)
-- Add `hasField(string $name): bool`
-- Add `hasVector(string $name): bool`
-- Add `fieldNames(): array`
-- Add `vectorNames(): array`
-
-### Notes
-- `has_field` / `has_vector` can be implemented in PHP with try/catch on existing getters
-- `field_names` / `vector_names` likely need C++ API support to enumerate stored fields
+Vector detection is done by checking if field returns `std::vector<float>` using `get_field<std::vector<float>>()`. This means only FP32 vectors are recognized (consistent with current FFI limitations).

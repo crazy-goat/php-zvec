@@ -90,6 +90,12 @@ int zvec_doc_get_float(zvec_doc_t doc, const char* field, float* out);
 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
 
+// Doc introspection
+int zvec_doc_has_field(zvec_doc_t doc, const char* field);
+int zvec_doc_has_vector(zvec_doc_t doc, const char* field);
+int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size);
+int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size);
+
 // Insert / Upsert / Update / Delete
 zvec_status_t zvec_collection_insert(zvec_collection_t coll, zvec_doc_t* docs, int count);
 zvec_status_t zvec_collection_upsert(zvec_collection_t coll, zvec_doc_t* docs, int count);

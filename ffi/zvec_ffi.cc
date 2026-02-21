@@ -379,6 +379,71 @@ int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** ou
     return 0;
 }
 
+// --- Doc Introspection ---
+
+int zvec_doc_has_field(zvec_doc_t doc, const char* field) {
+    return static_cast<Doc*>(doc)->has(field) ? 1 : 0;
+}
+
+int zvec_doc_has_vector(zvec_doc_t doc, const char* field) {
+    auto* d = static_cast<Doc*>(doc);
+    if (!d->has(field)) return 0;
+    // Check if it's a FP32 vector (we don't support other vector types in FFI yet)
+    auto result = d->get_field<std::vector<float>>(field);
+    return result.ok() ? 1 : 0;
+}
+
+static thread_local std::string g_names_buf;
+
+int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size) {
+    auto* d = static_cast<Doc*>(doc);
+    auto names = d->field_names();
+    g_names_buf.clear();
+    
+    bool first = true;
+    for (const auto& name : names) {
+        // Skip vector fields (check if it's FP32 vector)
+        if (d->get_field<std::vector<float>>(name).ok()) continue;
+        
+        if (!first) g_names_buf += '\n';
+        g_names_buf += name;
+        first = false;
+    }
+    
+    if (g_names_buf.length() >= buf_size) {
+        // Buffer too small
+        return -1;
+    }
+    
+    strncpy(buf, g_names_buf.c_str(), buf_size - 1);
+    buf[buf_size - 1] = '\0';
+    return static_cast<int>(g_names_buf.length());
+}
+
+int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size) {
+    auto* d = static_cast<Doc*>(doc);
+    auto names = d->field_names();
+    g_names_buf.clear();
+    
+    bool first = true;
+    for (const auto& name : names) {
+        // Only include vector fields (FP32 vectors)
+        if (!d->get_field<std::vector<float>>(name).ok()) continue;
+        
+        if (!first) g_names_buf += '\n';
+        g_names_buf += name;
+        first = false;
+    }
+    
+    if (g_names_buf.length() >= buf_size) {
+        return -1;
+    }
+    
+    strncpy(buf, g_names_buf.c_str(), buf_size - 1);
+    buf[buf_size - 1] = '\0';
+    return static_cast<int>(g_names_buf.length());
+}
+
 // --- Insert / Upsert / Delete ---
 
 zvec_status_t zvec_collection_insert(zvec_collection_t coll, zvec_doc_t* docs, int count) {

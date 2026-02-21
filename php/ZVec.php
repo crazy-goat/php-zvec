@@ -90,6 +90,12 @@ class ZVec
                 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
                 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
 
+                // Doc introspection
+                int zvec_doc_has_field(zvec_doc_t doc, const char* field);
+                int zvec_doc_has_vector(zvec_doc_t doc, const char* field);
+                int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size);
+                int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size);
+
                 zvec_status_t zvec_collection_insert(zvec_collection_t coll, zvec_doc_t* docs, int count);
                 zvec_status_t zvec_collection_upsert(zvec_collection_t coll, zvec_doc_t* docs, int count);
                 zvec_status_t zvec_collection_update(zvec_collection_t coll, zvec_doc_t* docs, int count);
@@ -814,6 +820,46 @@ class ZVecDoc
             return $result;
         }
         return null;
+    }
+
+    public function hasField(string $field): bool
+    {
+        return self::ffi()->zvec_doc_has_field($this->handle, $field) !== 0;
+    }
+
+    public function hasVector(string $field): bool
+    {
+        return self::ffi()->zvec_doc_has_vector($this->handle, $field) !== 0;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function fieldNames(): array
+    {
+        $ffi = self::ffi();
+        $buf = $ffi->new('char[8192]');
+        $len = $ffi->zvec_doc_field_names($this->handle, $buf, 8192);
+        if ($len < 0) {
+            return [];
+        }
+        $str = FFI::string($buf);
+        return $str === '' ? [] : explode("\n", $str);
+    }
+
+    /**
+     * @return string[]
+     */
+    public function vectorNames(): array
+    {
+        $ffi = self::ffi();
+        $buf = $ffi->new('char[8192]');
+        $len = $ffi->zvec_doc_vector_names($this->handle, $buf, 8192);
+        if ($len < 0) {
+            return [];
+        }
+        $str = FFI::string($buf);
+        return $str === '' ? [] : explode("\n", $str);
     }
 
     private static function ffi(): FFI
