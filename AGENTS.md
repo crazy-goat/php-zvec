@@ -10,7 +10,8 @@ zvec-php/
 ├── php/example.php       # Integration test / usage examples (21 scenarios)
 ├── ffi/                  # C++ FFI bridge (zvec_ffi.h, zvec_ffi.cc, CMakeLists.txt)
 ├── tests/                # Bug reproduction scripts (plain PHP, no framework)
-├── todo/                 # Feature planning documents (17 items)
+├── test_dbs/             # Test database directory (content ignored by git)
+├── tasks/todo/           # Feature planning documents
 ├── build_zvec.sh         # Builds zvec C++ lib + FFI shared library
 ├── zvec/                 # Git-cloned upstream zvec C++ library (not committed)
 └── cmake-3.28.3-*/       # Vendored CMake (not committed)
@@ -92,10 +93,10 @@ Before marking any task as DONE:
    php php/example.php
    ```
 
-4. **Verify no test directories left behind**:
+4. **Verify test databases cleaned up:**
    ```bash
-   ls -la | grep test_
-   # Should return nothing
+   ls test_dbs/
+   # Should be empty (except .gitignore)
    ```
 
 ### Test Requirements for New Features
@@ -119,7 +120,7 @@ Feature name: brief description
 require_once __DIR__ . '/../php/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
-$path = __DIR__ . '/../test_feature_' . uniqid();
+$path = __DIR__ . '/../test_dbs/feature_' . uniqid();
 try {
     // Test code here
     echo "Feature works\n";
@@ -337,10 +338,12 @@ $c->destroy();   // Data deleted forever, $c is now invalid!
 
 **Temp Directory Pattern:**
 ```php
-$path = __DIR__ . '/../test_' . uniqid();  // Unique per test
+$path = __DIR__ . '/../test_dbs/test_name_' . uniqid();  // Unique per test in test_dbs/
 // ... test code ...
 exec("rm -rf " . escapeshellarg($path));   // Always cleanup
 ```
+
+**Note:** The `test_dbs/` directory is committed to repo but its contents are ignored via `.gitignore`. This prevents cluttering the project root when tests fail.
 
 ## API Consistency
 

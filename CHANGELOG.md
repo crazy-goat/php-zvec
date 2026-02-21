@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-02-21
+
+### Added
+
+- **Schema Evolution Tests** (#19) - MEDIUM priority task
+  - 6 new `.phpt` test files for DDL operations:
+    - `test_column_add.phpt` - addColumnInt64/Float/Double with defaults
+    - `test_column_rename.phpt` - renameColumn with error cases
+    - `test_column_drop.phpt` - dropColumn with schema verification
+    - `test_index_invert.phpt` - createInvertIndex, dropIndex, filter queries
+    - `test_index_vector.phpt` - Flat/HNSW index switching
+    - `test_index_quantized.phpt` - QUANTIZE_INT8/FP16 support
+  - All 6 tests pass consistently
+  - Test suite now totals 25 tests (24 PASS + 1 expected XFAIL)
+
+### Changed
+
+- **Project Structure**
+  - Added `test_dbs/` directory for test databases (committed but contents ignored)
+  - Updated `AGENTS.md` with new test database path pattern
+  - Tests now use `$path = __DIR__ . '/../test_dbs/test_name_' . uniqid()`
+  - Prevents cluttering project root when tests fail
+
 ## [0.3.7] - 2026-02-21
 
 ### Changed
