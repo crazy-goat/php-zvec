@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-02-21
+
+### Added
+
+- **Collection Tests Suite** (#18)
+  - `test_collection_create.php` - Collection creation with schema validation
+  - `test_collection_open.php` - Open/close with read-only and read-write modes
+  - `test_collection_destroy.php` - Collection destruction and directory cleanup
+  - `test_collection_optimize.php` - Segment optimization and read-only rejection
+  - `test_collection_persist.php` - Data persistence with and without flush()
+  - Task #18 status updated to DONE
+
+- **Bug Reproduction Tests**
+  - `bug_0003.php` - Documents segfault after destroy() (known C++ limitation)
+  - `bug_0004.php` - Documents max_doc_count_per_segment minimum threshold (1000)
+
+- **Test Framework Planning** (#24)
+  - Created task for migrating to .phpt test format
+  - Documented benefits and migration plan
+
+### Changed
+
+- **Documentation**
+  - AGENTS.md: Added Bug Reproduction Tests section with mandatory test requirement
+  - AGENTS.md: Added Memory Management, Collection Lifecycle, Debug & Logging sections
+  - AGENTS.md: Added Common Pitfalls section with important warnings
+  - Test Conventions section updated to reflect current and future (.phpt) formats
+
 ## [0.3.1] - 2026-02-21
 
 ### Changed

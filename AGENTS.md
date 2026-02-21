@@ -136,6 +136,40 @@ $collection->alterColumn('value', newDataType: ZVec::TYPE_FLOAT, nullable: true)
 - Only scalar numeric types: INT32, INT64, UINT32, UINT64, FLOAT, DOUBLE
 - Data type constants: `TYPE_INT32=4`, `TYPE_INT64=5`, `TYPE_UINT32=6`, `TYPE_UINT64=7`, `TYPE_FLOAT=8`, `TYPE_DOUBLE=9`
 
+### Bug Reproduction Tests
+
+**When to write a bug test:**
+- Any issue discovered in `ffi/` (C++ wrapper) must have a bug test
+- Any issue discovered in `php/` (PHP bindings) must have a bug test
+- Unexpected behavior, segfaults, or API inconsistencies
+
+**Bug test naming:**
+- Use sequential numbering: `bug_0001.php`, `bug_0002.php`, etc.
+- Zero-padded 4 digits
+- Place in `tests/` directory
+
+**Bug test format:**
+```php
+<?php
+/**
+ * Bug reproduction: [Brief description]
+ * 
+ * Expected: [What should happen]
+ * Actual: [What actually happens]
+ * 
+ * Status: [Known limitation / Fixed / In progress]
+ * Location: [Which file/component is affected]
+ */
+
+require_once __DIR__ . '/../php/ZVec.php';
+// ... test code ...
+// If bug causes crash, comment out and document
+```
+
+**Examples:**
+- `bug_0003.php` - segfault after `destroy()`
+- `bug_0004.php` - `max_doc_count_per_segment` minimum threshold
+
 ### Comments
 
 - Do NOT add inline comments unless explaining something non-obvious.
@@ -153,6 +187,9 @@ $collection->alterColumn('value', newDataType: ZVec::TYPE_FLOAT, nullable: true)
 
 ### Test Conventions
 
+Current tests use standalone PHP scripts with `PASS:/FAIL:` output. **Planned migration to `.phpt` format** (task #24):
+
+**Current format (temporary):**
 - Test files are standalone PHP scripts in `tests/` or `php/example.php`.
 - Each test creates its own temp directory and cleans up with `exec("rm -rf ...")`.
 - Output format: `PASS: <test_id> - <description>` or `FAIL: <test_id> - <description>`.
@@ -163,11 +200,68 @@ $collection->alterColumn('value', newDataType: ZVec::TYPE_FLOAT, nullable: true)
 - Bug reproductions go in `tests/bug_NNNN.php`.
 - New feature tests go in `tests/test_*.php`.
 
+**Future format (task #24):**
+- Migrate to `.phpt` files with `--TEST--`, `--FILE--`, `--EXPECT--` sections
+- Run via `php run-tests.php` (standard PHP testing)
+- Better integration with PHP ecosystem and CI/CD
+
 ### Platform Notes
 
 - Currently macOS-only (builds `.dylib`, links CoreFoundation/Security).
 - The FFI shared library must be at the path expected by `ZVec.php`
   (currently `__DIR__ . '/../ffi/build/libzvec_ffi.dylib'`).
+- `zvec/` directory is a git submodule - run `git submodule update --init` if missing.
+
+### Memory Management
+
+**FFI Memory Leaks:**
+- Always free C strings returned by FFI: `FFI::free($ptr)`
+- Convert to PHP string before freeing: `$str = FFI::string($ptr)`
+- Never store `FFI\CData` objects in long-lived variables
+- Schema/collection handles are freed in destructors (`$ownsHandle` flag)
+
+**Collection Lifecycle:**
+- `close()` - closes handle but keeps data on disk (can reopen)
+- `destroy()` - removes entire directory (cannot reopen, object invalid)
+- `__destruct()` calls `close()` automatically if not already closed
+- After `destroy()`, any method call causes **segfault** (handle invalidated)
+
+### Debug & Logging
+
+```php
+ZVec::init(
+    logType: ZVec::LOG_CONSOLE,    // or LOG_FILE, LOG_NONE
+    logLevel: ZVec::LOG_DEBUG,     // DEBUG, INFO, WARN, ERROR
+    logDir: '/tmp/zvec_logs',      // for LOG_FILE mode
+    queryThreads: 4,
+    optimizeThreads: 2,
+);
+```
+
+### Common Pitfalls
+
+**Index Completeness:**
+- After inserting docs, `index_completeness:0` until `optimize()` called
+- Query works without optimize but slower (brute force scan)
+- Always call `optimize()` before performance testing
+
+**Destroy vs Close:**
+```php
+$c->close();     // Safe, can reopen later
+$c->destroy();   // Data deleted forever, $c is now invalid!
+```
+
+**Thread Safety:**
+- One `ZVec::init()` per process (call before any operations)
+- Multiple collections can be open simultaneously
+- Each collection handle is NOT thread-safe (use one handle per thread)
+
+**Temp Directory Pattern:**
+```php
+$path = __DIR__ . '/../test_' . uniqid();  // Unique per test
+// ... test code ...
+exec("rm -rf " . escapeshellarg($path));   // Always cleanup
+```
 
 ## API Consistency
 
@@ -256,3 +350,77 @@ Tasks for test migration should specify:
 - Group tests by documentation category (Collections, Data Operations, etc.)
 - Dependencies on other tasks
 - Estimated difficulty (tests are usually 1-2⭐)
+
+## Release Workflow
+
+### Semantic Versioning
+
+This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
+
+- **Patch release**: `1.2.3` → `1.2.4` - Bug fixes, small changes
+- **Minor release**: `1.2.3` → `1.3.0` - New features, backwards compatible
+- **Major release**: `1.2.3` → `2.0.0` - Breaking changes
+
+### Release Command (`/release`)
+
+When user requests a release:
+
+1. **Ask for version type** if not specified:
+   - "Patch/small" = patch (0.0.1 increment)
+   - "Minor/large" = minor (0.1.0 increment)
+   - Breaking changes = major (1.0.0 increment)
+
+2. **Calculate new version** based on current git tags:
+   ```bash
+   git describe --tags --abbrev=0  # get current version
+   ```
+
+3. **Update CHANGELOG.md**:
+   - Add new section with version and date
+   - List all changes since last tag
+   - Categorize: Added, Changed, Deprecated, Removed, Fixed, Security
+
+4. **Write descriptive commit message**:
+   - Commit message should describe WHAT changed, not just version bump
+   - Good: `feat: add quantize type support for HNSW and Flat indexes`
+   - Bad: `chore: release v0.3.0` (this is just the tag message)
+   - For releases with multiple changes, use a summary commit or list major changes
+
+5. **Create git commit**:
+   ```bash
+   git add CHANGELOG.md [and any other files]
+   git commit -m "feat: add quantize type support for HNSW and Flat indexes"
+   # or for multiple features:
+   git commit -m "feat: add quantize type and test planning tasks
+   
+   - Add quantize_type parameter to createHnswIndex and createFlatIndex
+   - Add QUANTIZE_* constants (FP16, INT8, INT4)
+   - Create test migration planning tasks (#18-23)"
+   ```
+
+6. **Create git tag**:
+   ```bash
+   git tag -a vX.Y.Z -m "Release vX.Y.Z"
+   ```
+
+7. **NEVER do `git push`** - user must push manually
+
+### Example Release Flow
+
+```bash
+# User: "patch release"
+# Current: v0.2.0
+# New: v0.2.1
+
+git describe --tags --abbrev=0  # v0.2.0
+
+# Update CHANGELOG.md with changes since v0.2.0
+# Commit with descriptive message
+git add CHANGELOG.md
+git commit -m "fix: resolve issue with delete store recovery"
+
+# Create tag
+git tag -a v0.2.1 -m "Release v0.2.1"
+
+# Done - user pushes manually
+```

@@ -2,7 +2,7 @@
 
 ## Priority: MEDIUM
 
-## Status: TODO
+## Status: ✅ DONE
 
 ## Difficulty: 1/5 ⭐
 
