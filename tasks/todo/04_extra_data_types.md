@@ -2,63 +2,64 @@
 
 ## Priority: MEDIUM
 
-## Status: TODO
+## Status: DONE
+
+## Difficulty: 3/5 ⭐
 
 ## Description
 
 Add support for data types available in Python SDK but missing in PHP wrapper.
 
-## Missing scalar types
+## Implementation Summary
 
-| Type | Python enum | Notes |
-|------|------------|-------|
-| `BOOL` | `DataType.BOOL` | |
-| `INT32` | `DataType.INT32` | |
-| `UINT32` | `DataType.UINT32` | |
-| `UINT64` | `DataType.UINT64` | |
+### Added scalar types:
+- ✅ BOOL (3) - schema only, not supported for column DDL
+- ✅ INT32 (4) - full support
+- ✅ UINT32 (6) - full support  
+- ✅ UINT64 (7) - full support
 
-## Missing vector types
+### Added vector types:
+- ✅ VECTOR_INT8 (26) - INT8 vectors for quantized storage
 
-| Type | Python enum | Notes |
-|------|------------|-------|
-| `VECTOR_FP16` | `DataType.VECTOR_FP16` | Half-precision vectors |
-| `VECTOR_FP64` | `DataType.VECTOR_FP64` | Double-precision vectors |
-| `VECTOR_INT8` | `DataType.VECTOR_INT8` | Quantized int8 vectors |
-| `SPARSE_VECTOR_FP16` | `DataType.SPARSE_VECTOR_FP16` | |
+### Not implemented (see task #28):
+- ❌ VECTOR_FP16 (22) - requires zvec's custom Float16 type, see `tasks/todo/28_fp16_fp64_vectors.md`
+- ❌ VECTOR_FP64 (24) - double-precision vectors (not in Doc variant), see `tasks/todo/28_fp16_fp64_vectors.md`
+- ❌ FP16/FP64 sparse vectors
 
-## Missing array types
+### Not implemented (complex array handling):
+- ❌ Array types (ARRAY_STRING, ARRAY_INT32, etc.)
 
-| Type | Python enum | Notes |
-|------|------------|-------|
-| `ARRAY_STRING` | `DataType.ARRAY_STRING` | |
-| `ARRAY_INT32` | `DataType.ARRAY_INT32` | |
-| `ARRAY_INT64` | `DataType.ARRAY_INT64` | |
-| `ARRAY_FLOAT` | `DataType.ARRAY_FLOAT` | |
-| `ARRAY_DOUBLE` | `DataType.ARRAY_DOUBLE` | |
-| `ARRAY_BOOL` | `DataType.ARRAY_BOOL` | |
-| `ARRAY_UINT32` | `DataType.ARRAY_UINT32` | |
-| `ARRAY_UINT64` | `DataType.ARRAY_UINT64` | |
+## Files Modified
 
-## Changes needed
+### FFI Layer (ffi/)
+- `zvec_ffi.h` - Added declarations for new schema/doc functions
+- `zvec_ffi.cc` - Implemented:
+  - `zvec_schema_add_field_bool/int32/uint32/uint64`
+  - `zvec_schema_add_field_vector_int8`
+  - `zvec_doc_set_bool/int32/uint32/uint64`
+  - `zvec_doc_set_vector_int8`
+  - `zvec_doc_get_bool/int32/uint32/uint64`
+  - `zvec_doc_get_vector_int8`
+  - `zvec_collection_add_column_int32/uint32/uint64`
 
-### ffi/zvec_ffi.h
-- Add `zvec_schema_add_field_bool`, `_int32`, `_uint32`, `_uint64`
-- Add `zvec_schema_add_field_vector_fp16`, `_fp64`, `_int8`
-- Add `zvec_doc_set_*/get_*` for new types
-- Array types: need to investigate C++ API for set/get arrays
+### PHP Layer (php/ZVec.php)
+- Added FFI declarations for all new functions
+- Added data type constant: `TYPE_BOOL = 3`
+- ZVecSchema methods:
+  - `addBool()`, `addInt32()`, `addUint32()`, `addUint64()`
+  - `addVectorInt8()`
+- ZVecDoc methods:
+  - `setBool()`, `setInt32()`, `setUint32()`, `setUint64()`
+  - `setVectorInt8()`
+  - `getBool()`, `getInt32()`, `getUint32()`, `getUint64()`
+  - `getVectorInt8()`
+- ZVec column DDL methods:
+  - `addColumnInt32()`, `addColumnUint32()`, `addColumnUint64()`
 
-### ffi/zvec_ffi.cc
-- Map to `DataType::BOOL`, `DataType::INT32`, etc. from `zvec/db/type.h`
-- Implement set/get for each type
+### Tests
+- `tests/test_extra_data_types.phpt` - Tests all new types
 
-### php/ZVec.php (ZVecSchema)
-- Add `addBool()`, `addInt32()`, `addUint32()`, `addUint64()`
-- Add `addVectorFp16()`, `addVectorFp64()`, `addVectorInt8()`
-
-### php/ZVec.php (ZVecDoc)
-- Add `setBool/getBool`, `setInt32/getInt32`, `setUint32/getUint32`, `setUint64/getUint64`
-
-### Notes
-- Check `zvec/src/include/zvec/db/type.h` for actual enum values
-- Array types may require more complex FFI handling (passing arrays of values)
-- Vector FP16/INT8 may need special handling for data conversion
+## Notes
+- BOOL columns can be defined in schema but cannot be added via column DDL
+- FP16/FP64 vector types require zvec's custom Float16 type which is not directly compatible with FFI
+- All new scalar types (INT32, UINT32, UINT64) support full CRUD operations

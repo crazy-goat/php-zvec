@@ -47,9 +47,15 @@ class ZVec
                 void zvec_schema_set_max_doc_count_per_segment(zvec_schema_t schema, uint64_t count);
                 void zvec_schema_add_field_int64(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
                 void zvec_schema_add_field_string(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+                void zvec_schema_add_field_bool(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+                void zvec_schema_add_field_int32(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+                void zvec_schema_add_field_uint32(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+                void zvec_schema_add_field_uint64(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
                 void zvec_schema_add_field_float(zvec_schema_t schema, const char* name, int nullable);
                 void zvec_schema_add_field_double(zvec_schema_t schema, const char* name, int nullable);
                 void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
+                void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
+                void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
                 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
 
                 zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, zvec_collection_t* out);
@@ -64,6 +70,10 @@ class ZVec
                 zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap);
 
                 zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+                zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+                zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+                zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+                zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
                 zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
                 zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
                 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name);
@@ -78,18 +88,28 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
                 zvec_doc_t zvec_doc_create(const char* pk);
                 void zvec_doc_free(zvec_doc_t doc);
                 void zvec_doc_set_int64(zvec_doc_t doc, const char* field, int64_t value);
+                void zvec_doc_set_bool(zvec_doc_t doc, const char* field, int value);
+                void zvec_doc_set_int32(zvec_doc_t doc, const char* field, int32_t value);
+                void zvec_doc_set_uint32(zvec_doc_t doc, const char* field, uint32_t value);
+                void zvec_doc_set_uint64(zvec_doc_t doc, const char* field, uint64_t value);
                 void zvec_doc_set_string(zvec_doc_t doc, const char* field, const char* value);
                 void zvec_doc_set_float(zvec_doc_t doc, const char* field, float value);
                 void zvec_doc_set_double(zvec_doc_t doc, const char* field, double value);
                 void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* data, uint32_t dim);
+                void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim);
 
                 const char* zvec_doc_get_pk(zvec_doc_t doc);
                 float zvec_doc_get_score(zvec_doc_t doc);
                 int zvec_doc_get_int64(zvec_doc_t doc, const char* field, int64_t* out);
+                int zvec_doc_get_bool(zvec_doc_t doc, const char* field, int* out);
+                int zvec_doc_get_int32(zvec_doc_t doc, const char* field, int32_t* out);
+                int zvec_doc_get_uint32(zvec_doc_t doc, const char* field, uint32_t* out);
+                int zvec_doc_get_uint64(zvec_doc_t doc, const char* field, uint64_t* out);
                 int zvec_doc_get_string(zvec_doc_t doc, const char* field, const char** out);
                 int zvec_doc_get_float(zvec_doc_t doc, const char* field, float* out);
                 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
                 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
+                int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim);
 
                 // Doc introspection
                 int zvec_doc_has_field(zvec_doc_t doc, const char* field);
@@ -281,6 +301,30 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
         self::checkStatus(self::ffi()->zvec_collection_add_column_double($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
     }
 
+    public function addColumnBool(string $name, bool $nullable = true, string $defaultExpr = 'false'): void
+    {
+        $this->checkClosed();
+        self::checkStatus(self::ffi()->zvec_collection_add_column_bool($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+    }
+
+    public function addColumnInt32(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    {
+        $this->checkClosed();
+        self::checkStatus(self::ffi()->zvec_collection_add_column_int32($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+    }
+
+    public function addColumnUint32(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    {
+        $this->checkClosed();
+        self::checkStatus(self::ffi()->zvec_collection_add_column_uint32($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+    }
+
+    public function addColumnUint64(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    {
+        $this->checkClosed();
+        self::checkStatus(self::ffi()->zvec_collection_add_column_uint64($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+    }
+
     public function dropColumn(string $name): void
     {
         $this->checkClosed();
@@ -448,6 +492,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
     public const TYPE_UINT64 = 7;
     public const TYPE_FLOAT = 8;
     public const TYPE_DOUBLE = 9;
+    public const TYPE_BOOL = 3;
 
     // Quantize types for index creation
     public const QUANTIZE_UNDEFINED = 0;
@@ -729,6 +774,30 @@ class ZVecSchema
         return $this;
     }
 
+    public function addBool(string $name, bool $nullable = false, bool $withInvertIndex = false): self
+    {
+        self::ffi()->zvec_schema_add_field_bool($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
+        return $this;
+    }
+
+    public function addInt32(string $name, bool $nullable = false, bool $withInvertIndex = false): self
+    {
+        self::ffi()->zvec_schema_add_field_int32($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
+        return $this;
+    }
+
+    public function addUint32(string $name, bool $nullable = false, bool $withInvertIndex = false): self
+    {
+        self::ffi()->zvec_schema_add_field_uint32($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
+        return $this;
+    }
+
+    public function addUint64(string $name, bool $nullable = false, bool $withInvertIndex = false): self
+    {
+        self::ffi()->zvec_schema_add_field_uint64($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
+        return $this;
+    }
+
     public const METRIC_L2 = 1;
     public const METRIC_IP = 2;
     public const METRIC_COSINE = 3;
@@ -742,6 +811,12 @@ class ZVecSchema
     public function addSparseVectorFp32(string $name, int $metricType = self::METRIC_IP): self
     {
         self::ffi()->zvec_schema_add_field_sparse_vector_fp32($this->handle, $name, $metricType);
+        return $this;
+    }
+
+    public function addVectorInt8(string $name, int $dimension, int $metricType = self::METRIC_IP): self
+    {
+        self::ffi()->zvec_schema_add_field_vector_int8($this->handle, $name, $dimension, $metricType);
         return $this;
     }
 
@@ -818,6 +893,45 @@ class ZVecDoc
         return $this;
     }
 
+    public function setBool(string $field, bool $value): self
+    {
+        self::ffi()->zvec_doc_set_bool($this->handle, $field, $value ? 1 : 0);
+        return $this;
+    }
+
+    public function setInt32(string $field, int $value): self
+    {
+        self::ffi()->zvec_doc_set_int32($this->handle, $field, $value);
+        return $this;
+    }
+
+    public function setUint32(string $field, int $value): self
+    {
+        self::ffi()->zvec_doc_set_uint32($this->handle, $field, $value);
+        return $this;
+    }
+
+    public function setUint64(string $field, int $value): self
+    {
+        self::ffi()->zvec_doc_set_uint64($this->handle, $field, $value);
+        return $this;
+    }
+
+    /**
+     * @param int[] $vector
+     */
+    public function setVectorInt8(string $field, array $vector): self
+    {
+        $ffi = self::ffi();
+        $dim = count($vector);
+        $data = $ffi->new("int8_t[$dim]");
+        foreach ($vector as $i => $v) {
+            $data[$i] = $v;
+        }
+        $ffi->zvec_doc_set_vector_int8($this->handle, $field, $data, $dim);
+        return $this;
+    }
+
     public function getPk(): string
     {
         $result = self::ffi()->zvec_doc_get_pk($this->handle);
@@ -881,6 +995,64 @@ class ZVecDoc
         $out = $ffi->new('float*');
         $dim = $ffi->new('uint32_t');
         if ($ffi->zvec_doc_get_vector_fp32($this->handle, $field, FFI::addr($out), FFI::addr($dim))) {
+            $result = [];
+            for ($i = 0; $i < $dim->cdata; $i++) {
+                $result[] = $out[$i];
+            }
+            return $result;
+        }
+        return null;
+    }
+
+    public function getBool(string $field): ?bool
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('int');
+        if ($ffi->zvec_doc_get_bool($this->handle, $field, FFI::addr($out))) {
+            return $out->cdata !== 0;
+        }
+        return null;
+    }
+
+    public function getInt32(string $field): ?int
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('int32_t');
+        if ($ffi->zvec_doc_get_int32($this->handle, $field, FFI::addr($out))) {
+            return $out->cdata;
+        }
+        return null;
+    }
+
+    public function getUint32(string $field): ?int
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('uint32_t');
+        if ($ffi->zvec_doc_get_uint32($this->handle, $field, FFI::addr($out))) {
+            return $out->cdata;
+        }
+        return null;
+    }
+
+    public function getUint64(string $field): ?int
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('uint64_t');
+        if ($ffi->zvec_doc_get_uint64($this->handle, $field, FFI::addr($out))) {
+            return $out->cdata;
+        }
+        return null;
+    }
+
+    /**
+     * @return int[]|null
+     */
+    public function getVectorInt8(string $field): ?array
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('int8_t*');
+        $dim = $ffi->new('uint32_t');
+        if ($ffi->zvec_doc_get_vector_int8($this->handle, $field, FFI::addr($out), FFI::addr($dim))) {
             $result = [];
             for ($i = 0; $i < $dim->cdata; $i++) {
                 $result[] = $out[$i];

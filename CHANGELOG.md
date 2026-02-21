@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-02-21
+
+### Added
+
+- **Additional Data Types** (#4) - MEDIUM priority task
+  - New scalar types: BOOL, INT32, UINT32, UINT64
+  - New vector type: VECTOR_INT8 (INT8 quantized vectors)
+  - FFI layer: 20 new functions in `ffi/zvec_ffi.cc` and `ffi/zvec_ffi.h`
+  - PHP bindings: New methods in `ZVecSchema`, `ZVecDoc`, and `ZVec` classes
+  - New test: `test_extra_data_types.phpt` - validates all new types
+  - Total test count: 26 tests (25 PASS + 1 expected XFAIL)
+
+### Notes
+
+- VECTOR_FP16 and VECTOR_FP64 require custom Float16 handling - see task #28
+- BOOL columns supported in schema but not via column DDL (zvec limitation)
+
 ## [0.3.8] - 2026-02-21
 
 ### Added

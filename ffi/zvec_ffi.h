@@ -41,9 +41,15 @@ void zvec_schema_set_max_doc_count_per_segment(zvec_schema_t schema, uint64_t co
 
 void zvec_schema_add_field_int64(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
 void zvec_schema_add_field_string(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+void zvec_schema_add_field_bool(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+void zvec_schema_add_field_int32(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+void zvec_schema_add_field_uint32(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
+void zvec_schema_add_field_uint64(zvec_schema_t schema, const char* name, int nullable, int with_invert_index);
 void zvec_schema_add_field_float(zvec_schema_t schema, const char* name, int nullable);
 void zvec_schema_add_field_double(zvec_schema_t schema, const char* name, int nullable);
 void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
+void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
+void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
 
 // Collection lifecycle
@@ -62,6 +68,10 @@ zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, in
 
 // Schema evolution - Column DDL
 zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
 zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
 zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name);
@@ -83,18 +93,28 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
 zvec_doc_t zvec_doc_create(const char* pk);
 void zvec_doc_free(zvec_doc_t doc);
 void zvec_doc_set_int64(zvec_doc_t doc, const char* field, int64_t value);
+void zvec_doc_set_bool(zvec_doc_t doc, const char* field, int value);
+void zvec_doc_set_int32(zvec_doc_t doc, const char* field, int32_t value);
+void zvec_doc_set_uint32(zvec_doc_t doc, const char* field, uint32_t value);
+void zvec_doc_set_uint64(zvec_doc_t doc, const char* field, uint64_t value);
 void zvec_doc_set_string(zvec_doc_t doc, const char* field, const char* value);
 void zvec_doc_set_float(zvec_doc_t doc, const char* field, float value);
 void zvec_doc_set_double(zvec_doc_t doc, const char* field, double value);
 void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* data, uint32_t dim);
+void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim);
 
 const char* zvec_doc_get_pk(zvec_doc_t doc);
 float zvec_doc_get_score(zvec_doc_t doc);
 int zvec_doc_get_int64(zvec_doc_t doc, const char* field, int64_t* out);
+int zvec_doc_get_bool(zvec_doc_t doc, const char* field, int* out);
+int zvec_doc_get_int32(zvec_doc_t doc, const char* field, int32_t* out);
+int zvec_doc_get_uint32(zvec_doc_t doc, const char* field, uint32_t* out);
+int zvec_doc_get_uint64(zvec_doc_t doc, const char* field, uint64_t* out);
 int zvec_doc_get_string(zvec_doc_t doc, const char* field, const char** out);
 int zvec_doc_get_float(zvec_doc_t doc, const char* field, float* out);
 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
+int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim);
 
 // Doc introspection
 int zvec_doc_has_field(zvec_doc_t doc, const char* field);

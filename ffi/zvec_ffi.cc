@@ -125,6 +125,42 @@ void zvec_schema_add_field_double(zvec_schema_t schema, const char* name, int nu
     s->add_field(std::make_shared<FieldSchema>(name, DataType::DOUBLE, (bool)nullable));
 }
 
+void zvec_schema_add_field_bool(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    if (with_invert_index) {
+        s->add_field(std::make_shared<FieldSchema>(name, DataType::BOOL, (bool)nullable, std::make_shared<InvertIndexParams>(true)));
+    } else {
+        s->add_field(std::make_shared<FieldSchema>(name, DataType::BOOL, (bool)nullable));
+    }
+}
+
+void zvec_schema_add_field_int32(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    if (with_invert_index) {
+        s->add_field(std::make_shared<FieldSchema>(name, DataType::INT32, (bool)nullable, std::make_shared<InvertIndexParams>(true)));
+    } else {
+        s->add_field(std::make_shared<FieldSchema>(name, DataType::INT32, (bool)nullable));
+    }
+}
+
+void zvec_schema_add_field_uint32(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    if (with_invert_index) {
+        s->add_field(std::make_shared<FieldSchema>(name, DataType::UINT32, (bool)nullable, std::make_shared<InvertIndexParams>(true)));
+    } else {
+        s->add_field(std::make_shared<FieldSchema>(name, DataType::UINT32, (bool)nullable));
+    }
+}
+
+void zvec_schema_add_field_uint64(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    if (with_invert_index) {
+        s->add_field(std::make_shared<FieldSchema>(name, DataType::UINT64, (bool)nullable, std::make_shared<InvertIndexParams>(true)));
+    } else {
+        s->add_field(std::make_shared<FieldSchema>(name, DataType::UINT64, (bool)nullable));
+    }
+}
+
 void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_FP32, dimension, false,
@@ -134,6 +170,12 @@ void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, u
 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type) {
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::SPARSE_VECTOR_FP32, 0, false,
+        std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
+}
+
+void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_INT8, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
@@ -267,6 +309,34 @@ zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const ch
     return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
 }
 
+zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+    auto* c = static_cast<Collection*>(coll);
+    c->Flush();
+    auto field = std::make_shared<FieldSchema>(name, DataType::BOOL, (bool)nullable);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "false"));
+}
+
+zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+    auto* c = static_cast<Collection*>(coll);
+    c->Flush();
+    auto field = std::make_shared<FieldSchema>(name, DataType::INT32, (bool)nullable);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
+}
+
+zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+    auto* c = static_cast<Collection*>(coll);
+    c->Flush();
+    auto field = std::make_shared<FieldSchema>(name, DataType::UINT32, (bool)nullable);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
+}
+
+zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+    auto* c = static_cast<Collection*>(coll);
+    c->Flush();
+    auto field = std::make_shared<FieldSchema>(name, DataType::UINT64, (bool)nullable);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
+}
+
 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
@@ -361,6 +431,27 @@ void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* da
     static_cast<Doc*>(doc)->set<std::vector<float>>(field, std::move(vec));
 }
 
+void zvec_doc_set_bool(zvec_doc_t doc, const char* field, int value) {
+    static_cast<Doc*>(doc)->set<bool>(field, (bool)value);
+}
+
+void zvec_doc_set_int32(zvec_doc_t doc, const char* field, int32_t value) {
+    static_cast<Doc*>(doc)->set<int32_t>(field, value);
+}
+
+void zvec_doc_set_uint32(zvec_doc_t doc, const char* field, uint32_t value) {
+    static_cast<Doc*>(doc)->set<uint32_t>(field, value);
+}
+
+void zvec_doc_set_uint64(zvec_doc_t doc, const char* field, uint64_t value) {
+    static_cast<Doc*>(doc)->set<uint64_t>(field, value);
+}
+
+void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim) {
+    std::vector<int8_t> vec(data, data + dim);
+    static_cast<Doc*>(doc)->set<std::vector<int8_t>>(field, std::move(vec));
+}
+
 static thread_local std::string g_pk_buf;
 
 const char* zvec_doc_get_pk(zvec_doc_t doc) {
@@ -410,6 +501,43 @@ int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** ou
         g_vector_buf = result.value();
         *out = g_vector_buf.data();
         *dim = static_cast<uint32_t>(g_vector_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+int zvec_doc_get_bool(zvec_doc_t doc, const char* field, int* out) {
+    auto val = static_cast<Doc*>(doc)->get<bool>(field);
+    if (val.has_value()) { *out = val.value() ? 1 : 0; return 1; }
+    return 0;
+}
+
+int zvec_doc_get_int32(zvec_doc_t doc, const char* field, int32_t* out) {
+    auto val = static_cast<Doc*>(doc)->get<int32_t>(field);
+    if (val.has_value()) { *out = val.value(); return 1; }
+    return 0;
+}
+
+int zvec_doc_get_uint32(zvec_doc_t doc, const char* field, uint32_t* out) {
+    auto val = static_cast<Doc*>(doc)->get<uint32_t>(field);
+    if (val.has_value()) { *out = val.value(); return 1; }
+    return 0;
+}
+
+int zvec_doc_get_uint64(zvec_doc_t doc, const char* field, uint64_t* out) {
+    auto val = static_cast<Doc*>(doc)->get<uint64_t>(field);
+    if (val.has_value()) { *out = val.value(); return 1; }
+    return 0;
+}
+
+static thread_local std::vector<int8_t> g_vector_int8_buf;
+
+int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<int8_t>>(field);
+    if (result.ok()) {
+        g_vector_int8_buf = result.value();
+        *out = g_vector_int8_buf.data();
+        *dim = static_cast<uint32_t>(g_vector_int8_buf.size());
         return 1;
     }
     return 0;
