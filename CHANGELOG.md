@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-02-21
+
+### Changed
+
+- **Task Directory Restructure**
+  - Moved all task files from `todo/` to new `tasks/` structure
+  - `tasks/todo/` - 20 pending tasks (TODO status)
+  - `tasks/done/` - 7 completed tasks (DONE status)
+  - Improved organization and clarity of project planning
+
 ## [0.3.6] - 2026-02-21
 
 ### Changed
