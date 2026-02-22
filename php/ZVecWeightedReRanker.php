@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/ZVecReRanker.php';
 require_once __DIR__ . '/ZVecRerankedDoc.php';
 
 /**
@@ -17,7 +18,7 @@ require_once __DIR__ . '/ZVecRerankedDoc.php';
  * 
  * Final score = Σ(weight_i × normalized_score_i)
  */
-class ZVecWeightedReRanker
+class ZVecWeightedReRanker implements ZVecReRanker
 {
     /**
      * Number of top results to return after reranking.

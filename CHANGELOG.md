@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-02-22
+
+### Added
+
+- **Reranker Parameter in query()** (#17) - LOW priority task
+  - Added `ZVecReRanker` interface for all reranker implementations
+  - Modified `query()` method to accept optional `$reranker` parameter
+  - Implements two-stage retrieval: fetches max(topk*2, 100) candidates, then reranks
+  - Returns `ZVecRerankedDoc[]` when reranker is provided, `ZVecDoc[]` otherwise
+  - Works with both direct parameters and `ZVecVectorQuery` objects
+  - Updated `ZVecRrfReRanker` and `ZVecWeightedReRanker` to implement interface
+  - New test: `tests/test_reranker_in_query.phpt` - 4 comprehensive scenarios
+  - New example: `php/example_query_with_reranker.php` - two-stage retrieval demo
+  - Task moved from `tasks/todo/` to `tasks/done/`
+
 ## [0.4.3] - 2026-02-22
 
 ### Added

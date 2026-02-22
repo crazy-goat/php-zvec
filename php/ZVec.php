@@ -648,7 +648,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
     /**
      * @param float[] $queryVector
      * @param string[]|null $outputFields
-     * @return ZVecDoc[]
+     * @return ZVecDoc[]|ZVecRerankedDoc[]
      */
     public function query(
         string|ZVecVectorQuery $fieldName,
@@ -662,7 +662,8 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         int $ivfNprobe = 10,
         float $radius = 0.0,
         bool $isLinear = false,
-        bool $isUsingRefiner = false
+        bool $isUsingRefiner = false,
+        ?ZVecReRanker $reranker = null
     ): array {
         $this->checkClosed();
 
@@ -682,6 +683,9 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 throw new ZVecException("query() with docId not yet implemented. Use queryById() or fetch the vector first.");
             }
         }
+
+        // If reranker is provided, fetch more results for two-stage retrieval
+        $fetchTopk = $reranker !== null ? max($topk * 2, 100) : $topk;
 
         $ffi = self::ffi();
         $dim = count($queryVector);
@@ -711,7 +715,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
 
             $status = $ffi->zvec_collection_query_ex(
                 $this->handle, $fieldName, $vecData, $dim,
-                $topk, $includeVector ? 1 : 0, $filter ?? '',
+                $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
                 $ofArr, $ofCount,
                 $queryParamType, $hnswEf, $ivfNprobe,
                 $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
@@ -724,7 +728,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         } else {
             $status = $ffi->zvec_collection_query(
                 $this->handle, $fieldName, $vecData, $dim,
-                $topk, $includeVector ? 1 : 0, $filter ?? '',
+                $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
                 FFI::addr($result)
             );
         }
@@ -735,6 +739,12 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
             $docs[] = new ZVecDoc($result->docs[$i], true);
         }
         $ffi->zvec_query_result_free_array(FFI::addr($result));
+
+        // Apply reranker if provided
+        if ($reranker !== null) {
+            $queryResults = [$fieldName => $docs];
+            return $reranker->rerank($queryResults);
+        }
 
         return $docs;
     }

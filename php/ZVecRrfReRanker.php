@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/ZVecReRanker.php';
 require_once __DIR__ . '/ZVecRerankedDoc.php';
 
 /**
@@ -13,7 +14,7 @@ require_once __DIR__ . '/ZVecRerankedDoc.php';
  * RRF doesn't require normalized scores - it works purely on rankings,
  * making it a good default choice for multi-vector search.
  */
-class ZVecRrfReRanker
+class ZVecRrfReRanker implements ZVecReRanker
 {
     /**
      * Number of top results to return after reranking.
