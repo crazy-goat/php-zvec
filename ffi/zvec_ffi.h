@@ -112,6 +112,7 @@ void zvec_doc_set_float(zvec_doc_t doc, const char* field, float value);
 void zvec_doc_set_double(zvec_doc_t doc, const char* field, double value);
 void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* data, uint32_t dim);
 void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim);
+void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t* indices, const float* values, uint32_t count);
 
 const char* zvec_doc_get_pk(zvec_doc_t doc);
 float zvec_doc_get_score(zvec_doc_t doc);
@@ -125,6 +126,7 @@ int zvec_doc_get_float(zvec_doc_t doc, const char* field, float* out);
 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
 int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim);
+int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const float** values_out, uint32_t* count_out);
 
 // Doc introspection
 int zvec_doc_has_field(zvec_doc_t doc, const char* field);

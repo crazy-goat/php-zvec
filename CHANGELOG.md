@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-02-22
+
+### Added
+
+- **Sparse Vector Data Operations** (#14) - MEDIUM priority task - Set/get sparse vector data on documents
+  - Added `setSparseVectorFp32()` and `getSparseVectorFp32()` methods to ZVecDoc class
+  - FFI layer: new functions `zvec_doc_set_sparse_vector_fp32()` and `zvec_doc_get_sparse_vector_fp32()`
+  - Sparse vectors stored as `std::pair<std::vector<uint32_t>, std::vector<float>>` (indices + values)
+  - Circular buffer pattern (16 slots) in FFI to handle concurrent document access
+  - Supports empty sparse vectors (count=0)
+  - API: `setSparseVectorFp32(string $field, array $indices, array $values): self`
+  - Returns: `['indices' => [...], 'values' => [...]]` format from getter
+  - Validates that indices and values arrays have matching lengths
+  - New test: `tests/test_sparse_vectors.phpt` - comprehensive test coverage
+  - New example: `php/example_sparse_vectors.php` - complete usage demo
+  - Task moved from `tasks/todo/` to `tasks/done/`
+
 ## [0.4.5] - 2026-02-22
 
 ### Added

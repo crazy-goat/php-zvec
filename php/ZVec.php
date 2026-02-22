@@ -106,6 +106,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 void zvec_doc_set_double(zvec_doc_t doc, const char* field, double value);
                 void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* data, uint32_t dim);
                 void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim);
+                void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t* indices, const float* values, uint32_t count);
 
                 const char* zvec_doc_get_pk(zvec_doc_t doc);
                 float zvec_doc_get_score(zvec_doc_t doc);
@@ -119,6 +120,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
                 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
                 int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim);
+                int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const float** values_out, uint32_t* count_out);
 
                 // Doc introspection
                 int zvec_doc_has_field(zvec_doc_t doc, const char* field);
@@ -1311,6 +1313,36 @@ class ZVecDoc
         return $this;
     }
 
+    /**
+     * @param int[] $indices
+     * @param float[] $values
+     */
+    public function setSparseVectorFp32(string $field, array $indices, array $values): self
+    {
+        $ffi = self::ffi();
+        $count = count($indices);
+        if ($count !== count($values)) {
+            throw new ZVecException("Indices and values arrays must have the same length");
+        }
+        
+        // Handle empty sparse vector
+        if ($count === 0) {
+            $ffi->zvec_doc_set_sparse_vector_fp32($this->handle, $field, null, null, 0);
+            return $this;
+        }
+        
+        $idxData = $ffi->new("uint32_t[$count]");
+        $valData = $ffi->new("float[$count]");
+        
+        for ($i = 0; $i < $count; $i++) {
+            $idxData[$i] = $indices[$i];
+            $valData[$i] = $values[$i];
+        }
+        
+        $ffi->zvec_doc_set_sparse_vector_fp32($this->handle, $field, $idxData, $valData, $count);
+        return $this;
+    }
+
     public function getPk(): string
     {
         $result = self::ffi()->zvec_doc_get_pk($this->handle);
@@ -1437,6 +1469,28 @@ class ZVecDoc
                 $result[] = $out[$i];
             }
             return $result;
+        }
+        return null;
+    }
+
+    /**
+     * @return array{indices: int[], values: float[]}|null
+     */
+    public function getSparseVectorFp32(string $field): ?array
+    {
+        $ffi = self::ffi();
+        $indicesOut = $ffi->new('uint32_t*');
+        $valuesOut = $ffi->new('float*');
+        $count = $ffi->new('uint32_t');
+        
+        if ($ffi->zvec_doc_get_sparse_vector_fp32($this->handle, $field, FFI::addr($indicesOut), FFI::addr($valuesOut), FFI::addr($count))) {
+            $indices = [];
+            $values = [];
+            for ($i = 0; $i < $count->cdata; $i++) {
+                $indices[] = $indicesOut[$i];
+                $values[] = $valuesOut[$i];
+            }
+            return ['indices' => $indices, 'values' => $values];
         }
         return null;
     }

@@ -1,5 +1,6 @@
 #include "zvec_ffi.h"
 
+#include <array>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -494,6 +495,18 @@ void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* d
     static_cast<Doc*>(doc)->set<std::vector<int8_t>>(field, std::move(vec));
 }
 
+void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t* indices, const float* values, uint32_t count) {
+    if (count == 0) {
+        // Empty sparse vector - store empty pair
+        static_cast<Doc*>(doc)->set<std::pair<std::vector<uint32_t>, std::vector<float>>>(field, std::make_pair(std::vector<uint32_t>(), std::vector<float>()));
+    } else {
+        std::vector<uint32_t> idx_vec(indices, indices + count);
+        std::vector<float> val_vec(values, values + count);
+        auto sparse_pair = std::make_pair(std::move(idx_vec), std::move(val_vec));
+        static_cast<Doc*>(doc)->set<std::pair<std::vector<uint32_t>, std::vector<float>>>(field, std::move(sparse_pair));
+    }
+}
+
 static thread_local std::string g_pk_buf;
 
 const char* zvec_doc_get_pk(zvec_doc_t doc) {
@@ -580,6 +593,26 @@ int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** o
         g_vector_int8_buf = result.value();
         *out = g_vector_int8_buf.data();
         *dim = static_cast<uint32_t>(g_vector_int8_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+// Separate buffers for each sparse vector get call to avoid data mixing
+// Use a circular buffer approach with 16 slots to handle multiple concurrent calls
+static thread_local std::array<std::pair<std::vector<uint32_t>, std::vector<float>>, 16> g_sparse_buffers;
+static thread_local size_t g_sparse_buffer_idx = 0;
+
+int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const float** values_out, uint32_t* count_out) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::pair<std::vector<uint32_t>, std::vector<float>>>(field);
+    if (result.ok()) {
+        // Use circular buffer to keep data alive - each call gets a new slot
+        auto& slot = g_sparse_buffers[g_sparse_buffer_idx];
+        slot = result.value();
+        *indices_out = slot.first.data();
+        *values_out = slot.second.data();
+        *count_out = static_cast<uint32_t>(slot.first.size());
+        g_sparse_buffer_idx = (g_sparse_buffer_idx + 1) % 16;
         return 1;
     }
     return 0;
