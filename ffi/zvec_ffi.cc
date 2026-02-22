@@ -227,9 +227,11 @@ zvec_status_t zvec_collection_flush(zvec_collection_t coll) {
     return make_status(c->Flush());
 }
 
-zvec_status_t zvec_collection_optimize(zvec_collection_t coll) {
+zvec_status_t zvec_collection_optimize(zvec_collection_t coll, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
-    return make_status(c->Optimize());
+    OptimizeOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->Optimize(opts));
 }
 
 zvec_status_t zvec_collection_destroy(zvec_collection_t coll) {
@@ -289,60 +291,76 @@ zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, in
 // Without this, zvec's delete store numbering can get out of sync
 // when column DDL triggers internal segment compaction after deletes.
 
-zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::INT64, (bool)nullable);
-    return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
+    AddColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "0", opts));
 }
 
-zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::FLOAT, (bool)nullable);
-    return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
+    AddColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "0", opts));
 }
 
-zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::DOUBLE, (bool)nullable);
-    return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
+    AddColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "0", opts));
 }
 
-zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::STRING, (bool)nullable);
-    return make_status(c->AddColumn(field, default_expr ? default_expr : ""));
+    AddColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "", opts));
 }
 
-zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::BOOL, (bool)nullable);
-    return make_status(c->AddColumn(field, default_expr ? default_expr : "false"));
+    AddColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "false", opts));
 }
 
-zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::INT32, (bool)nullable);
-    return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
+    AddColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "0", opts));
 }
 
-zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::UINT32, (bool)nullable);
-    return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
+    AddColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "0", opts));
 }
 
-zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr) {
+zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::UINT64, (bool)nullable);
-    return make_status(c->AddColumn(field, default_expr ? default_expr : "0"));
+    AddColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AddColumn(field, default_expr ? default_expr : "0", opts));
 }
 
 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name) {
@@ -351,13 +369,15 @@ zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* na
     return make_status(c->DropColumn(name));
 }
 
-zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name) {
+zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
-    return make_status(c->AlterColumn(old_name, new_name));
+    AlterColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AlterColumn(old_name, new_name, nullptr, opts));
 }
 
-zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable) {
+zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     
@@ -380,7 +400,9 @@ zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* c
     }
     
     std::string rename_str = new_name ? new_name : "";
-    return make_status(c->AlterColumn(column_name, rename_str, new_schema));
+    AlterColumnOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->AlterColumn(column_name, rename_str, new_schema, opts));
 }
 
 zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard) {
@@ -389,22 +411,28 @@ zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const 
     return make_status(c->CreateIndex(field_name, params));
 }
 
-zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type) {
+zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     auto params = std::make_shared<HnswIndexParams>(to_metric_type(metric_type), m, ef_construction, to_quantize_type(quantize_type));
-    return make_status(c->CreateIndex(field_name, params));
+    CreateIndexOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->CreateIndex(field_name, params, opts));
 }
 
-zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type) {
+zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     auto params = std::make_shared<FlatIndexParams>(to_metric_type(metric_type), to_quantize_type(quantize_type));
-    return make_status(c->CreateIndex(field_name, params));
+    CreateIndexOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->CreateIndex(field_name, params, opts));
 }
 
-zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type) {
+zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     auto params = std::make_shared<IVFIndexParams>(to_metric_type(metric_type), n_list, n_iters, (bool)use_soar, to_quantize_type(quantize_type));
-    return make_status(c->CreateIndex(field_name, params));
+    CreateIndexOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->CreateIndex(field_name, params, opts));
 }
 
 zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name) {

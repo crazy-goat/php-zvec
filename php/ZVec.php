@@ -69,29 +69,29 @@ class ZVec
                 zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
                 void zvec_collection_free(zvec_collection_t coll);
                 zvec_status_t zvec_collection_flush(zvec_collection_t coll);
-                zvec_status_t zvec_collection_optimize(zvec_collection_t coll);
+                zvec_status_t zvec_collection_optimize(zvec_collection_t coll, uint32_t concurrency);
                 zvec_status_t zvec_collection_destroy(zvec_collection_t coll);
 
                 zvec_status_t zvec_collection_schema(zvec_collection_t coll, char* buf, size_t buf_size);
                 zvec_status_t zvec_collection_path(zvec_collection_t coll, char* buf, size_t buf_size);
                 zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap, uint32_t* max_buffer_size);
 
-                zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
-                zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
-                zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
-                zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
-                zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
-                zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
-                zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
-                zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const char* name, int nullable, const char* default_expr);
+                zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency);
+                zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency);
+                zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency);
+                zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency);
+                zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency);
+                zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency);
+                zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency);
+                zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency);
                 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name);
-                zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name);
-                zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable);
+                zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name, uint32_t concurrency);
+                zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable, uint32_t concurrency);
 
                 zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard);
-zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type);
-zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type);
-zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type);
+zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type, uint32_t concurrency);
+zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type, uint32_t concurrency);
+zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type, uint32_t concurrency);
 zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name);
 
                 zvec_doc_t zvec_doc_create(const char* pk);
@@ -255,10 +255,10 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         self::checkStatus(self::ffi()->zvec_collection_flush($this->handle));
     }
 
-    public function optimize(): void
+    public function optimize(int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_optimize($this->handle));
+        self::checkStatus(self::ffi()->zvec_collection_optimize($this->handle, $concurrency));
     }
 
     public function destroy(): void
@@ -305,52 +305,52 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         ];
     }
 
-    public function addColumnInt64(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    public function addColumnInt64(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_add_column_int64($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+        self::checkStatus(self::ffi()->zvec_collection_add_column_int64($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
-    public function addColumnFloat(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    public function addColumnFloat(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_add_column_float($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+        self::checkStatus(self::ffi()->zvec_collection_add_column_float($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
-    public function addColumnDouble(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    public function addColumnDouble(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_add_column_double($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+        self::checkStatus(self::ffi()->zvec_collection_add_column_double($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
-    public function addColumnString(string $name, bool $nullable = true, string $defaultExpr = ''): void
+    public function addColumnString(string $name, bool $nullable = true, string $defaultExpr = '', int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_add_column_string($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+        self::checkStatus(self::ffi()->zvec_collection_add_column_string($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
-    public function addColumnBool(string $name, bool $nullable = true, string $defaultExpr = 'false'): void
+    public function addColumnBool(string $name, bool $nullable = true, string $defaultExpr = 'false', int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_add_column_bool($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+        self::checkStatus(self::ffi()->zvec_collection_add_column_bool($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
-    public function addColumnInt32(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    public function addColumnInt32(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_add_column_int32($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+        self::checkStatus(self::ffi()->zvec_collection_add_column_int32($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
-    public function addColumnUint32(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    public function addColumnUint32(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_add_column_uint32($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+        self::checkStatus(self::ffi()->zvec_collection_add_column_uint32($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
-    public function addColumnUint64(string $name, bool $nullable = true, string $defaultExpr = '0'): void
+    public function addColumnUint64(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_add_column_uint64($this->handle, $name, $nullable ? 1 : 0, $defaultExpr));
+        self::checkStatus(self::ffi()->zvec_collection_add_column_uint64($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
     public function dropColumn(string $name): void
@@ -359,13 +359,13 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         self::checkStatus(self::ffi()->zvec_collection_drop_column($this->handle, $name));
     }
 
-    public function renameColumn(string $oldName, string $newName): void
+    public function renameColumn(string $oldName, string $newName, int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_rename_column($this->handle, $oldName, $newName));
+        self::checkStatus(self::ffi()->zvec_collection_rename_column($this->handle, $oldName, $newName, $concurrency));
     }
 
-    public function alterColumn(string $columnName, ?string $newName = null, ?int $newDataType = null, ?bool $nullable = null): void
+    public function alterColumn(string $columnName, ?string $newName = null, ?int $newDataType = null, ?bool $nullable = null, int $concurrency = 0): void
     {
         $this->checkClosed();
         // Data type constants for alter column (scalar numeric only)
@@ -374,7 +374,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         $isNullable = $nullable === null ? 0 : ($nullable ? 1 : 0);
         $rename = $newName ?? '';
         
-        self::checkStatus(self::ffi()->zvec_collection_alter_column($this->handle, $columnName, $rename, $dataType, $isNullable));
+        self::checkStatus(self::ffi()->zvec_collection_alter_column($this->handle, $columnName, $rename, $dataType, $isNullable, $concurrency));
     }
 
     public function createInvertIndex(string $fieldName, bool $enableRange = true, bool $enableWildcard = false): void
@@ -383,22 +383,22 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         self::checkStatus(self::ffi()->zvec_collection_create_invert_index($this->handle, $fieldName, $enableRange ? 1 : 0, $enableWildcard ? 1 : 0));
     }
 
-    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500, int $quantizeType = 0): void
+    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500, int $quantizeType = 0, int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_create_hnsw_index($this->handle, $fieldName, $metricType, $m, $efConstruction, $quantizeType));
+        self::checkStatus(self::ffi()->zvec_collection_create_hnsw_index($this->handle, $fieldName, $metricType, $m, $efConstruction, $quantizeType, $concurrency));
     }
 
-    public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $quantizeType = 0): void
+    public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $quantizeType = 0, int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_create_flat_index($this->handle, $fieldName, $metricType, $quantizeType));
+        self::checkStatus(self::ffi()->zvec_collection_create_flat_index($this->handle, $fieldName, $metricType, $quantizeType, $concurrency));
     }
 
-    public function createIvfIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = 0): void
+    public function createIvfIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = 0, int $concurrency = 0): void
     {
         $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_create_ivf_index($this->handle, $fieldName, $metricType, $nList, $nIters, $useSoar ? 1 : 0, $quantizeType));
+        self::checkStatus(self::ffi()->zvec_collection_create_ivf_index($this->handle, $fieldName, $metricType, $nList, $nIters, $useSoar ? 1 : 0, $quantizeType, $concurrency));
     }
 
     public function dropIndex(string $fieldName): void

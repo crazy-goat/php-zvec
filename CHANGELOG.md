@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-02-22
+
+### Added
+
+- **Concurrency Options** (#03) - MEDIUM priority task
+  - Added `concurrency` parameter to `optimize()`, `createHnswIndex()`, `createFlatIndex()`, `createIvfIndex()`
+  - Added `concurrency` parameter to all `addColumn*()` methods (Int64, Float, Double, String, etc.)
+  - Added `concurrency` parameter to `renameColumn()` and `alterColumn()`
+  - FFI layer: Updated all affected functions to accept `uint32_t concurrency` parameter
+  - C++ bridge: Passes `OptimizeOptions`, `CreateIndexOptions`, `AddColumnOptions`, `AlterColumnOptions` to zvec C++ API
+  - PHP API: New optional `int $concurrency = 0` parameter (0 = auto-detect, uses system default thread pool)
+  - Allows fine-grained control over parallel processing for performance tuning
+  - New test: `tests/test_concurrency_options.phpt` - comprehensive tests with concurrency=2
+  - Task moved from `tasks/todo/` to `tasks/done/`
+
+### Changed
+
+- **API Consistency** - All DDL operations now support concurrency control
+  - Index creation, column DDL, and optimization can now run with custom thread counts
+  - Backward compatible - default value of 0 preserves previous behavior
+
 ## [0.3.22] - 2026-02-22
 
 ### Added
