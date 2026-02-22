@@ -651,8 +651,8 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
      * @return ZVecDoc[]
      */
     public function query(
-        string $fieldName,
-        array $queryVector,
+        string|ZVecVectorQuery $fieldName,
+        array $queryVector = [],
         int $topk = 10,
         bool $includeVector = false,
         ?string $filter = null,
@@ -665,6 +665,24 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         bool $isUsingRefiner = false
     ): array {
         $this->checkClosed();
+
+        // Handle ZVecVectorQuery object
+        if ($fieldName instanceof ZVecVectorQuery) {
+            $vq = $fieldName;
+            $fieldName = $vq->fieldName;
+            $queryVector = $vq->vector;
+            $queryParamType = $vq->queryParamType;
+            $hnswEf = $vq->hnswEf;
+            $ivfNprobe = $vq->ivfNprobe;
+            $radius = $vq->radius;
+            $isLinear = $vq->isLinear;
+            $isUsingRefiner = $vq->isUsingRefiner;
+
+            if ($vq->docId !== null) {
+                throw new ZVecException("query() with docId not yet implemented. Use queryById() or fetch the vector first.");
+            }
+        }
+
         $ffi = self::ffi();
         $dim = count($queryVector);
         $vecData = $ffi->new("float[$dim]");
@@ -773,7 +791,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
      * @return array<array{group_value: string, docs: ZVecDoc[]}>
      */
     public function groupByQuery(
-        string $fieldName,
+        string|ZVecVectorQuery $fieldName,
         array $queryVector,
         string $groupByField,
         int $groupCount = 2,
@@ -789,6 +807,24 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         bool $isUsingRefiner = false
     ): array {
         $this->checkClosed();
+
+        // Handle ZVecVectorQuery object
+        if ($fieldName instanceof ZVecVectorQuery) {
+            $vq = $fieldName;
+            $fieldName = $vq->fieldName;
+            $queryVector = $vq->vector;
+            $queryParamType = $vq->queryParamType;
+            $hnswEf = $vq->hnswEf;
+            $ivfNprobe = $vq->ivfNprobe;
+            $radius = $vq->radius;
+            $isLinear = $vq->isLinear;
+            $isUsingRefiner = $vq->isUsingRefiner;
+
+            if ($vq->docId !== null) {
+                throw new ZVecException("groupByQuery() with docId not yet implemented. Use queryById() or fetch the vector first.");
+            }
+        }
+
         $ffi = self::ffi();
         $dim = count($queryVector);
         $vecData = $ffi->new("float[$dim]");
@@ -851,6 +887,91 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         $buf = $ffi->new('char[4096]');
         self::checkStatus($ffi->zvec_collection_stats($this->handle, $buf, 4096));
         return FFI::string($buf);
+    }
+}
+
+class ZVecVectorQuery
+{
+    public string $fieldName;
+
+    /**
+     * @var float[]|int[] Sparse vectors: [index => weight], Dense vectors: [0.1, 0.2, ...]
+     */
+    public array $vector;
+
+    /**
+     * For query by document ID instead of explicit vector
+     */
+    public ?string $docId = null;
+
+    public int $queryParamType;
+    public int $hnswEf;
+    public int $ivfNprobe;
+    public float $radius;
+    public bool $isLinear;
+    public bool $isUsingRefiner;
+
+    /**
+     * @param float[] $vector Dense vector data
+     */
+    public function __construct(string $fieldName, array $vector)
+    {
+        $this->fieldName = $fieldName;
+        $this->vector = $vector;
+        $this->queryParamType = ZVec::QUERY_PARAM_NONE;
+        $this->hnswEf = 200;
+        $this->ivfNprobe = 10;
+        $this->radius = 0.0;
+        $this->isLinear = false;
+        $this->isUsingRefiner = false;
+    }
+
+    /**
+     * Create a VectorQuery from document ID (find similar documents)
+     */
+    public static function fromId(string $fieldName, string $docId): self
+    {
+        $query = new self($fieldName, []);
+        $query->docId = $docId;
+        return $query;
+    }
+
+    public function setHnswParams(int $ef): self
+    {
+        $this->queryParamType = ZVec::QUERY_PARAM_HNSW;
+        $this->hnswEf = $ef;
+        return $this;
+    }
+
+    public function setIvfParams(int $nprobe): self
+    {
+        $this->queryParamType = ZVec::QUERY_PARAM_IVF;
+        $this->ivfNprobe = $nprobe;
+        return $this;
+    }
+
+    public function setFlatParams(): self
+    {
+        $this->queryParamType = ZVec::QUERY_PARAM_FLAT;
+        return $this;
+    }
+
+    public function setRadius(float $radius): self
+    {
+        $this->radius = $radius;
+        return $this;
+    }
+
+    public function setLinear(bool $linear): self
+    {
+        $this->isLinear = $linear;
+        return $this;
+    }
+
+    public function setUsingRefiner(bool $refiner): self
+    {
+        $this->isUsingRefiner = $refiner;
+        return $this;
     }
 }
 

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-02-22
+
+### Added
+
+- **VectorQuery Object** (#12) - MEDIUM priority task
+  - Added `ZVecVectorQuery` class for structured vector queries
+  - Encapsulates field name, vector data, and query parameters (HNSW, IVF, Flat)
+  - Fluent interface: `setHnswParams()`, `setIvfParams()`, `setFlatParams()`, `setRadius()`, `setLinear()`, `setUsingRefiner()`
+  - Factory method: `ZVecVectorQuery::fromId()` for query-by-document-ID (preparation for task #11)
+  - Both `query()` and `groupByQuery()` now accept `ZVecVectorQuery` as first parameter
+  - Backward compatible - old positional arguments API still works
+  - Prerequisite for multi-vector queries (task #05)
+  - New test: `tests/test_vector_query_object.phpt` - comprehensive tests for all scenarios
+  - New example: `php/example_vector_query.php` - standalone demo with 6 usage scenarios
+  - Task moved from `tasks/todo/` to `tasks/done/`
+
+### Fixed
+
+- **ZVec::init() parameter** - Restored missing `$logType` parameter that was accidentally removed
+  - Named arguments like `ZVec::init(logType: ZVec::LOG_CONSOLE)` now work correctly
+
 ## [0.4.0] - 2026-02-22
 
 ### Added

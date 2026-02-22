@@ -163,6 +163,41 @@ foreach ($failed as $pk => $error) {
     echo "    - {$pk}: {$error}\n";
 }
 
+echo "\n";
+
+// ==========================================
+// 6. VectorQuery Object - Structured Queries
+// ==========================================
+echo "6. VectorQuery object (structured queries):\n";
+
+// Old API - parameters as separate arguments
+$results = $collection->query(
+    'embedding',
+    [0.1, 0.2, 0.3, 0.4],
+    3,
+    false,
+    null,
+    ['name'],
+    ZVec::QUERY_PARAM_HNSW,
+    200
+);
+echo "  Old API (positional args): " . count($results) . " results\n";
+
+// New API - VectorQuery object with fluent interface
+$vq = (new ZVecVectorQuery('embedding', [0.1, 0.2, 0.3, 0.4]))
+    ->setHnswParams(ef: 200)
+    ->setRadius(0.5);
+
+$results = $collection->query($vq, [], 3, false, null, ['name']);
+echo "  New API (VectorQuery): " . count($results) . " results\n";
+
+// Show found documents
+foreach ($results as $doc) {
+    echo "    - {$doc->getPk()}: {$doc->getString('name')}\n";
+}
+
+echo "\n";
+
 // ==========================================
 // Cleanup
 // ==========================================
