@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.20] - 2026-02-22
+
+### Fixed
+
+- **Query Parameter Type Validation** (#29) - HIGH priority task
+  - Fixed segfault when using `QUERY_PARAM_FLAT` on HNSW index (or mismatched types)
+  - Added C++ FFI layer validation in `zvec_collection_query_ex()` and `zvec_collection_group_by_query()`
+  - New `validate_query_param_type()` function checks if requested query_param_type matches actual index type
+  - Returns `StatusCode::INVALID_ARGUMENT` error with descriptive message instead of crashing
+  - New test: `tests/bug_0029_query_param_validation.phpt` - verifies exception is thrown
+
+### Changed
+
+- **Task Status** (#29)
+  - Marked Fix Segfault When Using QUERY_PARAM_FLAT on HNSW Index as DONE
+  - Moved task file from `tasks/todo/` to `tasks/done/`
+
 ## [0.3.19] - 2026-02-22
 
 ### Added

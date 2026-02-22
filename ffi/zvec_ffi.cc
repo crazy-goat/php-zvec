@@ -777,6 +777,52 @@ static void apply_output_fields(VectorQuery& query, const char** output_fields, 
     }
 }
 
+static zvec_status_t validate_query_param_type(Collection* c, const char* field_name, int query_param_type) {
+    if (query_param_type == 0) {
+        return ok_status();
+    }
+    
+    auto schema_res = c->Schema();
+    if (!schema_res.has_value()) {
+        return make_status(schema_res.error());
+    }
+    
+    const auto& schema = schema_res.value();
+    const FieldSchema* field = schema.get_field(field_name);
+    if (!field) {
+        zvec_status_t st;
+        st.code = static_cast<int>(StatusCode::INVALID_ARGUMENT);
+        std::string msg = std::string("Field not found: ") + field_name;
+        strncpy(st.message, msg.c_str(), sizeof(st.message) - 1);
+        st.message[sizeof(st.message) - 1] = '\0';
+        return st;
+    }
+    
+    IndexType actual_index_type = field->index_type();
+    
+    // Map query_param_type to expected IndexType
+    IndexType expected_index_type = IndexType::UNDEFINED;
+    switch (query_param_type) {
+        case 1: expected_index_type = IndexType::HNSW; break;
+        case 2: expected_index_type = IndexType::IVF; break;
+        case 3: expected_index_type = IndexType::FLAT; break;
+    }
+    
+    if (expected_index_type != IndexType::UNDEFINED && 
+        actual_index_type != IndexType::UNDEFINED &&
+        actual_index_type != expected_index_type) {
+        zvec_status_t st;
+        st.code = static_cast<int>(StatusCode::INVALID_ARGUMENT);
+        std::string msg = std::string("Query parameter type mismatch for field '") + field_name + 
+                          "': index type does not match query_param_type";
+        strncpy(st.message, msg.c_str(), sizeof(st.message) - 1);
+        st.message[sizeof(st.message) - 1] = '\0';
+        return st;
+    }
+    
+    return ok_status();
+}
+
 static void apply_query_params(VectorQuery& query, int type, int hnsw_ef, int ivf_nprobe,
                                   float radius, int is_linear, int is_using_refiner) {
     if (type == 1) {
@@ -808,18 +854,27 @@ static void fill_doc_list(const DocPtrList& doc_list, zvec_query_result_t* resul
 }
 
 zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field_name,
-                                        const float* query_vector, uint32_t dim,
-                                        int topk, int include_vector,
-                                        const char* filter,
-                                        const char** output_fields, int output_fields_count,
-                                        int query_param_type,
-                                        int hnsw_ef,
-                                        int ivf_nprobe,
-                                        float radius,
-                                        int is_linear,
-                                        int is_using_refiner,
-                                        zvec_query_result_t* result) {
+                                         const float* query_vector, uint32_t dim,
+                                         int topk, int include_vector,
+                                         const char* filter,
+                                         const char** output_fields, int output_fields_count,
+                                         int query_param_type,
+                                         int hnsw_ef,
+                                         int ivf_nprobe,
+                                         float radius,
+                                         int is_linear,
+                                         int is_using_refiner,
+                                         zvec_query_result_t* result) {
     auto* c = static_cast<Collection*>(coll);
+    
+    // Validate query_param_type against actual index type
+    auto validation_status = validate_query_param_type(c, field_name, query_param_type);
+    if (validation_status.code != 0) {
+        result->docs = nullptr;
+        result->count = 0;
+        return validation_status;
+    }
+    
     VectorQuery query;
     query.topk_ = topk;
     query.field_name_ = field_name;
@@ -879,20 +934,29 @@ zvec_status_t zvec_collection_query_filter_ex(zvec_collection_t coll, const char
 }
 
 zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char* field_name,
-                                              const float* query_vector, uint32_t dim,
-                                              const char* group_by_field,
-                                              uint32_t group_count, uint32_t group_topk,
-                                              int include_vector,
-                                              const char* filter,
-                                              const char** output_fields, int output_fields_count,
-                                              int query_param_type,
-                                              int hnsw_ef,
-                                              int ivf_nprobe,
-                                              float radius,
-                                              int is_linear,
-                                              int is_using_refiner,
-                                              zvec_group_results_t* result) {
+                                               const float* query_vector, uint32_t dim,
+                                               const char* group_by_field,
+                                               uint32_t group_count, uint32_t group_topk,
+                                               int include_vector,
+                                               const char* filter,
+                                               const char** output_fields, int output_fields_count,
+                                               int query_param_type,
+                                               int hnsw_ef,
+                                               int ivf_nprobe,
+                                               float radius,
+                                               int is_linear,
+                                               int is_using_refiner,
+                                               zvec_group_results_t* result) {
     auto* c = static_cast<Collection*>(coll);
+    
+    // Validate query_param_type against actual index type
+    auto validation_status = validate_query_param_type(c, field_name, query_param_type);
+    if (validation_status.code != 0) {
+        result->groups = nullptr;
+        result->count = 0;
+        return validation_status;
+    }
+    
     GroupByVectorQuery query;
     query.field_name_ = field_name;
     query.query_vector_.assign(reinterpret_cast<const char*>(query_vector), dim * sizeof(float));
