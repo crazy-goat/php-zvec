@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.19] - 2026-02-22
+
+### Added
+
+- **Extended Query Parameters** (#06) - MEDIUM priority task
+  - Added `radius`, `isLinear`, `isUsingRefiner` parameters to `query()` and `groupByQuery()` methods
+  - FFI layer: Extended `zvec_collection_query_ex` and `zvec_collection_group_by_query` with new parameters
+  - C++ bridge: Updated `apply_query_params()` to handle HNSW, IVF, and Flat query params
+  - PHP API: New optional parameters for advanced vector search control
+  - New test: `tests/test_extended_query_params.phpt` - comprehensive test coverage
+
+### Fixed
+
+- **Default max_buffer_size** (#15 follow-up)
+  - Fixed default value from 0 to 67108864 (64MB) to prevent collection corruption errors
+  - Previously caused "Read record batch failed" and RocksDB flush errors
+
+### Changed
+
+- **Test Optimization**
+  - Optimized `test_large_dataset.phpt`: reduced from 1500 to 300 docs, 128 to 32 dimensions
+  - Execution time improved from ~120s to ~20s
+  - All 42 tests now pass (43 total, 1 expected XFAIL)
+
+- **Task Status** (#06, #26)
+  - Marked Extended HNSW/IVF Query Parameters as DONE
+  - Marked Improve cleanup safety as DONE
+  - Moved task files from `tasks/todo/` to `tasks/done/`
+  - Deleted obsolete `.php` test files (fully migrated to `.phpt` format)
+
 ## [0.3.18] - 2026-02-22
 
 ### Added
@@ -435,7 +465,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.15...HEAD
+[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.19...HEAD
+[0.3.19]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.19
+[0.3.18]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.18
+[0.3.17]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.17
 [0.3.15]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.15
 [0.3.14]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.14
 [0.3.13]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.13
