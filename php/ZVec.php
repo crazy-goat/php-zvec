@@ -62,6 +62,7 @@ class ZVec
                 void zvec_schema_add_field_double(zvec_schema_t schema, const char* name, int nullable);
                 void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
                 void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
+                void zvec_schema_add_field_vector_fp16(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
                 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
                 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
 
@@ -106,6 +107,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 void zvec_doc_set_double(zvec_doc_t doc, const char* field, double value);
                 void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* data, uint32_t dim);
                 void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim);
+                void zvec_doc_set_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t* data, uint32_t dim);
                 void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t* indices, const float* values, uint32_t count);
 
                 const char* zvec_doc_get_pk(zvec_doc_t doc);
@@ -120,6 +122,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
                 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
                 int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim);
+                int zvec_doc_get_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t** out, uint32_t* dim);
                 int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const float** values_out, uint32_t* count_out);
 
                 // Doc introspection
@@ -142,10 +145,15 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result);
 
                 zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_name,
-                                                     const float* query_vector, uint32_t dim,
-                                                     int topk, int include_vector,
-                                                     const char* filter,
-                                                     zvec_query_result_t* result);
+                                     const float* query_vector, uint32_t dim,
+                                     int topk, int include_vector,
+                                     const char* filter,
+                                     zvec_query_result_t* result);
+                zvec_status_t zvec_collection_query_fp16(zvec_collection_t coll, const char* field_name,
+                                          const uint16_t* query_vector, uint32_t dim,
+                                          int topk, int include_vector,
+                                          const char* filter,
+                                          zvec_query_result_t* result);
                 zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field_name,
                                                         const float* query_vector, uint32_t dim,
                                                         int topk, int include_vector,
@@ -752,6 +760,42 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
     }
 
     /**
+     * @param int[] $queryVector
+     */
+    public function queryFp16(
+        string $fieldName,
+        array $queryVector,
+        int $topk = 10,
+        bool $includeVector = false,
+        ?string $filter = null
+    ): array {
+        $this->checkClosed();
+
+        $ffi = self::ffi();
+        $dim = count($queryVector);
+        $vecData = $ffi->new("uint16_t[$dim]");
+        foreach ($queryVector as $i => $v) {
+            $vecData[$i] = $v;
+        }
+
+        $result = $ffi->new('zvec_query_result_t');
+        $status = $ffi->zvec_collection_query_fp16(
+            $this->handle, $fieldName, $vecData, $dim,
+            $topk, $includeVector ? 1 : 0, $filter ?? '',
+            FFI::addr($result)
+        );
+        self::checkStatus($status);
+
+        $docs = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $docs[] = new ZVecDoc($result->docs[$i], true);
+        }
+        $ffi->zvec_query_result_free_array(FFI::addr($result));
+
+        return $docs;
+    }
+
+    /**
      * Multi-vector query - search across multiple vector fields simultaneously.
      *
      * Executes queries against multiple vector fields and merges results using
@@ -1201,6 +1245,12 @@ class ZVecSchema
         return $this;
     }
 
+    public function addVectorFp16(string $name, int $dimension, int $metricType = self::METRIC_IP): self
+    {
+        self::ffi()->zvec_schema_add_field_vector_fp16($this->handle, $name, $dimension, $metricType);
+        return $this;
+    }
+
     private static function ffi(): FFI
     {
         return (new ReflectionClass(ZVec::class))->getMethod('ffi')->invoke(null);
@@ -1310,6 +1360,21 @@ class ZVecDoc
             $data[$i] = $v;
         }
         $ffi->zvec_doc_set_vector_int8($this->handle, $field, $data, $dim);
+        return $this;
+    }
+
+    /**
+     * @param int[] $vector
+     */
+    public function setVectorFp16(string $field, array $vector): self
+    {
+        $ffi = self::ffi();
+        $dim = count($vector);
+        $data = $ffi->new("uint16_t[$dim]");
+        foreach ($vector as $i => $v) {
+            $data[$i] = $v;
+        }
+        $ffi->zvec_doc_set_vector_fp16($this->handle, $field, $data, $dim);
         return $this;
     }
 
@@ -1464,6 +1529,24 @@ class ZVecDoc
         $out = $ffi->new('int8_t*');
         $dim = $ffi->new('uint32_t');
         if ($ffi->zvec_doc_get_vector_int8($this->handle, $field, FFI::addr($out), FFI::addr($dim))) {
+            $result = [];
+            for ($i = 0; $i < $dim->cdata; $i++) {
+                $result[] = $out[$i];
+            }
+            return $result;
+        }
+        return null;
+    }
+
+    /**
+     * @return int[]|null
+     */
+    public function getVectorFp16(string $field): ?array
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('uint16_t*');
+        $dim = $ffi->new('uint32_t');
+        if ($ffi->zvec_doc_get_vector_fp16($this->handle, $field, FFI::addr($out), FFI::addr($dim))) {
             $result = [];
             for ($i = 0; $i < $dim->cdata; $i++) {
                 $result[] = $out[$i];

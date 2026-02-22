@@ -11,6 +11,7 @@
 #include <zvec/db/schema.h>
 #include <zvec/db/config.h>
 #include <zvec/db/status.h>
+#include <zvec/ailego/utility/float_helper.h>
 
 using namespace zvec;
 
@@ -177,6 +178,12 @@ void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* 
 void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_INT8, dimension, false,
+        std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
+}
+
+void zvec_schema_add_field_vector_fp16(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_FP16, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
@@ -495,6 +502,15 @@ void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* d
     static_cast<Doc*>(doc)->set<std::vector<int8_t>>(field, std::move(vec));
 }
 
+void zvec_doc_set_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t* data, uint32_t dim) {
+    std::vector<ailego::Float16> vec;
+    vec.reserve(dim);
+    for (uint32_t i = 0; i < dim; i++) {
+        vec.push_back(ailego::FloatHelper::ToFP32(data[i]));
+    }
+    static_cast<Doc*>(doc)->set<std::vector<ailego::Float16>>(field, std::move(vec));
+}
+
 void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t* indices, const float* values, uint32_t count) {
     if (count == 0) {
         // Empty sparse vector - store empty pair
@@ -593,6 +609,23 @@ int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** o
         g_vector_int8_buf = result.value();
         *out = g_vector_int8_buf.data();
         *dim = static_cast<uint32_t>(g_vector_int8_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::vector<uint16_t> g_vector_fp16_buf;
+
+int zvec_doc_get_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t** out, uint32_t* dim) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<ailego::Float16>>(field);
+    if (result.ok()) {
+        const auto& fp16_vec = result.value();
+        g_vector_fp16_buf.resize(fp16_vec.size());
+        for (size_t i = 0; i < fp16_vec.size(); i++) {
+            g_vector_fp16_buf[i] = ailego::FloatHelper::ToFP16(static_cast<float>(fp16_vec[i]));
+        }
+        *out = g_vector_fp16_buf.data();
+        *dim = static_cast<uint32_t>(g_vector_fp16_buf.size());
         return 1;
     }
     return 0;
@@ -956,6 +989,48 @@ zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_na
     query.field_name_ = field_name;
     query.include_vector_ = (bool)include_vector;
     query.query_vector_.assign(reinterpret_cast<const char*>(query_vector), dim * sizeof(float));
+    if (filter && filter[0] != '\0') {
+        query.filter_ = filter;
+    }
+
+    auto res = c->Query(query);
+    if (!res.has_value()) {
+        result->docs = nullptr;
+        result->count = 0;
+        return make_status(res.error());
+    }
+
+    auto& doc_list = res.value();
+    result->count = static_cast<int>(doc_list.size());
+    if (result->count > 0) {
+        result->docs = new zvec_doc_t[result->count];
+        for (int i = 0; i < result->count; i++) {
+            result->docs[i] = static_cast<zvec_doc_t>(new Doc(*doc_list[i]));
+        }
+    } else {
+        result->docs = nullptr;
+    }
+    return ok_status();
+}
+
+zvec_status_t zvec_collection_query_fp16(zvec_collection_t coll, const char* field_name,
+                                          const uint16_t* query_vector, uint32_t dim,
+                                          int topk, int include_vector,
+                                          const char* filter,
+                                          zvec_query_result_t* result) {
+    auto* c = static_cast<Collection*>(coll);
+    
+    std::vector<ailego::Float16> fp16_vec;
+    fp16_vec.reserve(dim);
+    for (uint32_t i = 0; i < dim; i++) {
+        fp16_vec.push_back(ailego::FloatHelper::ToFP32(query_vector[i]));
+    }
+    
+    VectorQuery query;
+    query.topk_ = topk;
+    query.field_name_ = field_name;
+    query.include_vector_ = (bool)include_vector;
+    query.query_vector_.assign(reinterpret_cast<const char*>(fp16_vec.data()), dim * sizeof(ailego::Float16));
     if (filter && filter[0] != '\0') {
         query.filter_ = filter;
     }

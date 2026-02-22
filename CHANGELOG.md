@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-02-22
+
+### Added
+
+- **FP16 Vector Support** (#28) - LOW priority task - Half-precision (16-bit) vector storage
+  - Added `addVectorFp16()` method to ZVecSchema for FP16 vector fields (DataType::VECTOR_FP16 = 22)
+  - Added `setVectorFp16()` and `getVectorFp16()` methods to ZVecDoc class
+  - Added `queryFp16()` method to ZVec class for FP16 vector queries
+  - FFI layer: conversion between uint16_t[] (PHP) and ailego::Float16 (C++)
+  - Uses `zvec/ailego/utility/float_helper.h` for FP16 ↔ FP32 conversion
+  - Storage efficiency: 2 bytes per dimension (vs 4 bytes for FP32)
+  - API accepts/returns int[] (uint16 values in PHP)
+  - Separate query method required: `queryFp16()` instead of `query()`
+  - FFI functions:
+    - `zvec_schema_add_field_vector_fp16()` - schema creation
+    - `zvec_doc_set_vector_fp16()` - document insertion
+    - `zvec_doc_get_vector_fp16()` - document retrieval
+    - `zvec_collection_query_fp16()` - vector search
+  - New test: `tests/test_fp16_vectors.phpt` - full workflow coverage
+  - Task moved from `tasks/todo/` to `tasks/done/`
+  - Note: FP64 (double-precision) not implemented - blocked by upstream zvec (std::vector<double> not in Doc::Value variant)
+
 ## [0.4.6] - 2026-02-22
 
 ### Added
