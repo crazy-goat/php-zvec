@@ -30,6 +30,13 @@ class ZVec
                 } zvec_status_t;
 
                 typedef struct {
+                    int count;
+                    int* codes;
+                    char** messages;
+                    char** doc_pks;
+                } zvec_batch_result_t;
+
+                typedef struct {
                     zvec_doc_t* docs;
                     int count;
                 } zvec_query_result_t;
@@ -124,6 +131,11 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 zvec_status_t zvec_collection_update(zvec_collection_t coll, zvec_doc_t* docs, int count);
                 zvec_status_t zvec_collection_delete(zvec_collection_t coll, const char** pks, int count);
                 zvec_status_t zvec_collection_delete_by_filter(zvec_collection_t coll, const char* filter);
+
+                zvec_status_t zvec_collection_insert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result);
+                zvec_status_t zvec_collection_upsert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result);
+                zvec_status_t zvec_collection_update_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result);
+                void zvec_batch_result_free(zvec_batch_result_t* result);
 
                 zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result);
 
@@ -429,6 +441,93 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
             $arr[$i] = $doc->getHandle();
         }
         self::checkStatus($ffi->zvec_collection_update($this->handle, $arr, $count));
+    }
+
+    /**
+     * @return array<int, array{pk: string, ok: bool, error: string|null}>
+     */
+    public function insertBatch(ZVecDoc ...$docs): array
+    {
+        $this->checkClosed();
+        $ffi = self::ffi();
+        $count = count($docs);
+        $arr = $ffi->new("zvec_doc_t[$count]");
+        foreach ($docs as $i => $doc) {
+            $arr[$i] = $doc->getHandle();
+        }
+        
+        $result = $ffi->new('zvec_batch_result_t');
+        self::checkStatus($ffi->zvec_collection_insert_batch($this->handle, $arr, $count, FFI::addr($result)));
+        
+        $results = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $results[] = [
+                'pk' => FFI::string($result->doc_pks[$i]),
+                'ok' => $result->codes[$i] === 0,
+                'error' => $result->messages[$i] !== null ? FFI::string($result->messages[$i]) : null,
+            ];
+        }
+        
+        $ffi->zvec_batch_result_free(FFI::addr($result));
+        return $results;
+    }
+
+    /**
+     * @return array<int, array{pk: string, ok: bool, error: string|null}>
+     */
+    public function upsertBatch(ZVecDoc ...$docs): array
+    {
+        $this->checkClosed();
+        $ffi = self::ffi();
+        $count = count($docs);
+        $arr = $ffi->new("zvec_doc_t[$count]");
+        foreach ($docs as $i => $doc) {
+            $arr[$i] = $doc->getHandle();
+        }
+        
+        $result = $ffi->new('zvec_batch_result_t');
+        self::checkStatus($ffi->zvec_collection_upsert_batch($this->handle, $arr, $count, FFI::addr($result)));
+        
+        $results = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $results[] = [
+                'pk' => FFI::string($result->doc_pks[$i]),
+                'ok' => $result->codes[$i] === 0,
+                'error' => $result->messages[$i] !== null ? FFI::string($result->messages[$i]) : null,
+            ];
+        }
+        
+        $ffi->zvec_batch_result_free(FFI::addr($result));
+        return $results;
+    }
+
+    /**
+     * @return array<int, array{pk: string, ok: bool, error: string|null}>
+     */
+    public function updateBatch(ZVecDoc ...$docs): array
+    {
+        $this->checkClosed();
+        $ffi = self::ffi();
+        $count = count($docs);
+        $arr = $ffi->new("zvec_doc_t[$count]");
+        foreach ($docs as $i => $doc) {
+            $arr[$i] = $doc->getHandle();
+        }
+        
+        $result = $ffi->new('zvec_batch_result_t');
+        self::checkStatus($ffi->zvec_collection_update_batch($this->handle, $arr, $count, FFI::addr($result)));
+        
+        $results = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $results[] = [
+                'pk' => FFI::string($result->doc_pks[$i]),
+                'ok' => $result->codes[$i] === 0,
+                'error' => $result->messages[$i] !== null ? FFI::string($result->messages[$i]) : null,
+            ];
+        }
+        
+        $ffi->zvec_batch_result_free(FFI::addr($result));
+        return $results;
     }
 
     public function delete(string ...$pks): void

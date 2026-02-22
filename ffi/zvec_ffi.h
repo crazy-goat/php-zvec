@@ -17,6 +17,14 @@ typedef struct {
     char message[512];
 } zvec_status_t;
 
+// Batch operation result - per-document status
+typedef struct {
+    int count;
+    int* codes;           // Array of status codes (0 = success)
+    char** messages;      // Array of messages (NULL if success)
+    char** doc_pks;       // Array of document primary keys
+} zvec_batch_result_t;
+
 // Global init (call once before any other operation)
 // log_type: 0=console, 1=file
 // log_level: 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=FATAL
@@ -130,6 +138,12 @@ zvec_status_t zvec_collection_upsert(zvec_collection_t coll, zvec_doc_t* docs, i
 zvec_status_t zvec_collection_update(zvec_collection_t coll, zvec_doc_t* docs, int count);
 zvec_status_t zvec_collection_delete(zvec_collection_t coll, const char** pks, int count);
 zvec_status_t zvec_collection_delete_by_filter(zvec_collection_t coll, const char* filter);
+
+// Batch operations with per-document status
+zvec_status_t zvec_collection_insert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result);
+zvec_status_t zvec_collection_upsert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result);
+zvec_status_t zvec_collection_update_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result);
+void zvec_batch_result_free(zvec_batch_result_t* result);
 
 // Fetch
 zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result);

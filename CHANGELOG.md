@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.22] - 2026-02-22
+
+### Added
+
+- **Per-Document Batch Operations** (#16) - LOW priority task
+  - Added `insertBatch()`, `upsertBatch()`, and `updateBatch()` methods returning per-document status
+  - Returns detailed results: `[['pk' => 'doc1', 'ok' => true, 'error' => null], ...]`
+  - FFI layer: New `zvec_batch_result_t` struct and `*_batch()` functions
+  - C++ bridge: Functions return arrays of status codes, messages, and document PKs
+  - PHP API: New methods that don't throw on first error - allows partial batch success handling
+  - Original `insert()`, `upsert()`, `update()` unchanged (backward compatible)
+  - New test: `tests/test_batch_operations.phpt` - comprehensive coverage of success/failure scenarios
+  - New example: `php/example_batch_operations.php` - standalone demo of batch operations
+  - Task moved from `tasks/todo/` to `tasks/done/`
+
+### Removed
+
+- Deleted `php/example.php` - replaced by standalone examples in `examples/` directory
+
 ## [0.3.21] - 2026-02-22
 
 ### Added
@@ -498,7 +517,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.21...HEAD
+[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.22...HEAD
+[0.3.22]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.22
 [0.3.21]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.21
 [0.3.20]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.20
 [0.3.19]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.19

@@ -675,6 +675,159 @@ zvec_status_t zvec_collection_update(zvec_collection_t coll, zvec_doc_t* docs, i
     return ok_status();
 }
 
+// --- Batch operations with per-document status ---
+
+zvec_status_t zvec_collection_insert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result) {
+    auto* c = static_cast<Collection*>(coll);
+    std::vector<Doc> doc_vec;
+    doc_vec.reserve(count);
+    std::vector<std::string> pk_vec;
+    pk_vec.reserve(count);
+    for (int i = 0; i < count; i++) {
+        auto* doc = static_cast<Doc*>(docs[i]);
+        doc_vec.push_back(*doc);
+        pk_vec.push_back(doc->pk());
+    }
+    
+    auto res = c->Insert(doc_vec);
+    if (!res.has_value()) {
+        result->count = 0;
+        result->codes = nullptr;
+        result->messages = nullptr;
+        result->doc_pks = nullptr;
+        return make_status(res.error());
+    }
+    
+    const auto& statuses = res.value();
+    result->count = count;
+    result->codes = new int[count];
+    result->messages = new char*[count];
+    result->doc_pks = new char*[count];
+    
+    for (int i = 0; i < count; i++) {
+        result->codes[i] = static_cast<int>(statuses[i].code());
+        if (statuses[i].ok()) {
+            result->messages[i] = nullptr;
+        } else {
+            std::string msg = statuses[i].message();
+            result->messages[i] = new char[msg.length() + 1];
+            strcpy(result->messages[i], msg.c_str());
+        }
+        result->doc_pks[i] = new char[pk_vec[i].length() + 1];
+        strcpy(result->doc_pks[i], pk_vec[i].c_str());
+    }
+    
+    return ok_status();
+}
+
+zvec_status_t zvec_collection_upsert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result) {
+    auto* c = static_cast<Collection*>(coll);
+    std::vector<Doc> doc_vec;
+    doc_vec.reserve(count);
+    std::vector<std::string> pk_vec;
+    pk_vec.reserve(count);
+    for (int i = 0; i < count; i++) {
+        auto* doc = static_cast<Doc*>(docs[i]);
+        doc_vec.push_back(*doc);
+        pk_vec.push_back(doc->pk());
+    }
+    
+    auto res = c->Upsert(doc_vec);
+    if (!res.has_value()) {
+        result->count = 0;
+        result->codes = nullptr;
+        result->messages = nullptr;
+        result->doc_pks = nullptr;
+        return make_status(res.error());
+    }
+    
+    const auto& statuses = res.value();
+    result->count = count;
+    result->codes = new int[count];
+    result->messages = new char*[count];
+    result->doc_pks = new char*[count];
+    
+    for (int i = 0; i < count; i++) {
+        result->codes[i] = static_cast<int>(statuses[i].code());
+        if (statuses[i].ok()) {
+            result->messages[i] = nullptr;
+        } else {
+            std::string msg = statuses[i].message();
+            result->messages[i] = new char[msg.length() + 1];
+            strcpy(result->messages[i], msg.c_str());
+        }
+        result->doc_pks[i] = new char[pk_vec[i].length() + 1];
+        strcpy(result->doc_pks[i], pk_vec[i].c_str());
+    }
+    
+    return ok_status();
+}
+
+zvec_status_t zvec_collection_update_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result) {
+    auto* c = static_cast<Collection*>(coll);
+    std::vector<Doc> doc_vec;
+    doc_vec.reserve(count);
+    std::vector<std::string> pk_vec;
+    pk_vec.reserve(count);
+    for (int i = 0; i < count; i++) {
+        auto* doc = static_cast<Doc*>(docs[i]);
+        doc_vec.push_back(*doc);
+        pk_vec.push_back(doc->pk());
+    }
+    
+    auto res = c->Update(doc_vec);
+    if (!res.has_value()) {
+        result->count = 0;
+        result->codes = nullptr;
+        result->messages = nullptr;
+        result->doc_pks = nullptr;
+        return make_status(res.error());
+    }
+    
+    const auto& statuses = res.value();
+    result->count = count;
+    result->codes = new int[count];
+    result->messages = new char*[count];
+    result->doc_pks = new char*[count];
+    
+    for (int i = 0; i < count; i++) {
+        result->codes[i] = static_cast<int>(statuses[i].code());
+        if (statuses[i].ok()) {
+            result->messages[i] = nullptr;
+        } else {
+            std::string msg = statuses[i].message();
+            result->messages[i] = new char[msg.length() + 1];
+            strcpy(result->messages[i], msg.c_str());
+        }
+        result->doc_pks[i] = new char[pk_vec[i].length() + 1];
+        strcpy(result->doc_pks[i], pk_vec[i].c_str());
+    }
+    
+    return ok_status();
+}
+
+void zvec_batch_result_free(zvec_batch_result_t* result) {
+    if (result->doc_pks) {
+        for (int i = 0; i < result->count; i++) {
+            delete[] result->doc_pks[i];
+        }
+        delete[] result->doc_pks;
+        result->doc_pks = nullptr;
+    }
+    if (result->messages) {
+        for (int i = 0; i < result->count; i++) {
+            delete[] result->messages[i];
+        }
+        delete[] result->messages;
+        result->messages = nullptr;
+    }
+    if (result->codes) {
+        delete[] result->codes;
+        result->codes = nullptr;
+    }
+    result->count = 0;
+}
+
 zvec_status_t zvec_collection_delete(zvec_collection_t coll, const char** pks, int count) {
     auto* c = static_cast<Collection*>(coll);
     std::vector<std::string> pk_vec;
