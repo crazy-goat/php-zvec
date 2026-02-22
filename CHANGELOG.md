@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-02-22
+
+### Added
+
+- **Multi-Vector Query** (#05) - MEDIUM priority task - Hybrid search with multiple vector fields
+  - Added `queryMulti()` method to ZVec class for searching multiple vector fields simultaneously
+  - Executes multiple single-vector queries and merges results using rerankers
+  - Fetches `max(topk*2, 100)` candidates per field for better recall
+  - Requires `ZVecReRanker` implementation (RRF or Weighted)
+  - Returns `ZVecRerankedDoc[]` sorted by combined score
+  - Supports filter expressions applied to all queries
+  - Supports output fields selection
+  - Each `ZVecVectorQuery` can have field-specific query parameters (HNSW ef, IVF nprobe)
+  - Pure PHP implementation - no FFI changes needed
+  - New tests: 
+    - `tests/test_multivector_query.phpt` - RRF reranker integration
+    - `tests/test_multivector_weighted.phpt` - Weighted reranker integration
+  - New example: `php/example_multivector_query.php` - complete demo with 7 scenarios:
+    - Single-field search baseline comparison
+    - RRF reranker multi-vector fusion
+    - Weighted reranker with field importance tuning
+    - Filtered multi-vector search
+    - Field-specific query parameters
+  - Task moved from `tasks/todo/` to `tasks/done/`
+
 ## [0.4.4] - 2026-02-22
 
 ### Added

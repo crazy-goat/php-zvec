@@ -750,6 +750,66 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
     }
 
     /**
+     * Multi-vector query - search across multiple vector fields simultaneously.
+     *
+     * Executes queries against multiple vector fields and merges results using
+     * a reranker algorithm (RRF or Weighted). This enables hybrid search scenarios
+     * like combining dense and sparse embeddings, or fusing multiple embedding types.
+     *
+     * @param ZVecVectorQuery[] $vectorQueries Array of vector queries, one per field
+     * @param ZVecReRanker $reranker Reranker for merging results (required)
+     * @param int $topk Number of top results to return after reranking
+     * @param string|null $filter Optional filter expression applied to all queries
+     * @param string[]|null $outputFields Fields to include in returned documents
+     * @return ZVecRerankedDoc[] Reranked results sorted by combined score
+     */
+    public function queryMulti(
+        array $vectorQueries,
+        ZVecReRanker $reranker,
+        int $topk = 10,
+        ?string $filter = null,
+        ?array $outputFields = null
+    ): array {
+        $this->checkClosed();
+
+        if (empty($vectorQueries)) {
+            throw new ZVecException("At least one vector query is required");
+        }
+
+        // Execute each vector query individually
+        $queryResults = [];
+        foreach ($vectorQueries as $vq) {
+            if (!($vq instanceof ZVecVectorQuery)) {
+                throw new ZVecException("All queries must be ZVecVectorQuery instances");
+            }
+
+            // For multi-vector, fetch more candidates to give reranker enough data
+            $fetchTopk = max($topk * 2, 100);
+
+            $docs = $this->query(
+                fieldName: $vq,
+                queryVector: [],
+                topk: $fetchTopk,
+                includeVector: false,
+                filter: $filter,
+                outputFields: $outputFields,
+                queryParamType: $vq->queryParamType,
+                hnswEf: $vq->hnswEf,
+                ivfNprobe: $vq->ivfNprobe,
+                radius: $vq->radius,
+                isLinear: $vq->isLinear,
+                isUsingRefiner: $vq->isUsingRefiner,
+                reranker: null // Don't rerank individual queries
+            );
+
+            $queryResults[$vq->fieldName] = $docs;
+        }
+
+        // Apply reranker to merge results
+        return $reranker->rerank($queryResults);
+    }
+
+    /**
      * @param string[]|null $outputFields
      * @return ZVecDoc[]
      */
