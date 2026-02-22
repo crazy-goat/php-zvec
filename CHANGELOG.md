@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-02-22
+
+### Added
+
+- **Rerankers** (#09) - LOW priority task - Multi-vector search result fusion
+  - Added `ZVecRrfReRanker` class for Reciprocal Rank Fusion
+    - Formula: `Score = 1 / (rankConstant + rank)` with default k=60
+    - No score normalization needed - works purely on rankings
+    - Best default choice for combining multiple vector search results
+  - Added `ZVecWeightedReRanker` class for weighted score combination
+    - Score normalization per metric type (L2, IP, COSINE)
+    - Weighted sum: `Σ(weight_i × normalized_score_i)`
+    - Configurable field weights for fine-tuning result importance
+  - Added `ZVecRerankedDoc` result wrapper class
+    - Contains: original ZVecDoc, combined score, source ranks, source scores
+    - Methods: `getPk()`, `getOriginalScore()`
+  - Both rerankers accept `[fieldName => ZVecDoc[]]` format from multiple queries
+  - Standalone PHP implementation - no FFI or C++ dependency
+  - New test: `tests/test_rerankers.phpt` - comprehensive tests for RRF and Weighted
+  - New example: `php/example_rerankers.php` - complete demo with 6 scenarios
+    - RRF vs Weighted comparison
+    - Single field reranking edge case
+    - Source ranks and scores access
+  - Task moved from `tasks/todo/` to `tasks/done/`
+
 ## [0.4.1] - 2026-02-22
 
 ### Added
