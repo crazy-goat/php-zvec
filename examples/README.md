@@ -1,107 +1,97 @@
 # ZVec PHP Examples
 
-This directory contains example scripts demonstrating various features of the ZVec PHP library.
+This directory contains simple, thematic examples of using the ZVec library (vector database via FFI).
 
-## Embedding Functions Examples
+## Before Running
+
+Build the FFI library:
+```bash
+./build_zvec.sh
+```
+
+## Basic Examples
+
+### 1. Basics - Creating and Adding
+```bash
+php examples/01_basics.php
+```
+Demonstrates:
+- ZVec initialization
+- Collection schema creation
+- Adding documents (single and batch)
+- Index optimization
+- Data retrieval
+
+### 2. Vector Search
+```bash
+php examples/02_search.php
+```
+Demonstrates:
+- Finding similar documents (kNN)
+- Search with filter (vector + scalar)
+- Filter-only search (no vector)
+- Limiting returned fields
+
+### 3. Document Management
+```bash
+php examples/03_documents.php
+```
+Demonstrates:
+- Document update (update)
+- Upsert (update or insert)
+- Deleting single documents
+- Delete by filter
+
+### 4. Schema and Index Management
+```bash
+php examples/04_schema.php
+```
+Demonstrates:
+- Adding new columns
+- Renaming columns
+- Changing column data types
+- Creating indexes (HNSW, Flat)
+- Dropping indexes
+
+### 5. Opening, Closing and Persistence
+```bash
+php examples/05_persistence.php
+```
+Demonstrates:
+- Closing collection (close)
+- Reopening collection (open)
+- Opening in read-only mode
+- Flush data to disk
+- Destroying collection (destroy)
+
+### Run All Basic Examples
+```bash
+for f in examples/0*.php; do echo "=== $f ==="; php "$f"; echo; done
+```
+
+## Embedding Examples
 
 ### `embeddings_basic.php`
 Basic usage of embedding functions without ZVec collection.
 
-Demonstrates:
-- Single text embedding
-- Batch embedding
-- Cosine similarity comparison
-- Mock embedding function implementation
-- API usage examples (commented)
-
-**Run:**
-```bash
-php examples/embeddings_basic.php
-```
-
 ### `embeddings_with_zvec.php`
-Full integration of embedding functions with ZVec vector database.
+Integration of embeddings with ZVec vector database.
 
-Demonstrates:
-- Creating a collection with vector field
-- Generating embeddings for documents
-- Storing documents with embeddings
-- Similarity search using vector queries
-- Filtered vector search (category + vector)
-- Using HNSW index for efficient search
-
-**Run:**
-```bash
-php examples/embeddings_with_zvec.php
-```
-
-**Note:** This example uses a mock embedding function for demonstration. To use real embeddings:
-
-```php
-require_once 'php/embeddings.php';
-
-// OpenAI
-$embedder = new OpenAIDenseEmbedding(
-    apiKey: 'sk-your-openai-api-key',
-    model: OpenAIDenseEmbedding::MODEL_SMALL  // 1536 dimensions
-);
-
-// Or DashScope/Qwen
-$embedder = new QwenDenseEmbedding(
-    apiKey: 'your-dashscope-api-key',
-    model: QwenDenseEmbedding::MODEL_V4  // 1792 dimensions
-);
-
-// Generate embedding
-$vector = $embedder->embed('Your text here');
-
-// Use with ZVec
-$doc = new ZVecDoc('doc_id');
-$doc->setVectorFp32('embedding', $vector);
-$collection->insert($doc);
-```
-
-## Available Embedding Classes
-
-### Dense Embeddings
-
-| Class | API | Models | Dimensions |
-|-------|-----|--------|------------|
-| `OpenAIDenseEmbedding` | OpenAI | text-embedding-3-small | 1536 |
-| | | text-embedding-3-large | 3072 |
-| | | text-embedding-ada-002 | 1536 |
-| `QwenDenseEmbedding` | DashScope | text-embedding-v4 | 1792 |
-| | | text-embedding-v3 | 1024 |
-| | | text-embedding-v2 | 1536 |
-| | | text-embedding-v1 | 1536 |
-
-### Usage
-
-```php
-require_once 'php/embeddings.php';
-
-// Single embed
-$vector = $embedder->embed('Hello world');
-
-// Batch embed
-$vectors = $embedder->embedBatch(['Text 1', 'Text 2', 'Text 3']);
-
-// Get dimension
-echo $embedder->getDimension();  // e.g., 1536
-```
-
-## Other Examples
-
-Check the main example file for comprehensive ZVec usage:
+## Comprehensive Integration Example
 
 ```bash
 php php/example.php
 ```
 
-This demonstrates:
-- Collection creation and management
-- Schema definition
-- Document insertion
-- Vector queries
-- Index creation
-- And more...
+Comprehensive test showing 21 different scenarios.
+
+## Example Structure
+
+Each file is self-contained:
+1. ZVec initialization
+2. Creating temporary collection (unique name)
+3. Feature demonstration
+4. Cleanup (destroy + rm -rf)
+5. try-finally block for safety
+
+Each example uses a directory in `test_dbs/` with a unique ID (uniqid()).

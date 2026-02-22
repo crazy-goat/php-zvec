@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.21] - 2026-02-22
+
+### Added
+
+- **Simple Code Examples** - 5 new standalone example files in `examples/`
+  - `examples/01_basics.php` - Collection creation, schema definition, adding documents (single and batch), index optimization
+  - `examples/02_search.php` - Vector similarity search (kNN), search with filters, filter-only search, output field selection
+  - `examples/03_documents.php` - Document update, upsert operations, single and batch delete, delete by filter
+  - `examples/04_schema.php` - Adding columns, renaming columns, changing column types, HNSW and Flat index management
+  - `examples/05_persistence.php` - Close/open collections, read-only mode, flush to disk, destroy collections
+  - All examples are self-contained with try-finally cleanup and use unique temp directories in `test_dbs/`
+
+### Changed
+
+- **Examples README** - Completely rewritten in English with clear descriptions of each example
+
 ## [0.3.20] - 2026-02-22
 
 ### Fixed
@@ -482,7 +498,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.19...HEAD
+[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.21...HEAD
+[0.3.21]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.21
+[0.3.20]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.20
 [0.3.19]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.19
 [0.3.18]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.18
 [0.3.17]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.17
