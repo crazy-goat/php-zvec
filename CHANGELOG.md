@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-02-22
+
+### Added
+
+- **Query by Document ID** (#11) - MEDIUM priority task
+  - Added `queryById()` method to ZVec class for finding similar documents
+  - Queries by referencing an existing document's embedding instead of explicit vector
+  - Implementation uses fetch(id) → get vector → query(vector) pattern
+  - Full support for all query parameters: filter, outputFields, HNSW/IVF params
+  - Throws ZVecException if document not found or vector field missing
+  - New test: `tests/test_query_by_id.phpt` - 6 comprehensive test scenarios
+  - New example: `php/example_query_by_id.php` - complete demo with 4 scenarios
+    - Basic similarity search
+    - Filtered search by category
+    - Comparison with regular query method
+    - Error handling demonstration
+  - Task moved from `tasks/todo/` to `tasks/done/`
+
 ## [0.4.2] - 2026-02-22
 
 ### Added

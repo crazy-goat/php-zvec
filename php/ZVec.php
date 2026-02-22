@@ -786,6 +786,65 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
     }
 
     /**
+     * Query by document ID - find similar documents using an existing document's embedding.
+     *
+     * @param string $fieldName Vector field name to use for similarity
+     * @param string $docId Document ID to use as the query source
+     * @param int $topk Number of results to return
+     * @param bool $includeVector Whether to include vector data in results
+     * @param string|null $filter Optional filter expression
+     * @param string[]|null $outputFields Fields to include in results
+     * @param int $queryParamType Query parameter type (QUERY_PARAM_NONE, QUERY_PARAM_HNSW, etc.)
+     * @param int $hnswEf HNSW ef parameter
+     * @param int $ivfNprobe IVF nprobe parameter
+     * @param float $radius Search radius for range queries
+     * @param bool $isLinear Use linear search
+     * @param bool $isUsingRefiner Use refiner
+     * @return ZVecDoc[]
+     */
+    public function queryById(
+        string $fieldName,
+        string $docId,
+        int $topk = 10,
+        bool $includeVector = false,
+        ?string $filter = null,
+        ?array $outputFields = null,
+        int $queryParamType = self::QUERY_PARAM_NONE,
+        int $hnswEf = 200,
+        int $ivfNprobe = 10,
+        float $radius = 0.0,
+        bool $isLinear = false,
+        bool $isUsingRefiner = false
+    ): array {
+        $this->checkClosed();
+
+        $docs = $this->fetch($docId);
+        if (empty($docs)) {
+            throw new ZVecException("Document not found: $docId");
+        }
+
+        $vector = $docs[0]->getVectorFp32($fieldName);
+        if ($vector === null) {
+            throw new ZVecException("Vector field '$fieldName' not found in document: $docId");
+        }
+
+        return $this->query(
+            $fieldName,
+            $vector,
+            $topk,
+            $includeVector,
+            $filter,
+            $outputFields,
+            $queryParamType,
+            $hnswEf,
+            $ivfNprobe,
+            $radius,
+            $isLinear,
+            $isUsingRefiner
+        );
+    }
+
+    /**
      * @param float[] $queryVector
      * @param string[]|null $outputFields
      * @return array<array{group_value: string, docs: ZVecDoc[]}>
