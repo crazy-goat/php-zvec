@@ -148,6 +148,9 @@ zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field
                                         int query_param_type,
                                         int hnsw_ef,
                                         int ivf_nprobe,
+                                        float radius,
+                                        int is_linear,
+                                        int is_using_refiner,
                                         zvec_query_result_t* result);
 zvec_status_t zvec_collection_query_filter(zvec_collection_t coll, const char* filter,
                                             int topk, zvec_query_result_t* result);
@@ -178,6 +181,9 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
                                               int query_param_type,
                                               int hnsw_ef,
                                               int ivf_nprobe,
+                                              float radius,
+                                              int is_linear,
+                                              int is_using_refiner,
                                               zvec_group_results_t* result);
 void zvec_group_results_free(zvec_group_results_t* result);
 

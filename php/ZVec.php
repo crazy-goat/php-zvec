@@ -140,6 +140,9 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                                                         int query_param_type,
                                                         int hnsw_ef,
                                                         int ivf_nprobe,
+                                                        float radius,
+                                                        int is_linear,
+                                                        int is_using_refiner,
                                                         zvec_query_result_t* result);
                 zvec_status_t zvec_collection_query_filter(zvec_collection_t coll, const char* filter,
                                                             int topk, zvec_query_result_t* result);
@@ -169,6 +172,9 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                                                               int query_param_type,
                                                               int hnsw_ef,
                                                               int ivf_nprobe,
+                                                              float radius,
+                                                              int is_linear,
+                                                              int is_using_refiner,
                                                               zvec_group_results_t* result);
                 void zvec_group_results_free(zvec_group_results_t* result);
 
@@ -195,7 +201,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         }
     }
 
-    public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 0): self
+    public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
     {
         $ffi = self::ffi();
         $out = $ffi->new('zvec_collection_t');
@@ -204,7 +210,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         return new self($out);
     }
 
-    public static function open(string $path, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 0): self
+    public static function open(string $path, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
     {
         $ffi = self::ffi();
         $out = $ffi->new('zvec_collection_t');
@@ -554,7 +560,10 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         ?array $outputFields = null,
         int $queryParamType = self::QUERY_PARAM_NONE,
         int $hnswEf = 200,
-        int $ivfNprobe = 10
+        int $ivfNprobe = 10,
+        float $radius = 0.0,
+        bool $isLinear = false,
+        bool $isUsingRefiner = false
     ): array {
         $this->checkClosed();
         $ffi = self::ffi();
@@ -588,6 +597,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 $topk, $includeVector ? 1 : 0, $filter ?? '',
                 $ofArr, $ofCount,
                 $queryParamType, $hnswEf, $ivfNprobe,
+                $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
                 FFI::addr($result)
             );
 
@@ -674,7 +684,10 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         ?array $outputFields = null,
         int $queryParamType = self::QUERY_PARAM_NONE,
         int $hnswEf = 200,
-        int $ivfNprobe = 10
+        int $ivfNprobe = 10,
+        float $radius = 0.0,
+        bool $isLinear = false,
+        bool $isUsingRefiner = false
     ): array {
         $this->checkClosed();
         $ffi = self::ffi();
@@ -707,6 +720,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
             $includeVector ? 1 : 0, $filter ?? '',
             $ofArr, $ofCount,
             $queryParamType, $hnswEf, $ivfNprobe,
+            $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
             FFI::addr($result)
         );
 
