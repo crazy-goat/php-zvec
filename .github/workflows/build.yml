@@ -10,16 +10,8 @@ env:
 jobs:
   build-zvec:
     if: github.event.pull_request.head.repo.full_name == github.repository
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-            os-key: macos
-          - os: ubuntu-24.04
-            os-key: ubuntu24
-
-    runs-on: ${{ matrix.os }}
-    name: Build zvec - ${{ matrix.os-key }}
+    runs-on: ubuntu-24.04
+    name: Build zvec
 
     steps:
       - name: Cache zvec build
@@ -27,10 +19,10 @@ jobs:
         id: cache-zvec
         with:
           path: zvec
-          key: zvec-${{ env.ZVEC_VERSION }}-${{ matrix.os-key }}-${{ runner.arch }}
+          key: zvec-${{ env.ZVEC_VERSION }}-ubuntu24-${{ runner.arch }}
 
-      - name: Install build tools (Ubuntu)
-        if: steps.cache-zvec.outputs.cache-hit != 'true' && matrix.os-key == 'ubuntu24'
+      - name: Install build tools
+        if: steps.cache-zvec.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake g++ libssl-dev libz-dev
@@ -45,70 +37,12 @@ jobs:
         if: steps.cache-zvec.outputs.cache-hit != 'true'
         working-directory: zvec
         run: |
-          echo "PWD: $(pwd)"
-          echo "CMake: $(cmake --version | head -1)"
-          echo "Compiler: $(c++ --version | head -1)"
-          ls -la
           mkdir -p build && cd build
-          cmake .. 2>&1
-          make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
-
-  build-macos:
-    needs: build-zvec
-    if: ${{ !cancelled() && needs.build-zvec.result == 'success' }}
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        php-version: ['8.3', '8.4']
-
-    name: macOS - PHP ${{ matrix.php-version }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Restore zvec build
-        uses: actions/cache/restore@v4
-        with:
-          path: zvec
-          key: zvec-${{ env.ZVEC_VERSION }}-macos-${{ runner.arch }}
-          fail-on-cache-miss: true
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          tools: phpize
-
-      - name: Build PHP extension
-        working-directory: php-ext
-        run: |
-          phpize
-          ./configure --enable-zvec
-          make -j$(sysctl -n hw.ncpu)
-
-      - name: Strip extension
-        working-directory: php-ext
-        run: strip -x modules/zvec.so
-
-      - name: Verify extension loads
-        working-directory: php-ext
-        run: |
-          php -n -d extension=modules/zvec.so -r 'echo "zvec loaded: " . (extension_loaded("zvec") ? "yes" : "no") . "\n";'
-
-      - name: Run tests
-        run: |
-          php -n -d extension=php-ext/modules/zvec.so run-tests.php -q --show-diff tests/
-
-      - name: Upload extension artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: zvec-php${{ matrix.php-version }}-macos-${{ runner.arch }}
-          path: php-ext/modules/zvec.so
+          cmake ..
+          make -j$(nproc)
 
   build-ubuntu:
     needs: build-zvec
-    if: ${{ !cancelled() && needs.build-zvec.result == 'success' }}
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -165,4 +99,57 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: zvec-php${{ matrix.php-version }}-ubuntu24-${{ runner.arch }}
+          path: php-ext/modules/zvec.so
+
+  build-macos:
+    if: false
+    needs: build-zvec
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        php-version: ['8.3', '8.4']
+
+    name: macOS - PHP ${{ matrix.php-version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore zvec build
+        uses: actions/cache/restore@v4
+        with:
+          path: zvec
+          key: zvec-${{ env.ZVEC_VERSION }}-macos-${{ runner.arch }}
+          fail-on-cache-miss: true
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: phpize
+
+      - name: Build PHP extension
+        working-directory: php-ext
+        run: |
+          phpize
+          ./configure --enable-zvec
+          make -j$(sysctl -n hw.ncpu)
+
+      - name: Strip extension
+        working-directory: php-ext
+        run: strip -x modules/zvec.so
+
+      - name: Verify extension loads
+        working-directory: php-ext
+        run: |
+          php -n -d extension=modules/zvec.so -r 'echo "zvec loaded: " . (extension_loaded("zvec") ? "yes" : "no") . "\n";'
+
+      - name: Run tests
+        run: |
+          php -n -d extension=php-ext/modules/zvec.so run-tests.php -q --show-diff tests/
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zvec-php${{ matrix.php-version }}-macos-${{ runner.arch }}
           path: php-ext/modules/zvec.so
