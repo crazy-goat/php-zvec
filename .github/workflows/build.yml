@@ -6,43 +6,11 @@ on:
 
 env:
   ZVEC_VERSION: v0.2.0
+  ZVEC_BUILD_RELEASE: zvec-build-v0.2.0
 
 jobs:
-  build-zvec:
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-24.04
-    name: Build zvec
-
-    steps:
-      - name: Cache zvec build
-        uses: actions/cache@v4
-        id: cache-zvec
-        with:
-          path: zvec
-          key: zvec-${{ env.ZVEC_VERSION }}-ubuntu24-${{ runner.arch }}
-
-      - name: Install build tools
-        if: steps.cache-zvec.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake g++ libssl-dev libz-dev
-
-      - name: Clone zvec
-        if: steps.cache-zvec.outputs.cache-hit != 'true'
-        run: |
-          git clone --recurse-submodules --branch ${{ env.ZVEC_VERSION }} \
-            https://github.com/alibaba/zvec.git zvec
-
-      - name: Build zvec C++ library
-        if: steps.cache-zvec.outputs.cache-hit != 'true'
-        working-directory: zvec
-        run: |
-          mkdir -p build && cd build
-          cmake ..
-          make -j$(nproc)
-
   build-ubuntu:
-    needs: build-zvec
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -60,14 +28,21 @@ jobs:
           sudo apt-get install -y \
             build-essential cmake g++ \
             libssl-dev libz-dev \
-            autoconf automake libtool
+            autoconf automake libtool \
+            curl
 
-      - name: Restore zvec build
-        uses: actions/cache/restore@v4
-        with:
-          path: zvec
-          key: zvec-${{ env.ZVEC_VERSION }}-ubuntu24-${{ runner.arch }}
-          fail-on-cache-miss: true
+      - name: Download prebuilt zvec
+        run: |
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
+          echo "Downloading: $URL"
+          curl -fL "$URL" -o /tmp/zvec.tar.gz
+
+          rm -rf zvec
+          tar -xzf /tmp/zvec.tar.gz
+
+          test -f zvec/build/lib/libzvec_db.a
+          test -d zvec/src/include
+          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -103,7 +78,6 @@ jobs:
 
   build-macos:
     if: false
-    needs: build-zvec
     runs-on: macos-latest
     strategy:
       matrix:
@@ -114,42 +88,3 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Restore zvec build
-        uses: actions/cache/restore@v4
-        with:
-          path: zvec
-          key: zvec-${{ env.ZVEC_VERSION }}-macos-${{ runner.arch }}
-          fail-on-cache-miss: true
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          tools: phpize
-
-      - name: Build PHP extension
-        working-directory: php-ext
-        run: |
-          phpize
-          ./configure --enable-zvec
-          make -j$(sysctl -n hw.ncpu)
-
-      - name: Strip extension
-        working-directory: php-ext
-        run: strip -x modules/zvec.so
-
-      - name: Verify extension loads
-        working-directory: php-ext
-        run: |
-          php -n -d extension=modules/zvec.so -r 'echo "zvec loaded: " . (extension_loaded("zvec") ? "yes" : "no") . "\n";'
-
-      - name: Run tests
-        run: |
-          php -n -d extension=php-ext/modules/zvec.so run-tests.php -q --show-diff tests/
-
-      - name: Upload extension artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: zvec-php${{ matrix.php-version }}-macos-${{ runner.arch }}
-          path: php-ext/modules/zvec.so
