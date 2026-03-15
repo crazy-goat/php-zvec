@@ -63,6 +63,7 @@ if test "$PHP_ZVEC" != "no"; then
       for lib in $ZVEC_EXTERNAL_LIB/*.a; do
         ZVEC_EXTERNAL_LIBS="$ZVEC_EXTERNAL_LIBS $lib"
       done
+      ZVEC_EXTERNAL_LIBS="-Wl,--whole-archive $ZVEC_EXTERNAL_LIBS -Wl,--no-whole-archive"
       ;;
   esac
 
