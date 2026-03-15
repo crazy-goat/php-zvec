@@ -67,7 +67,7 @@ jobs:
         working-directory: php-ext
         continue-on-error: true
         run: |
-          php -n -d enable_dl=1 -d extension=modules/zvec.so -r 'echo "zvec loaded: " . (extension_loaded("zvec") ? "yes" : "no") . "\n";'
+          php -n -d enable_dl=1 -d extension=modules/zvec.so -r 'if (!extension_loaded("zvec")) { echo "FAIL: zvec not loaded\n"; exit(1); } echo "zvec loaded: yes\n";'
 
       - name: Debug Arrow symbols
         if: steps.verify.outcome == 'failure'
