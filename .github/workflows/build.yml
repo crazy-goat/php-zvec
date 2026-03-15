@@ -9,10 +9,7 @@ env:
 
 jobs:
   build-zvec:
-    if: >-
-      github.event.pull_request.author_association == 'OWNER' ||
-      github.event.pull_request.author_association == 'MEMBER' ||
-      github.event.pull_request.author_association == 'COLLABORATOR'
+    if: github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       matrix:
         include:
