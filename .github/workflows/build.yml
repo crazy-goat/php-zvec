@@ -64,14 +64,17 @@ jobs:
           ZVEC_LIB="../zvec/build/lib"
           ZVEC_EXT_LIB="../zvec/build/external/usr/local/lib"
 
-          mkdir -p /tmp/zvec-objs
+          OBJS_DIR=$(mktemp -d)
           for lib in $ZVEC_LIB/*.a; do
-            ar x "$lib" --output /tmp/zvec-objs
+            name=$(basename "$lib" .a)
+            mkdir -p "$OBJS_DIR/$name"
+            ar x "$lib" --output "$OBJS_DIR/$name"
           done
 
           g++ -shared -fPIC -DPIC \
             .libs/*.o \
-            /tmp/zvec-objs/*.o \
+            -Wl,--allow-multiple-definition \
+            "$OBJS_DIR"/*/*.o \
             -Wl,--whole-archive \
               $ZVEC_EXT_LIB/*.a \
             -Wl,--no-whole-archive \
