@@ -85,10 +85,6 @@ jobs:
             -Wl,-soname,zvec.so \
             -o modules/zvec.so
 
-      - name: Strip extension
-        working-directory: php-ext
-        run: strip --strip-unneeded modules/zvec.so
-
       - name: Verify extension loads
         working-directory: php-ext
         run: |
