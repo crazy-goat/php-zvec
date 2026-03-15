@@ -16,10 +16,21 @@ class ZVec
     {
         if (self::$ffi === null) {
             $ext = PHP_OS_FAMILY === 'Darwin' ? 'dylib' : 'so';
-            $libPath = __DIR__ . "/../ffi/build/libzvec_ffi.$ext";
+            $candidates = [
+                __DIR__ . "/../lib/libzvec_ffi.$ext",
+                __DIR__ . "/../ffi/build/libzvec_ffi.$ext",
+            ];
 
-            if (!file_exists($libPath)) {
-                throw new ZVecException("Library not found: $libPath. Run build_zvec.sh first.");
+            $libPath = null;
+            foreach ($candidates as $candidate) {
+                if (file_exists($candidate)) {
+                    $libPath = $candidate;
+                    break;
+                }
+            }
+
+            if ($libPath === null) {
+                throw new ZVecException("Library not found. Run 'composer install' or 'build_zvec.sh'.");
             }
 
             self::$ffi = FFI::cdef('
