@@ -60,10 +60,6 @@ if test "$PHP_ZVEC" != "no"; then
       ;;
     *)
       ZVEC_EXTERNAL_LIBS=""
-      for lib in $ZVEC_EXTERNAL_LIB/*.a; do
-        ZVEC_EXTERNAL_LIBS="$ZVEC_EXTERNAL_LIBS $lib"
-      done
-      ZVEC_EXTERNAL_LIBS="-Wl,--whole-archive $ZVEC_EXTERNAL_LIBS -Wl,--no-whole-archive"
       ;;
   esac
 
@@ -94,13 +90,20 @@ if test "$PHP_ZVEC" != "no"; then
       ZVEC_STRIP_FLAGS="-Wl,-dead_strip -Wl,-x -Wl,-exported_symbols_list,$ext_srcdir/zvec.exported_symbols"
       ;;
     *)
-      dnl Linux: use --whole-archive for static factory registration
-      ZVEC_FORCE_LOAD_LIBS="-Wl,--whole-archive $ZVEC_CORE_LIBS -Wl,--no-whole-archive"
+      dnl Linux: force-link everything from static archives
+      ZVEC_LINUX_WHOLE_ARCHIVE_LIBS="-Wl,--whole-archive $ZVEC_CORE_LIBS $ZVEC_EXTERNAL_LIB/*.a -Wl,--no-whole-archive"
       ZVEC_PLATFORM_LIBS="-lssl -lcrypto"
       ZVEC_STRIP_FLAGS="-Wl,--gc-sections -Wl,--version-script,$ext_srcdir/zvec.version-script"
       ;;
   esac
 
-  ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_PLATFORM_LIBS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
+  case $host_os in
+    darwin*)
+      ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_PLATFORM_LIBS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
+      ;;
+    *)
+      ZVEC_SHARED_LIBADD="$ZVEC_LINUX_WHOLE_ARCHIVE_LIBS $ZVEC_PLATFORM_LIBS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
+      ;;
+  esac
   PHP_SUBST(ZVEC_SHARED_LIBADD)
 fi
