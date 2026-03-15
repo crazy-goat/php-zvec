@@ -103,8 +103,10 @@ jobs:
 
       - name: Run tests (ext)
         if: steps.verify.outcome == 'success'
+        env:
+          TEST_PHP_ARGS: "-n -d extension=${{ github.workspace }}/php-ext/modules/zvec.so"
         run: |
-          php -n -d enable_dl=1 -d extension=php-ext/modules/zvec.so run-tests.php -q --show-diff tests/
+          php run-tests.php -q --show-diff tests/
 
       - name: Fail job if extension failed to load
         if: steps.verify.outcome == 'failure'
