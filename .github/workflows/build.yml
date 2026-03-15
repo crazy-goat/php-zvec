@@ -65,8 +65,21 @@ jobs:
           ZVEC_EXT_LIB="../zvec/build/external/usr/local/lib"
           g++ -shared -fPIC -DPIC \
             .libs/*.o \
+            $ZVEC_LIB/libzvec_db.a \
+            $ZVEC_LIB/libzvec_ailego.a \
+            $ZVEC_LIB/libcore_metric.a \
+            $ZVEC_LIB/libcore_knn_hnsw.a \
+            $ZVEC_LIB/libcore_knn_hnsw_sparse.a \
+            $ZVEC_LIB/libcore_knn_flat.a \
+            $ZVEC_LIB/libcore_knn_flat_sparse.a \
+            $ZVEC_LIB/libcore_knn_ivf.a \
+            $ZVEC_LIB/libcore_knn_cluster.a \
+            $ZVEC_LIB/libcore_quantizer.a \
+            $ZVEC_LIB/libcore_utility.a \
+            $ZVEC_LIB/libcore_mix_reducer.a \
+            $ZVEC_LIB/libcore_framework.a \
+            $ZVEC_LIB/libcore_interface.a \
             -Wl,--whole-archive \
-              $ZVEC_LIB/*.a \
               $ZVEC_EXT_LIB/*.a \
             -Wl,--no-whole-archive \
             -lssl -lcrypto -lstdc++ -lz -lpthread -ldl \
