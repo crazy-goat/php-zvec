@@ -90,9 +90,14 @@ if test "$PHP_ZVEC" != "no"; then
       ZVEC_STRIP_FLAGS="-Wl,-dead_strip -Wl,-x -Wl,-exported_symbols_list,$ext_srcdir/zvec.exported_symbols"
       ;;
     *)
-      dnl Linux: force-link everything from static archives
-      ZVEC_LINUX_WHOLE_ARCHIVE_LIBS="-Wl,--whole-archive $ZVEC_CORE_LIBS $ZVEC_EXTERNAL_LIB/*.a -Wl,--no-whole-archive"
-      ZVEC_PLATFORM_LIBS="-lssl -lcrypto"
+      dnl Linux: libtool strips --whole-archive, so we pass static libs
+      dnl directly via EXTRA_LDFLAGS to bypass libtool processing
+      ZVEC_ALL_STATIC="$ZVEC_CORE_LIBS"
+      for lib in $ZVEC_EXTERNAL_LIB/*.a; do
+        ZVEC_ALL_STATIC="$ZVEC_ALL_STATIC $lib"
+      done
+      EXTRA_LDFLAGS="$EXTRA_LDFLAGS -Wl,--whole-archive $ZVEC_ALL_STATIC -Wl,--no-whole-archive -lssl -lcrypto"
+      ZVEC_PLATFORM_LIBS=""
       ZVEC_STRIP_FLAGS=""
       ;;
   esac
@@ -101,9 +106,7 @@ if test "$PHP_ZVEC" != "no"; then
     darwin*)
       ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_PLATFORM_LIBS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
       ;;
-    *)
-      ZVEC_SHARED_LIBADD="$ZVEC_LINUX_WHOLE_ARCHIVE_LIBS $ZVEC_PLATFORM_LIBS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
-      ;;
   esac
   PHP_SUBST(ZVEC_SHARED_LIBADD)
+  PHP_SUBST(EXTRA_LDFLAGS)
 fi
