@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.8] - 2026-03-15
+
+### Added
+
+- **CI: FFI Test Job** - Added `build-ffi` job to GitHub Actions build workflow
+  - Builds `libzvec_ffi.so` on Ubuntu 24.04 and runs all `.phpt` tests with PHP FFI backend
+  - Both `ext` and `ffi` backends now tested in CI on every pull request
+
+### Changed
+
+- **Cross-platform FFI build** - `ffi/CMakeLists.txt` now supports Linux (`--whole-archive` + openssl) alongside macOS (`-force_load` + frameworks)
+- **Cross-platform library detection** - `ZVec.php` auto-detects `.dylib` (macOS) vs `.so` (Linux) based on `PHP_OS_FAMILY`
+- **Sorted field/vector names in FFI** - `zvec_doc_field_names()` and `zvec_doc_vector_names()` now return sorted results, matching ext behavior
+- **CI: removed strip step** from build workflow (kept only in release workflow)
+
 ## [0.4.7] - 2026-02-22
 
 ### Added
