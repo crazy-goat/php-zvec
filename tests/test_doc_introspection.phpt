@@ -44,6 +44,7 @@ echo "  hasVector('nonexistent'): " . ($doc->hasVector('nonexistent') ? 'true' :
 // Test fieldNames
 echo "\nfieldNames():\n";
 $fieldNames = $doc->fieldNames();
+sort($fieldNames);
 echo "  Count: " . count($fieldNames) . " (expected: 3 - id, name, weight)\n";
 echo "  Fields: " . implode(', ', $fieldNames) . "\n";
 
@@ -62,7 +63,9 @@ if ($retrieved) {
     echo "\n=== Testing on retrieved doc ===\n";
     echo "hasField('name'): " . ($retrieved->hasField('name') ? 'true' : 'false') . "\n";
     echo "hasVector('embedding'): " . ($retrieved->hasVector('embedding') ? 'true' : 'false') . "\n";
-    echo "fieldNames(): " . implode(', ', $retrieved->fieldNames()) . "\n";
+    $rFieldNames = $retrieved->fieldNames();
+    sort($rFieldNames);
+    echo "fieldNames(): " . implode(', ', $rFieldNames) . "\n";
     echo "vectorNames(): " . implode(', ', $retrieved->vectorNames()) . "\n";
 }
 
