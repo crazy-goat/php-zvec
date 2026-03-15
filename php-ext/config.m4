@@ -93,7 +93,7 @@ if test "$PHP_ZVEC" != "no"; then
       dnl Linux: force-link everything from static archives
       ZVEC_LINUX_WHOLE_ARCHIVE_LIBS="-Wl,--whole-archive $ZVEC_CORE_LIBS $ZVEC_EXTERNAL_LIB/*.a -Wl,--no-whole-archive"
       ZVEC_PLATFORM_LIBS="-lssl -lcrypto"
-      ZVEC_STRIP_FLAGS="-Wl,--gc-sections -Wl,--version-script,$ext_srcdir/zvec.version-script"
+      ZVEC_STRIP_FLAGS=""
       ;;
   esac
 
