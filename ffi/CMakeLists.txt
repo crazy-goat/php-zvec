@@ -17,24 +17,24 @@ target_include_directories(zvec_ffi PRIVATE
     ${ZVEC_ROOT}/thirdparty/sparsehash/sparsehash-2.0.4/src
 )
 
-target_link_options(zvec_ffi PRIVATE
-    -Wl,-force_load,${ZVEC_LIB}/libzvec_db.a
-    -Wl,-force_load,${ZVEC_LIB}/libzvec_ailego.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_metric.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_knn_hnsw.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_knn_hnsw_sparse.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_knn_flat.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_knn_flat_sparse.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_knn_ivf.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_knn_cluster.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_quantizer.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_utility.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_mix_reducer.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_framework.a
-    -Wl,-force_load,${ZVEC_LIB}/libcore_interface.a
+set(ZVEC_STATIC_LIBS
+    ${ZVEC_LIB}/libzvec_db.a
+    ${ZVEC_LIB}/libzvec_ailego.a
+    ${ZVEC_LIB}/libcore_metric.a
+    ${ZVEC_LIB}/libcore_knn_hnsw.a
+    ${ZVEC_LIB}/libcore_knn_hnsw_sparse.a
+    ${ZVEC_LIB}/libcore_knn_flat.a
+    ${ZVEC_LIB}/libcore_knn_flat_sparse.a
+    ${ZVEC_LIB}/libcore_knn_ivf.a
+    ${ZVEC_LIB}/libcore_knn_cluster.a
+    ${ZVEC_LIB}/libcore_quantizer.a
+    ${ZVEC_LIB}/libcore_utility.a
+    ${ZVEC_LIB}/libcore_mix_reducer.a
+    ${ZVEC_LIB}/libcore_framework.a
+    ${ZVEC_LIB}/libcore_interface.a
 )
 
-target_link_libraries(zvec_ffi PRIVATE
+set(ZVEC_EXTERNAL_LIBS
     ${ZVEC_EXTERNAL_LIB}/librocksdb.a
     ${ZVEC_EXTERNAL_LIB}/libarrow.a
     ${ZVEC_EXTERNAL_LIB}/libarrow_acero.a
@@ -50,9 +50,33 @@ target_link_libraries(zvec_ffi PRIVATE
     ${ZVEC_EXTERNAL_LIB}/libyaml-cpp.a
     ${ZVEC_EXTERNAL_LIB}/liblz4.a
     ${ZVEC_EXTERNAL_LIB}/libroaring.a
+)
+
+if(APPLE)
+    foreach(lib ${ZVEC_STATIC_LIBS})
+        target_link_options(zvec_ffi PRIVATE -Wl,-force_load,${lib})
+    endforeach()
+    target_link_libraries(zvec_ffi PRIVATE ${ZVEC_EXTERNAL_LIBS})
+else()
+    target_link_options(zvec_ffi PRIVATE
+        -Wl,--whole-archive ${ZVEC_STATIC_LIBS} ${ZVEC_EXTERNAL_LIBS} -Wl,--no-whole-archive
+    )
+endif()
+
+target_link_libraries(zvec_ffi PRIVATE
     z
-    "-framework CoreFoundation"
-    "-framework Security"
     pthread
     dl
 )
+
+if(APPLE)
+    target_link_libraries(zvec_ffi PRIVATE
+        "-framework CoreFoundation"
+        "-framework Security"
+    )
+else()
+    target_link_libraries(zvec_ffi PRIVATE
+        ssl
+        crypto
+    )
+endif()

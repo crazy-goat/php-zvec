@@ -15,7 +15,8 @@ class ZVec
     private static function ffi(): FFI
     {
         if (self::$ffi === null) {
-            $libPath = __DIR__ . '/../ffi/build/libzvec_ffi.dylib';
+            $ext = PHP_OS_FAMILY === 'Darwin' ? 'dylib' : 'so';
+            $libPath = __DIR__ . "/../ffi/build/libzvec_ffi.$ext";
 
             if (!file_exists($libPath)) {
                 throw new ZVecException("Library not found: $libPath. Run build_zvec.sh first.");

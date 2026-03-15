@@ -670,13 +670,15 @@ static thread_local std::string g_names_buf;
 int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size) {
     auto* d = static_cast<Doc*>(doc);
     auto names = d->field_names();
-    g_names_buf.clear();
-    
-    bool first = true;
+    std::vector<std::string> filtered;
     for (const auto& name : names) {
-        // Skip vector fields (check if it's FP32 vector)
         if (d->get_field<std::vector<float>>(name).ok()) continue;
-        
+        filtered.push_back(name);
+    }
+    std::sort(filtered.begin(), filtered.end());
+    g_names_buf.clear();
+    bool first = true;
+    for (const auto& name : filtered) {
         if (!first) g_names_buf += '\n';
         g_names_buf += name;
         first = false;
@@ -695,13 +697,15 @@ int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size) {
 int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size) {
     auto* d = static_cast<Doc*>(doc);
     auto names = d->field_names();
-    g_names_buf.clear();
-    
-    bool first = true;
+    std::vector<std::string> filtered;
     for (const auto& name : names) {
-        // Only include vector fields (FP32 vectors)
         if (!d->get_field<std::vector<float>>(name).ok()) continue;
-        
+        filtered.push_back(name);
+    }
+    std::sort(filtered.begin(), filtered.end());
+    g_names_buf.clear();
+    bool first = true;
+    for (const auto& name : filtered) {
         if (!first) g_names_buf += '\n';
         g_names_buf += name;
         first = false;
