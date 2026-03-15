@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+if (extension_loaded('zvec')) return;
+
 /**
  * Interface for rerankers that post-process vector search results.
  * 
