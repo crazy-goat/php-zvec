@@ -56,7 +56,12 @@ jobs:
         run: |
           phpize
           ./configure --enable-zvec
-          make -j$(nproc)
+          make -j$(nproc) V=1 2>&1 | tee /tmp/build.log
+
+      - name: Show link command
+        if: always()
+        run: |
+          grep -E '(cc |g\+\+ |ld ).*-shared' /tmp/build.log || tail -30 /tmp/build.log
 
       - name: Strip extension
         working-directory: php-ext
