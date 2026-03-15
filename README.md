@@ -1,6 +1,10 @@
 # zvec-php
 
-PHP FFI bindings for [Alibaba's zvec](https://github.com/alibaba/zvec) vector database.
+PHP bindings for [Alibaba's zvec](https://github.com/alibaba/zvec) vector database.
+
+Two binding modes are available:
+- **Native PHP extension** (`php-ext/`) — compiled C++ extension, no FFI overhead (recommended)
+- **FFI bindings** (`php/` + `ffi/`) — pure PHP via FFI, no compilation needed beyond the shared library
 
 ## Overview
 
@@ -19,7 +23,7 @@ zvec-php provides PHP bindings for the zvec vector database through FFI (Foreign
 
 ## Requirements
 
-- PHP 8.1+ with FFI extension enabled
+- PHP 8.1+ (FFI mode) or PHP 8.5+ (native extension mode)
 - macOS (currently macOS only)
 - CMake 3.14+ (for building)
 
@@ -44,11 +48,32 @@ This will:
 - Build zvec C++ library
 - Build FFI wrapper (`ffi/build/libzvec_ffi.dylib`)
 
-### 3. Verify installation
+### 3. Verify installation (FFI mode)
 
 ```bash
 php php/example.php
 ```
+
+### Alternative: Build the native PHP extension
+
+The native extension provides the same API without FFI overhead. It links directly with the zvec C++ library.
+
+```bash
+# 1. Build zvec first (if not already done)
+./build_zvec.sh
+
+# 2. Build the extension
+cd php-ext
+bash build_ext.sh
+
+# 3. Enable the extension (add to php.ini)
+echo "extension=$(pwd)/modules/zvec.so" >> $(php -r 'echo php_ini_loaded_file();')
+
+# 4. Verify
+php -r 'echo extension_loaded("zvec") ? "zvec extension loaded" : "not loaded";'
+```
+
+When the extension is loaded, `require_once 'php/ZVec.php'` is a no-op (guard clause skips the FFI implementation), so existing code works without changes.
 
 ## Quick Start
 
@@ -175,73 +200,76 @@ $doc->vectorNames(): array
 
 ## Running Tests
 
-### Main integration test
+### .phpt test suite (works with both FFI and native extension)
+```bash
+php run-tests.php tests/
+```
+
+### Integration tests
 ```bash
 php php/example.php
-```
-
-### Individual tests
-```bash
-php tests/bug_0001.php
-php tests/bug_0002.php
-php tests/test_doc_introspection.php
-```
-
-### All tests
-```bash
-php php/example.php && php tests/bug_0001.php && php tests/bug_0002.php && php tests/test_doc_introspection.php
 ```
 
 ## Project Structure
 
 ```
 zvec-php/
-├── php/ZVec.php          # Main library (ZVec, ZVecSchema, ZVecDoc, ZVecException)
-├── php/example.php       # Integration test / usage examples (21 scenarios)
-├── ffi/                  # C++ FFI bridge
+├── php/                  # FFI-based PHP implementation
+│   ├── ZVec.php          # Main library (ZVec, ZVecSchema, ZVecDoc, ZVecException)
+│   ├── embeddings/       # Embedding function interfaces and implementations
+│   └── example.php       # Integration test / usage examples
+├── php-ext/              # Native PHP extension (C++)
+│   ├── zvec_collection.cc/h  # ZVec class
+│   ├── zvec_schema.cc/h      # ZVecSchema class
+│   ├── zvec_doc.cc/h         # ZVecDoc class
+│   ├── zvec_vector_query.cc/h # ZVecVectorQuery class
+│   ├── zvec_reranker.cc/h    # ZVecReRanker interface
+│   ├── zvec_rrf_reranker.cc/h # ZVecRrfReRanker
+│   ├── zvec_weighted_reranker.cc/h # ZVecWeightedReRanker
+│   ├── config.m4         # phpize build configuration
+│   └── build_ext.sh      # Build script
+├── ffi/                  # C FFI bridge (used by php/ implementation)
 │   ├── zvec_ffi.h        # C header with FFI declarations
 │   ├── zvec_ffi.cc       # C++ implementation
 │   └── CMakeLists.txt    # Build configuration
-├── tests/                # Test scripts
-├── todo/                 # Feature planning documents (17 items)
-├── build_zvec.sh         # Build script for zvec + FFI
+├── tests/                # .phpt test suite (54 tests)
+├── tasks/                # Feature planning documents
+├── build_zvec.sh         # Builds zvec C++ lib + FFI shared library
 └── zvec/                 # Git-cloned upstream zvec C++ library (not committed)
 ```
 
-## Todo / Planned Features
+## Implemented Features
 
-See `todo/` directory for detailed planning documents. Overview:
+See `tasks/done/` for detailed planning documents.
 
-### Completed ✅
-- [x] Doc introspection methods (hasField, hasVector, fieldNames, vectorNames)
+- [x] IVF index creation support
+- [x] QuantizeType support (FP16, INT8, INT4) on index creation
+- [x] Add column STRING and BOOL types
+- [x] Vector query by document ID (`queryById`)
+- [x] Concurrency options for optimize/index/create ops
+- [x] Additional scalar data types (BOOL, INT32, UINT32, UINT64)
+- [x] Multi-vector query with reranking (`queryMulti`)
+- [x] Sparse vector data operations (set/get/query)
+- [x] Extended HNSW/IVF query parameters (isLinear, radius, refiner)
+- [x] Alter column field schema (rename, change type, nullable)
+- [x] Doc introspection (hasField, hasVector, fieldNames, vectorNames)
+- [x] Extensions: rerankers (RRF, Weighted)
+- [x] Extensions: embeddings (OpenAI, Qwen interfaces)
+- [x] Vector query object interface (`ZVecVectorQuery`)
+- [x] Per-doc status on batch operations (`insertBatch`, `upsertBatch`, `updateBatch`)
+- [x] Max doc count per segment / max buffer size options
+- [x] Reranker parameter in `query()` (two-stage retrieval)
+- [x] FP16 vector support
+- [x] Closed collection protection (exception instead of segfault)
+- [x] Native PHP extension (`php-ext/`)
 
-### High Priority
-- [ ] IVF index creation support
-- [ ] QuantizeType support (FP16, INT8, INT4) on index creation
-- [ ] Add column STRING and BOOL types
-- [ ] Vector query by document ID
-
-### Medium Priority
-- [ ] Concurrency options for optimize/index/create ops
-- [ ] Additional scalar data types (BOOL, INT32, UINT32, UINT64)
-- [ ] Multi-vector query with reranking
-- [ ] Sparse vector data operations (set/get/query)
-- [ ] Extended HNSW query parameters
-
-### Low Priority
-- [ ] Alter column field schema
-- [ ] Doc introspection (field_names, vector_names) - **DONE**
-- [ ] Extensions: rerankers (RRF, Weighted)
-- [ ] Extensions: embeddings (OpenAI, Qwen)
-- [ ] Vector query object interface
-- [ ] Per-doc status on batch operations
-- [ ] Max doc count per segment options
+### Remaining
+- [ ] FP64 (double) vectors (`tasks/todo/29_fp64_vectors.md`)
 
 ## Known Limitations
 
 - **GroupByQuery**: The C++ API has this method but it returns all documents in a single group with empty group value. This is a known issue in upstream zvec (marked as "Coming Soon" in zvec docs).
-- **Platform**: Currently macOS only (builds `.dylib`)
-- **Sparse Vectors**: Schema definition exists but data operations are not yet implemented
+- **Platform**: Currently macOS only (builds `.dylib` / `.so`)
 
 ## License
 
