@@ -101,7 +101,7 @@ jobs:
           echo "=== objdump: AVX2 instructions ==="
           objdump -d php-ext/modules/zvec.so | grep -c 'ymm' || echo "no ymm (AVX2) found"
 
-      - name: Run tests
+      - name: Run tests (ext)
         if: steps.verify.outcome == 'success'
         run: |
           php -n -d enable_dl=1 -d extension=php-ext/modules/zvec.so run-tests.php -q --show-diff tests/
