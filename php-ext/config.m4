@@ -56,6 +56,7 @@ if test "$PHP_ZVEC" != "no"; then
     -Wl,-force_load,$ZVEC_LIB/libcore_interface.a"
 
   dnl External libs linked normally (no static registrations, dead-strip applies)
+  dnl Order matters: dependents before dependencies
   ZVEC_EXTERNAL_LIBS=" \
     $ZVEC_EXTERNAL_LIB/librocksdb.a \
     $ZVEC_EXTERNAL_LIB/libarrow.a \
@@ -65,7 +66,6 @@ if test "$PHP_ZVEC" != "no"; then
     $ZVEC_EXTERNAL_LIB/libarrow_bundled_dependencies.a \
     $ZVEC_EXTERNAL_LIB/libparquet.a \
     $ZVEC_EXTERNAL_LIB/libprotobuf.a \
-    $ZVEC_EXTERNAL_LIB/libprotoc.a \
     $ZVEC_EXTERNAL_LIB/libantlr4-runtime.a \
     $ZVEC_EXTERNAL_LIB/libglog.a \
     $ZVEC_EXTERNAL_LIB/libgflags_nothreads.a \
@@ -76,7 +76,7 @@ if test "$PHP_ZVEC" != "no"; then
   ZVEC_FRAMEWORKS="-framework CoreFoundation -framework Security"
 
   dnl Strip unused code and hide internal symbols
-  ZVEC_STRIP_FLAGS="-Wl,-dead_strip -Wl,-x"
+  ZVEC_STRIP_FLAGS="-Wl,-dead_strip -Wl,-x -Wl,-exported_symbols_list,$ext_srcdir/zvec.exported_symbols"
 
   ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_FRAMEWORKS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
   PHP_SUBST(ZVEC_SHARED_LIBADD)
