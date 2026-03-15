@@ -39,22 +39,32 @@ if test "$PHP_ZVEC" != "no"; then
   PHP_ADD_LIBRARY(dl, 1, ZVEC_SHARED_LIBADD)
 
   dnl External libs linked normally (no static registrations)
-  dnl Order matters: dependents before dependencies
-  ZVEC_EXTERNAL_LIBS=" \
-    $ZVEC_EXTERNAL_LIB/librocksdb.a \
-    $ZVEC_EXTERNAL_LIB/libarrow.a \
-    $ZVEC_EXTERNAL_LIB/libarrow_acero.a \
-    $ZVEC_EXTERNAL_LIB/libarrow_compute.a \
-    $ZVEC_EXTERNAL_LIB/libarrow_dataset.a \
-    $ZVEC_EXTERNAL_LIB/libarrow_bundled_dependencies.a \
-    $ZVEC_EXTERNAL_LIB/libparquet.a \
-    $ZVEC_EXTERNAL_LIB/libprotobuf.a \
-    $ZVEC_EXTERNAL_LIB/libantlr4-runtime.a \
-    $ZVEC_EXTERNAL_LIB/libglog.a \
-    $ZVEC_EXTERNAL_LIB/libgflags_nothreads.a \
-    $ZVEC_EXTERNAL_LIB/libyaml-cpp.a \
-    $ZVEC_EXTERNAL_LIB/liblz4.a \
-    $ZVEC_EXTERNAL_LIB/libroaring.a"
+  dnl macOS keeps explicit list (order matters), Linux uses wildcard to avoid missing deps.
+  case $host_os in
+    darwin*)
+      ZVEC_EXTERNAL_LIBS=" \
+        $ZVEC_EXTERNAL_LIB/librocksdb.a \
+        $ZVEC_EXTERNAL_LIB/libarrow.a \
+        $ZVEC_EXTERNAL_LIB/libarrow_acero.a \
+        $ZVEC_EXTERNAL_LIB/libarrow_compute.a \
+        $ZVEC_EXTERNAL_LIB/libarrow_dataset.a \
+        $ZVEC_EXTERNAL_LIB/libarrow_bundled_dependencies.a \
+        $ZVEC_EXTERNAL_LIB/libparquet.a \
+        $ZVEC_EXTERNAL_LIB/libprotobuf.a \
+        $ZVEC_EXTERNAL_LIB/libantlr4-runtime.a \
+        $ZVEC_EXTERNAL_LIB/libglog.a \
+        $ZVEC_EXTERNAL_LIB/libgflags_nothreads.a \
+        $ZVEC_EXTERNAL_LIB/libyaml-cpp.a \
+        $ZVEC_EXTERNAL_LIB/liblz4.a \
+        $ZVEC_EXTERNAL_LIB/libroaring.a"
+      ;;
+    *)
+      ZVEC_EXTERNAL_LIBS=""
+      for lib in $ZVEC_EXTERNAL_LIB/*.a; do
+        ZVEC_EXTERNAL_LIBS="$ZVEC_EXTERNAL_LIBS $lib"
+      done
+      ;;
+  esac
 
   ZVEC_CORE_LIBS=" \
     $ZVEC_LIB/libzvec_db.a \
