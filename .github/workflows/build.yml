@@ -56,12 +56,22 @@ jobs:
         run: |
           phpize
           ./configure --enable-zvec
-          make -j$(nproc) V=1 2>&1 | tee /tmp/build.log
+          make -j$(nproc)
 
-      - name: Show link command
-        if: always()
+      - name: Re-link with whole-archive (libtool workaround)
+        working-directory: php-ext
         run: |
-          grep -E '(cc |g\+\+ |ld ).*-shared' /tmp/build.log || tail -30 /tmp/build.log
+          ZVEC_LIB="../zvec/build/lib"
+          ZVEC_EXT_LIB="../zvec/build/external/usr/local/lib"
+          g++ -shared -fPIC -DPIC \
+            .libs/*.o \
+            -Wl,--whole-archive \
+              $ZVEC_LIB/*.a \
+              $ZVEC_EXT_LIB/*.a \
+            -Wl,--no-whole-archive \
+            -lssl -lcrypto -lstdc++ -lz -lpthread -ldl \
+            -Wl,-soname,zvec.so \
+            -o modules/zvec.so
 
       - name: Strip extension
         working-directory: php-ext
