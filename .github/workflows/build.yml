@@ -29,7 +29,8 @@ jobs:
             build-essential cmake g++ \
             libssl-dev libz-dev \
             autoconf automake libtool \
-            curl
+            curl \
+            binutils
 
       - name: Download prebuilt zvec
         run: |
@@ -66,7 +67,13 @@ jobs:
         run: |
           php -n -d enable_dl=1 -d extension=modules/zvec.so -r 'echo "zvec loaded: " . (extension_loaded("zvec") ? "yes" : "no") . "\n";'
 
+      - name: Debug Arrow symbols
+        if: failure()
+        run: |
+          nm -A zvec/build/external/usr/local/lib/libarrow*.a | c++filt | grep 'arrow::TypeVisitor' || true
+
       - name: Run tests
+        if: success()
         run: |
           php -n -d enable_dl=1 -d extension=php-ext/modules/zvec.so run-tests.php -q --show-diff tests/
 
