@@ -1,8 +1,6 @@
 name: Build PHP Extension
 
 on:
-  push:
-    branches: [main, feature/github-actions-ci]
   pull_request:
     branches: [main]
 
@@ -11,6 +9,10 @@ env:
 
 jobs:
   build-zvec:
+    if: >-
+      github.event.pull_request.author_association == 'OWNER' ||
+      github.event.pull_request.author_association == 'MEMBER' ||
+      github.event.pull_request.author_association == 'COLLABORATOR'
     strategy:
       matrix:
         include:
@@ -52,6 +54,7 @@ jobs:
 
   build-macos:
     needs: build-zvec
+    if: ${{ !cancelled() && needs.build-zvec.result == 'success' }}
     runs-on: macos-latest
     strategy:
       matrix:
@@ -104,6 +107,7 @@ jobs:
 
   build-ubuntu:
     needs: build-zvec
+    if: ${{ !cancelled() && needs.build-zvec.result == 'success' }}
     runs-on: ubuntu-24.04
     strategy:
       matrix:
