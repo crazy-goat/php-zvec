@@ -1,7 +1,7 @@
 --TEST--
 Bug 0004: max_doc_count_per_segment minimum threshold is 1000
 --SKIPIF--
-<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
+<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../php/ZVec.php';

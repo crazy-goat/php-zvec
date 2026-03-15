@@ -3,7 +3,7 @@ Bug 0002: GroupByQuery does not return proper groups
 --XFAIL--
 ZVec marks Grouped Query as "Coming Soon" - returns all docs in single group with empty group_by_value
 --SKIPIF--
-<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
+<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../php/ZVec.php';

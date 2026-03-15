@@ -1,7 +1,7 @@
 --TEST--
 Extra data types: BOOL, INT32, UINT32, UINT64, VECTOR_INT8
 --SKIPIF--
-<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
+<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../php/ZVec.php';

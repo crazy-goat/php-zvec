@@ -1,7 +1,7 @@
 --TEST--
 Bug #29: Fix segfault when using QUERY_PARAM_FLAT on HNSW index
 --SKIPIF--
-<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
+<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../php/ZVec.php';

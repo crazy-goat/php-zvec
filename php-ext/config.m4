@@ -38,41 +38,75 @@ if test "$PHP_ZVEC" != "no"; then
   PHP_ADD_LIBRARY(pthread, 1, ZVEC_SHARED_LIBADD)
   PHP_ADD_LIBRARY(dl, 1, ZVEC_SHARED_LIBADD)
 
-  ZVEC_FORCE_LOAD_LIBS=" \
-    -Wl,-force_load,$ZVEC_LIB/libzvec_db.a \
-    -Wl,-force_load,$ZVEC_LIB/libzvec_ailego.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_metric.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_hnsw.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_hnsw_sparse.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_flat.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_flat_sparse.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_ivf.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_cluster.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_quantizer.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_utility.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_mix_reducer.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_framework.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_interface.a"
+  dnl External libs linked normally (no static registrations)
+  dnl macOS keeps explicit list (order matters), Linux uses wildcard to avoid missing deps.
+  case $host_os in
+    darwin*)
+      ZVEC_EXTERNAL_LIBS=" \
+        $ZVEC_EXTERNAL_LIB/librocksdb.a \
+        $ZVEC_EXTERNAL_LIB/libarrow.a \
+        $ZVEC_EXTERNAL_LIB/libarrow_acero.a \
+        $ZVEC_EXTERNAL_LIB/libarrow_compute.a \
+        $ZVEC_EXTERNAL_LIB/libarrow_dataset.a \
+        $ZVEC_EXTERNAL_LIB/libarrow_bundled_dependencies.a \
+        $ZVEC_EXTERNAL_LIB/libparquet.a \
+        $ZVEC_EXTERNAL_LIB/libprotobuf.a \
+        $ZVEC_EXTERNAL_LIB/libantlr4-runtime.a \
+        $ZVEC_EXTERNAL_LIB/libglog.a \
+        $ZVEC_EXTERNAL_LIB/libgflags_nothreads.a \
+        $ZVEC_EXTERNAL_LIB/libyaml-cpp.a \
+        $ZVEC_EXTERNAL_LIB/liblz4.a \
+        $ZVEC_EXTERNAL_LIB/libroaring.a"
+      ;;
+    *)
+      ZVEC_EXTERNAL_LIBS=""
+      ;;
+  esac
 
-  ZVEC_EXTERNAL_LIBS=" \
-    $ZVEC_EXTERNAL_LIB/librocksdb.a \
-    $ZVEC_EXTERNAL_LIB/libarrow.a \
-    $ZVEC_EXTERNAL_LIB/libarrow_acero.a \
-    $ZVEC_EXTERNAL_LIB/libarrow_compute.a \
-    $ZVEC_EXTERNAL_LIB/libarrow_dataset.a \
-    $ZVEC_EXTERNAL_LIB/libarrow_bundled_dependencies.a \
-    $ZVEC_EXTERNAL_LIB/libparquet.a \
-    $ZVEC_EXTERNAL_LIB/libprotobuf.a \
-    $ZVEC_EXTERNAL_LIB/libprotoc.a \
-    $ZVEC_EXTERNAL_LIB/libantlr4-runtime.a \
-    $ZVEC_EXTERNAL_LIB/libglog.a \
-    $ZVEC_EXTERNAL_LIB/libgflags_nothreads.a \
-    $ZVEC_EXTERNAL_LIB/libyaml-cpp.a \
-    $ZVEC_EXTERNAL_LIB/liblz4.a \
-    $ZVEC_EXTERNAL_LIB/libroaring.a"
+  ZVEC_CORE_LIBS=" \
+    $ZVEC_LIB/libzvec_db.a \
+    $ZVEC_LIB/libzvec_ailego.a \
+    $ZVEC_LIB/libcore_metric.a \
+    $ZVEC_LIB/libcore_knn_hnsw.a \
+    $ZVEC_LIB/libcore_knn_hnsw_sparse.a \
+    $ZVEC_LIB/libcore_knn_flat.a \
+    $ZVEC_LIB/libcore_knn_flat_sparse.a \
+    $ZVEC_LIB/libcore_knn_ivf.a \
+    $ZVEC_LIB/libcore_knn_cluster.a \
+    $ZVEC_LIB/libcore_quantizer.a \
+    $ZVEC_LIB/libcore_utility.a \
+    $ZVEC_LIB/libcore_mix_reducer.a \
+    $ZVEC_LIB/libcore_framework.a \
+    $ZVEC_LIB/libcore_interface.a"
 
-  ZVEC_FRAMEWORKS="-framework CoreFoundation -framework Security"
+  case $host_os in
+    darwin*)
+      dnl macOS: use -force_load for static factory registration, frameworks for TLS
+      ZVEC_FORCE_LOAD_LIBS=""
+      for lib in $ZVEC_CORE_LIBS; do
+        ZVEC_FORCE_LOAD_LIBS="$ZVEC_FORCE_LOAD_LIBS -Wl,-force_load,$lib"
+      done
+      ZVEC_PLATFORM_LIBS="-framework CoreFoundation -framework Security"
+      ZVEC_STRIP_FLAGS="-Wl,-dead_strip -Wl,-x -Wl,-exported_symbols_list,$ext_srcdir/zvec.exported_symbols"
+      ;;
+    *)
+      dnl Linux: libtool strips --whole-archive, so we pass static libs
+      dnl directly via EXTRA_LDFLAGS to bypass libtool processing
+      ZVEC_ALL_STATIC="$ZVEC_CORE_LIBS"
+      for lib in $ZVEC_EXTERNAL_LIB/*.a; do
+        ZVEC_ALL_STATIC="$ZVEC_ALL_STATIC $lib"
+      done
+      EXTRA_LDFLAGS="$EXTRA_LDFLAGS -Wl,--whole-archive $ZVEC_ALL_STATIC -Wl,--no-whole-archive -lssl -lcrypto"
+      ZVEC_PLATFORM_LIBS=""
+      ZVEC_STRIP_FLAGS=""
+      ;;
+  esac
 
-  ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_FRAMEWORKS $ZVEC_SHARED_LIBADD"
+  case $host_os in
+    darwin*)
+      ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_PLATFORM_LIBS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
+      ;;
+  esac
   PHP_SUBST(ZVEC_SHARED_LIBADD)
+  PHP_SUBST(EXTRA_LDFLAGS)
 fi

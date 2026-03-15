@@ -17,12 +17,13 @@ tests/*.log
 tests/*.out
 tests/*.sh
 *.phar
-/.idea/.gitignore
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/php.xml
-/.idea/vcs.xml
-/.idea/zvec-php.iml
+/.idea/
+
+# Local CI testing
+.act/
+
+# Docker build output
+docker/out/
 
 # PHP extension build artifacts
 php-ext/autom4te.cache/

@@ -1,7 +1,7 @@
 --TEST--
 Doc introspection: hasField, hasVector, fieldNames, vectorNames
 --SKIPIF--
-<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
+<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../php/ZVec.php';
@@ -105,7 +105,7 @@ hasVector tests:
 
 fieldNames():
   Count: 3 (expected: 3 - id, name, weight)
-  Fields: weight, name, id
+  Fields: id, name, weight
 
 vectorNames():
   Count: 1 (expected: 1 - embedding)

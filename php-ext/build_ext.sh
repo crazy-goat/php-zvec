@@ -26,6 +26,12 @@ echo "--- Configuring ---"
 echo "--- Building ---"
 make -j$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
+echo "--- Stripping symbols ---"
+SIZE_BEFORE=$(stat -f%z modules/zvec.so 2>/dev/null || stat -c%s modules/zvec.so 2>/dev/null)
+strip -x modules/zvec.so
+SIZE_AFTER=$(stat -f%z modules/zvec.so 2>/dev/null || stat -c%s modules/zvec.so 2>/dev/null)
+echo "Size: $(echo "$SIZE_BEFORE/1048576" | bc)MB -> $(echo "$SIZE_AFTER/1048576" | bc)MB"
+
 echo ""
 echo "=== Build complete ==="
 echo "Extension: $(pwd)/modules/zvec.so"
