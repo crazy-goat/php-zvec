@@ -84,10 +84,20 @@ jobs:
         run: |
           php -n -d enable_dl=1 -d extension=modules/zvec.so -r 'if (!extension_loaded("zvec")) { echo "FAIL: zvec not loaded\n"; exit(1); } echo "zvec loaded: yes\n";'
 
-      - name: Debug Arrow symbols
+      - name: Debug load failure
         if: steps.verify.outcome == 'failure'
         run: |
-          nm -A zvec/build/external/usr/local/lib/libarrow*.a | c++filt | grep 'arrow::TypeVisitor' || true
+          echo "=== CPU flags ==="
+          grep -m1 'model name' /proc/cpuinfo
+          grep -m1 'flags' /proc/cpuinfo | tr ' ' '\n' | grep -E 'avx|sse|bmi' | sort
+          echo "=== ldd ==="
+          ldd php-ext/modules/zvec.so || true
+          echo "=== undefined symbols ==="
+          php -n -d enable_dl=1 -d extension=php-ext/modules/zvec.so -r 'echo "test";' 2>&1 || true
+          echo "=== objdump: AVX-512 instructions ==="
+          objdump -d php-ext/modules/zvec.so | grep -c 'zmm' || echo "no zmm (AVX-512) found"
+          echo "=== objdump: AVX2 instructions ==="
+          objdump -d php-ext/modules/zvec.so | grep -c 'ymm' || echo "no ymm (AVX2) found"
 
       - name: Run tests
         if: steps.verify.outcome == 'success'
