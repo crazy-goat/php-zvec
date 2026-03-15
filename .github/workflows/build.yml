@@ -20,7 +20,7 @@ jobs:
             os-key: ubuntu24
 
     runs-on: ${{ matrix.os }}
-    name: Build zvec - ${{ matrix.os-key }} (${{ env.ZVEC_VERSION }})
+    name: Build zvec - ${{ matrix.os-key }}
 
     steps:
       - name: Cache zvec build
