@@ -1,0 +1,124 @@
+name: Release PHP Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  ZVEC_VERSION: v0.2.0
+  ZVEC_BUILD_RELEASE: zvec-build-v0.2.0
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        php-version: ['8.4']
+
+    name: Build & Release - PHP ${{ matrix.php-version }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Verify tag is on main
+        run: |
+          git clone --bare "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/repo.git
+          if ! git -C /tmp/repo.git branch --contains "${{ github.sha }}" | grep -qw main; then
+            echo "ERROR: Tag ${{ github.ref_name }} is not on main branch"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake g++ \
+            libssl-dev libz-dev \
+            autoconf automake libtool \
+            curl binutils
+
+      - name: Download prebuilt zvec
+        run: |
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
+          echo "Downloading: $URL"
+          curl -fL "$URL" -o /tmp/zvec.tar.gz
+
+          rm -rf zvec
+          tar -xzf /tmp/zvec.tar.gz
+
+          test -f zvec/build/lib/libzvec_db.a
+          test -d zvec/src/include
+          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: phpize
+
+      - name: Build PHP extension
+        working-directory: php-ext
+        run: |
+          phpize
+          ./configure --enable-zvec
+          make -j$(nproc)
+
+      - name: Re-link with whole-archive (libtool workaround)
+        working-directory: php-ext
+        run: |
+          ZVEC_LIB="../zvec/build/lib"
+          ZVEC_EXT_LIB="../zvec/build/external/usr/local/lib"
+          g++ -shared -fPIC -DPIC \
+            .libs/*.o \
+            -Wl,--whole-archive \
+              $ZVEC_LIB/libzvec_db.a \
+              $ZVEC_LIB/libzvec_ailego.a \
+              $ZVEC_LIB/libcore_metric.a \
+              $ZVEC_LIB/libcore_knn_hnsw.a \
+              $ZVEC_LIB/libcore_knn_hnsw_sparse.a \
+              $ZVEC_LIB/libcore_knn_flat.a \
+              $ZVEC_LIB/libcore_knn_flat_sparse.a \
+              $ZVEC_LIB/libcore_knn_ivf.a \
+              $ZVEC_LIB/libcore_knn_cluster.a \
+              $ZVEC_LIB/libcore_quantizer.a \
+              $ZVEC_LIB/libcore_utility.a \
+              $ZVEC_LIB/libcore_mix_reducer.a \
+              $ZVEC_LIB/libcore_framework.a \
+              $ZVEC_LIB/libcore_interface.a \
+              $ZVEC_EXT_LIB/*.a \
+            -Wl,--no-whole-archive \
+            -lssl -lcrypto -lstdc++ -lz -lpthread -ldl \
+            -Wl,-soname,zvec.so \
+            -o modules/zvec.so
+
+      - name: Strip extension
+        working-directory: php-ext
+        run: strip --strip-unneeded modules/zvec.so
+
+      - name: Verify extension loads
+        working-directory: php-ext
+        run: |
+          php -n -d enable_dl=1 -d extension=modules/zvec.so -r 'if (!extension_loaded("zvec")) { echo "FAIL: zvec not loaded\n"; exit(1); } echo "zvec loaded: yes\n";'
+
+      - name: Run tests
+        env:
+          TEST_PHP_ARGS: "-n -d extension=${{ github.workspace }}/php-ext/modules/zvec.so"
+        run: |
+          php run-tests.php -q --show-diff tests/
+
+      - name: Package extension
+        run: |
+          ASSET_NAME="zvec-php${{ matrix.php-version }}-ubuntu24-x86_64.tar.gz"
+          tar -czf "$ASSET_NAME" -C php-ext/modules zvec.so
+          echo "ASSET_NAME=$ASSET_NAME" >> "$GITHUB_ENV"
+
+      - name: Upload release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" "$ASSET_NAME" --clobber
