@@ -38,6 +38,7 @@ if test "$PHP_ZVEC" != "no"; then
   PHP_ADD_LIBRARY(pthread, 1, ZVEC_SHARED_LIBADD)
   PHP_ADD_LIBRARY(dl, 1, ZVEC_SHARED_LIBADD)
 
+  dnl zvec core libs need -force_load due to static factory registration macros
   ZVEC_FORCE_LOAD_LIBS=" \
     -Wl,-force_load,$ZVEC_LIB/libzvec_db.a \
     -Wl,-force_load,$ZVEC_LIB/libzvec_ailego.a \
@@ -54,6 +55,7 @@ if test "$PHP_ZVEC" != "no"; then
     -Wl,-force_load,$ZVEC_LIB/libcore_framework.a \
     -Wl,-force_load,$ZVEC_LIB/libcore_interface.a"
 
+  dnl External libs linked normally (no static registrations, dead-strip applies)
   ZVEC_EXTERNAL_LIBS=" \
     $ZVEC_EXTERNAL_LIB/librocksdb.a \
     $ZVEC_EXTERNAL_LIB/libarrow.a \
@@ -73,6 +75,9 @@ if test "$PHP_ZVEC" != "no"; then
 
   ZVEC_FRAMEWORKS="-framework CoreFoundation -framework Security"
 
-  ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_FRAMEWORKS $ZVEC_SHARED_LIBADD"
+  dnl Strip unused code and hide internal symbols
+  ZVEC_STRIP_FLAGS="-Wl,-dead_strip -Wl,-x"
+
+  ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_FRAMEWORKS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
   PHP_SUBST(ZVEC_SHARED_LIBADD)
 fi
