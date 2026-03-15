@@ -63,19 +63,23 @@ jobs:
         run: |
           ZVEC_LIB="../zvec/build/lib"
           ZVEC_EXT_LIB="../zvec/build/external/usr/local/lib"
-
-          OBJS_DIR=$(mktemp -d)
-          for lib in $ZVEC_LIB/*.a; do
-            name=$(basename "$lib" .a)
-            mkdir -p "$OBJS_DIR/$name"
-            ar x "$lib" --output "$OBJS_DIR/$name"
-          done
-
           g++ -shared -fPIC -DPIC \
             .libs/*.o \
-            -Wl,--allow-multiple-definition \
-            "$OBJS_DIR"/*/*.o \
             -Wl,--whole-archive \
+              $ZVEC_LIB/libzvec_db.a \
+              $ZVEC_LIB/libzvec_ailego.a \
+              $ZVEC_LIB/libcore_metric.a \
+              $ZVEC_LIB/libcore_knn_hnsw.a \
+              $ZVEC_LIB/libcore_knn_hnsw_sparse.a \
+              $ZVEC_LIB/libcore_knn_flat.a \
+              $ZVEC_LIB/libcore_knn_flat_sparse.a \
+              $ZVEC_LIB/libcore_knn_ivf.a \
+              $ZVEC_LIB/libcore_knn_cluster.a \
+              $ZVEC_LIB/libcore_quantizer.a \
+              $ZVEC_LIB/libcore_utility.a \
+              $ZVEC_LIB/libcore_mix_reducer.a \
+              $ZVEC_LIB/libcore_framework.a \
+              $ZVEC_LIB/libcore_interface.a \
               $ZVEC_EXT_LIB/*.a \
             -Wl,--no-whole-archive \
             -lssl -lcrypto -lstdc++ -lz -lpthread -ldl \
