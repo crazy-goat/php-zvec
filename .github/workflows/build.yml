@@ -38,15 +38,19 @@ jobs:
       - name: Clone zvec
         if: steps.cache-zvec.outputs.cache-hit != 'true'
         run: |
-          git clone --recurse-submodules --branch ${{ env.ZVEC_VERSION }} --depth 1 \
+          git clone --recurse-submodules --branch ${{ env.ZVEC_VERSION }} \
             https://github.com/alibaba/zvec.git zvec
 
       - name: Build zvec C++ library
         if: steps.cache-zvec.outputs.cache-hit != 'true'
         working-directory: zvec
         run: |
+          echo "PWD: $(pwd)"
+          echo "CMake: $(cmake --version | head -1)"
+          echo "Compiler: $(c++ --version | head -1)"
+          ls -la
           mkdir -p build && cd build
-          cmake ..
+          cmake .. 2>&1
           make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
   build-macos:
