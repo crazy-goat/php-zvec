@@ -10,13 +10,9 @@ env:
   ZVEC_BUILD_RELEASE: zvec-build-v0.2.0
 
 jobs:
-  release:
+  create-release:
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        php-version: ['8.4']
-
-    name: Build & Release - PHP ${{ matrix.php-version }}
+    name: Create Release
 
     permissions:
       contents: write
@@ -30,6 +26,90 @@ jobs:
             exit 1
           fi
 
+      - name: Create release if not exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            || echo "Release already exists"
+
+  release-ffi:
+    needs: create-release
+    runs-on: ubuntu-24.04
+    name: Build & Release FFI Library
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake g++ \
+            libssl-dev libz-dev \
+            curl binutils
+
+      - name: Download prebuilt zvec
+        run: |
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
+          echo "Downloading: $URL"
+          curl -fL "$URL" -o /tmp/zvec.tar.gz
+
+          rm -rf zvec
+          tar -xzf /tmp/zvec.tar.gz
+
+          test -f zvec/build/lib/libzvec_db.a
+          test -d zvec/src/include
+          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
+
+      - name: Build FFI shared library
+        working-directory: ffi
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make -j$(nproc)
+          ls -la libzvec_ffi.so
+
+      - name: Strip library
+        working-directory: ffi/build
+        run: |
+          ls -la libzvec_ffi.so
+          strip -s libzvec_ffi.so
+          ls -la libzvec_ffi.so
+
+      - name: Package FFI library
+        run: |
+          ASSET_NAME="libzvec_ffi-ubuntu24-x86_64.tar.gz"
+          tar -czf "$ASSET_NAME" -C ffi/build libzvec_ffi.so
+          echo "ASSET_NAME=$ASSET_NAME" >> "$GITHUB_ENV"
+
+      - name: Upload release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" "$ASSET_NAME" --clobber
+
+  release-ext:
+    needs: create-release
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        php-version: ['8.4']
+
+    name: Build & Release PHP Extension - ${{ matrix.php-version }}
+
+    permissions:
+      contents: write
+
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
 
