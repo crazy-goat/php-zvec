@@ -63,11 +63,10 @@ jobs:
         run: |
           ZVEC_LIB="../zvec/build/lib"
           ZVEC_EXT_LIB="../zvec/build/external/usr/local/lib"
-          CORE_LIBS=$(ls $ZVEC_LIB/*.a | grep -v libzvec_sqlengine)
           g++ -shared -fPIC -DPIC \
             .libs/*.o \
-            -Wl,--whole-archive \
-              $CORE_LIBS \
+            -Wl,--whole-archive,--allow-multiple-definition \
+              $ZVEC_LIB/*.a \
               $ZVEC_EXT_LIB/*.a \
             -Wl,--no-whole-archive \
             -lssl -lcrypto -lstdc++ -lz -lpthread -ldl \
