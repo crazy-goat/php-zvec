@@ -38,24 +38,7 @@ if test "$PHP_ZVEC" != "no"; then
   PHP_ADD_LIBRARY(pthread, 1, ZVEC_SHARED_LIBADD)
   PHP_ADD_LIBRARY(dl, 1, ZVEC_SHARED_LIBADD)
 
-  dnl zvec core libs need -force_load due to static factory registration macros
-  ZVEC_FORCE_LOAD_LIBS=" \
-    -Wl,-force_load,$ZVEC_LIB/libzvec_db.a \
-    -Wl,-force_load,$ZVEC_LIB/libzvec_ailego.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_metric.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_hnsw.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_hnsw_sparse.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_flat.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_flat_sparse.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_ivf.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_knn_cluster.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_quantizer.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_utility.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_mix_reducer.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_framework.a \
-    -Wl,-force_load,$ZVEC_LIB/libcore_interface.a"
-
-  dnl External libs linked normally (no static registrations, dead-strip applies)
+  dnl External libs linked normally (no static registrations)
   dnl Order matters: dependents before dependencies
   ZVEC_EXTERNAL_LIBS=" \
     $ZVEC_EXTERNAL_LIB/librocksdb.a \
@@ -73,11 +56,40 @@ if test "$PHP_ZVEC" != "no"; then
     $ZVEC_EXTERNAL_LIB/liblz4.a \
     $ZVEC_EXTERNAL_LIB/libroaring.a"
 
-  ZVEC_FRAMEWORKS="-framework CoreFoundation -framework Security"
+  ZVEC_CORE_LIBS=" \
+    $ZVEC_LIB/libzvec_db.a \
+    $ZVEC_LIB/libzvec_ailego.a \
+    $ZVEC_LIB/libcore_metric.a \
+    $ZVEC_LIB/libcore_knn_hnsw.a \
+    $ZVEC_LIB/libcore_knn_hnsw_sparse.a \
+    $ZVEC_LIB/libcore_knn_flat.a \
+    $ZVEC_LIB/libcore_knn_flat_sparse.a \
+    $ZVEC_LIB/libcore_knn_ivf.a \
+    $ZVEC_LIB/libcore_knn_cluster.a \
+    $ZVEC_LIB/libcore_quantizer.a \
+    $ZVEC_LIB/libcore_utility.a \
+    $ZVEC_LIB/libcore_mix_reducer.a \
+    $ZVEC_LIB/libcore_framework.a \
+    $ZVEC_LIB/libcore_interface.a"
 
-  dnl Strip unused code and hide internal symbols
-  ZVEC_STRIP_FLAGS="-Wl,-dead_strip -Wl,-x -Wl,-exported_symbols_list,$ext_srcdir/zvec.exported_symbols"
+  case $host_os in
+    darwin*)
+      dnl macOS: use -force_load for static factory registration, frameworks for TLS
+      ZVEC_FORCE_LOAD_LIBS=""
+      for lib in $ZVEC_CORE_LIBS; do
+        ZVEC_FORCE_LOAD_LIBS="$ZVEC_FORCE_LOAD_LIBS -Wl,-force_load,$lib"
+      done
+      ZVEC_PLATFORM_LIBS="-framework CoreFoundation -framework Security"
+      ZVEC_STRIP_FLAGS="-Wl,-dead_strip -Wl,-x -Wl,-exported_symbols_list,$ext_srcdir/zvec.exported_symbols"
+      ;;
+    *)
+      dnl Linux: use --whole-archive for static factory registration
+      ZVEC_FORCE_LOAD_LIBS="-Wl,--whole-archive $ZVEC_CORE_LIBS -Wl,--no-whole-archive"
+      ZVEC_PLATFORM_LIBS="-lssl -lcrypto"
+      ZVEC_STRIP_FLAGS="-Wl,--gc-sections -Wl,--version-script,$ext_srcdir/zvec.version-script"
+      ;;
+  esac
 
-  ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_FRAMEWORKS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
+  ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_PLATFORM_LIBS $ZVEC_STRIP_FLAGS $ZVEC_SHARED_LIBADD"
   PHP_SUBST(ZVEC_SHARED_LIBADD)
 fi
