@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+if (extension_loaded('zvec')) return;
+
 /**
  * Reranked document result containing the original document and combined score.
  * 

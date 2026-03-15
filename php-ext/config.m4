@@ -1,0 +1,78 @@
+PHP_ARG_ENABLE([zvec],
+  [whether to enable zvec support],
+  [AS_HELP_STRING([--enable-zvec],
+    [Enable zvec support])],
+  [no])
+
+if test "$PHP_ZVEC" != "no"; then
+  PHP_REQUIRE_CXX()
+
+  ZVEC_ROOT="$abs_srcdir/../zvec"
+  ZVEC_BUILD="$ZVEC_ROOT/build"
+  ZVEC_INCLUDE="$ZVEC_ROOT/src/include"
+  ZVEC_SPARSEHASH="$ZVEC_ROOT/thirdparty/sparsehash/sparsehash-2.0.4/src"
+  ZVEC_LIB="$ZVEC_BUILD/lib"
+  ZVEC_EXTERNAL_LIB="$ZVEC_BUILD/external/usr/local/lib"
+
+  PHP_ADD_INCLUDE($ZVEC_INCLUDE)
+  PHP_ADD_INCLUDE($ZVEC_SPARSEHASH)
+
+  ZVEC_SOURCES="zvec.cc \
+    zvec_exception.cc \
+    zvec_schema.cc \
+    zvec_doc.cc \
+    zvec_vector_query.cc \
+    zvec_collection.cc \
+    zvec_reranker.cc \
+    zvec_reranked_doc.cc \
+    zvec_rrf_reranker.cc \
+    zvec_weighted_reranker.cc \
+    zvec_embedding_interfaces.cc \
+    zvec_openai_embedding.cc \
+    zvec_qwen_embedding.cc"
+
+  PHP_NEW_EXTENSION(zvec, $ZVEC_SOURCES, $ext_shared,, -std=c++17 -DCOMPILE_DL_ZVEC)
+
+  PHP_ADD_LIBRARY(stdc++, 1, ZVEC_SHARED_LIBADD)
+  PHP_ADD_LIBRARY(z, 1, ZVEC_SHARED_LIBADD)
+  PHP_ADD_LIBRARY(pthread, 1, ZVEC_SHARED_LIBADD)
+  PHP_ADD_LIBRARY(dl, 1, ZVEC_SHARED_LIBADD)
+
+  ZVEC_FORCE_LOAD_LIBS=" \
+    -Wl,-force_load,$ZVEC_LIB/libzvec_db.a \
+    -Wl,-force_load,$ZVEC_LIB/libzvec_ailego.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_metric.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_knn_hnsw.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_knn_hnsw_sparse.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_knn_flat.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_knn_flat_sparse.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_knn_ivf.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_knn_cluster.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_quantizer.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_utility.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_mix_reducer.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_framework.a \
+    -Wl,-force_load,$ZVEC_LIB/libcore_interface.a"
+
+  ZVEC_EXTERNAL_LIBS=" \
+    $ZVEC_EXTERNAL_LIB/librocksdb.a \
+    $ZVEC_EXTERNAL_LIB/libarrow.a \
+    $ZVEC_EXTERNAL_LIB/libarrow_acero.a \
+    $ZVEC_EXTERNAL_LIB/libarrow_compute.a \
+    $ZVEC_EXTERNAL_LIB/libarrow_dataset.a \
+    $ZVEC_EXTERNAL_LIB/libarrow_bundled_dependencies.a \
+    $ZVEC_EXTERNAL_LIB/libparquet.a \
+    $ZVEC_EXTERNAL_LIB/libprotobuf.a \
+    $ZVEC_EXTERNAL_LIB/libprotoc.a \
+    $ZVEC_EXTERNAL_LIB/libantlr4-runtime.a \
+    $ZVEC_EXTERNAL_LIB/libglog.a \
+    $ZVEC_EXTERNAL_LIB/libgflags_nothreads.a \
+    $ZVEC_EXTERNAL_LIB/libyaml-cpp.a \
+    $ZVEC_EXTERNAL_LIB/liblz4.a \
+    $ZVEC_EXTERNAL_LIB/libroaring.a"
+
+  ZVEC_FRAMEWORKS="-framework CoreFoundation -framework Security"
+
+  ZVEC_SHARED_LIBADD="$ZVEC_FORCE_LOAD_LIBS $ZVEC_EXTERNAL_LIBS $ZVEC_FRAMEWORKS $ZVEC_SHARED_LIBADD"
+  PHP_SUBST(ZVEC_SHARED_LIBADD)
+fi

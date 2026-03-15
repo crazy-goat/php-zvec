@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+if (extension_loaded('zvec')) return;
+
 class ZVecException extends RuntimeException {}
 
 class ZVec

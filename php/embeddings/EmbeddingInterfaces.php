@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+if (extension_loaded('zvec')) return;
+
 /**
  * Interface for dense embedding functions.
  * Converts text input into dense vector representations.
