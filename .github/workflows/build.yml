@@ -9,14 +9,14 @@ env:
   ZVEC_BUILD_RELEASE: zvec-build-v0.2.0
 
 jobs:
-  build-ubuntu:
+  build-ext:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     strategy:
       matrix:
         php-version: ['8.4']
 
-    name: Ubuntu 24.04 - PHP ${{ matrix.php-version }}
+    name: ext - PHP ${{ matrix.php-version }}
 
     steps:
       - name: Checkout
@@ -105,3 +105,58 @@ jobs:
         with:
           name: zvec-php${{ matrix.php-version }}-ubuntu24-${{ runner.arch }}
           path: php-ext/modules/zvec.so
+
+  build-ffi:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        php-version: ['8.4']
+
+    name: ffi - PHP ${{ matrix.php-version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake g++ \
+            libssl-dev libz-dev \
+            curl
+
+      - name: Download prebuilt zvec
+        run: |
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
+          echo "Downloading: $URL"
+          curl -fL "$URL" -o /tmp/zvec.tar.gz
+
+          rm -rf zvec
+          tar -xzf /tmp/zvec.tar.gz
+
+          test -f zvec/build/lib/libzvec_db.a
+          test -d zvec/src/include
+          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: ffi
+
+      - name: Build FFI shared library
+        working-directory: ffi
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make -j$(nproc)
+          ls -la libzvec_ffi.so
+
+      - name: Run tests
+        env:
+          TEST_PHP_ARGS: "-n -d extension=ffi"
+        run: |
+          php run-tests.php -q --show-diff tests/
