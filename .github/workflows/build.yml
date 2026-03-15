@@ -63,19 +63,25 @@ jobs:
         run: strip --strip-unneeded modules/zvec.so
 
       - name: Verify extension loads
+        id: verify
         working-directory: php-ext
+        continue-on-error: true
         run: |
           php -n -d enable_dl=1 -d extension=modules/zvec.so -r 'echo "zvec loaded: " . (extension_loaded("zvec") ? "yes" : "no") . "\n";'
 
       - name: Debug Arrow symbols
-        if: failure()
+        if: steps.verify.outcome == 'failure'
         run: |
           nm -A zvec/build/external/usr/local/lib/libarrow*.a | c++filt | grep 'arrow::TypeVisitor' || true
 
       - name: Run tests
-        if: success()
+        if: steps.verify.outcome == 'success'
         run: |
           php -n -d enable_dl=1 -d extension=php-ext/modules/zvec.so run-tests.php -q --show-diff tests/
+
+      - name: Fail job if extension failed to load
+        if: steps.verify.outcome == 'failure'
+        run: exit 1
 
       - name: Upload extension artifact
         uses: actions/upload-artifact@v4
