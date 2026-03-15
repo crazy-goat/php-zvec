@@ -1,0 +1,17 @@
+FROM --platform=linux/amd64 ubuntu:24.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    cmake \
+    g++ \
+    git \
+    make \
+    patch \
+    rsync \
+    libssl-dev \
+    libz-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src

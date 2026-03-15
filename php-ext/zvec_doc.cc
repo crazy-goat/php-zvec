@@ -2,6 +2,7 @@
 #include "zvec_exception.h"
 #include <zvec/db/doc.h>
 #include <zvec/ailego/utility/float_helper.h>
+#include <algorithm>
 #include <vector>
 #include <string>
 #include <cstring>
@@ -482,9 +483,14 @@ PHP_METHOD(ZVecDoc, fieldNames) {
     ZEND_PARSE_PARAMETERS_NONE();
     auto *intern = Z_ZVEC_DOC_P(ZEND_THIS);
     auto names = intern->doc->field_names();
-    array_init(return_value);
+    std::vector<std::string> result;
     for (const auto &name : names) {
         if (intern->doc->get_field<std::vector<float>>(name).ok()) continue;
+        result.push_back(name);
+    }
+    std::sort(result.begin(), result.end());
+    array_init(return_value);
+    for (const auto &name : result) {
         add_next_index_stringl(return_value, name.c_str(), name.length());
     }
 }
@@ -493,9 +499,14 @@ PHP_METHOD(ZVecDoc, vectorNames) {
     ZEND_PARSE_PARAMETERS_NONE();
     auto *intern = Z_ZVEC_DOC_P(ZEND_THIS);
     auto names = intern->doc->field_names();
-    array_init(return_value);
+    std::vector<std::string> result;
     for (const auto &name : names) {
         if (!intern->doc->get_field<std::vector<float>>(name).ok()) continue;
+        result.push_back(name);
+    }
+    std::sort(result.begin(), result.end());
+    array_init(return_value);
+    for (const auto &name : result) {
         add_next_index_stringl(return_value, name.c_str(), name.length());
     }
 }

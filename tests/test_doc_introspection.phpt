@@ -105,7 +105,7 @@ hasVector tests:
 
 fieldNames():
   Count: 3 (expected: 3 - id, name, weight)
-  Fields: weight, name, id
+  Fields: id, name, weight
 
 vectorNames():
   Count: 1 (expected: 1 - embedding)

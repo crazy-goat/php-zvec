@@ -29,8 +29,7 @@ jobs:
             build-essential cmake g++ \
             libssl-dev libz-dev \
             autoconf automake libtool \
-            curl \
-            binutils
+            curl binutils
 
       - name: Download prebuilt zvec
         run: |
@@ -91,53 +90,18 @@ jobs:
         run: strip --strip-unneeded modules/zvec.so
 
       - name: Verify extension loads
-        id: verify
         working-directory: php-ext
-        continue-on-error: true
         run: |
           php -n -d enable_dl=1 -d extension=modules/zvec.so -r 'if (!extension_loaded("zvec")) { echo "FAIL: zvec not loaded\n"; exit(1); } echo "zvec loaded: yes\n";'
 
-      - name: Debug load failure
-        if: steps.verify.outcome == 'failure'
-        run: |
-          echo "=== CPU flags ==="
-          grep -m1 'model name' /proc/cpuinfo
-          grep -m1 'flags' /proc/cpuinfo | tr ' ' '\n' | grep -E 'avx|sse|bmi' | sort
-          echo "=== ldd ==="
-          ldd php-ext/modules/zvec.so || true
-          echo "=== undefined symbols ==="
-          php -n -d enable_dl=1 -d extension=php-ext/modules/zvec.so -r 'echo "test";' 2>&1 || true
-          echo "=== objdump: AVX-512 instructions ==="
-          objdump -d php-ext/modules/zvec.so | grep -c 'zmm' || echo "no zmm (AVX-512) found"
-          echo "=== objdump: AVX2 instructions ==="
-          objdump -d php-ext/modules/zvec.so | grep -c 'ymm' || echo "no ymm (AVX2) found"
-
-      - name: Run tests (ext)
-        if: steps.verify.outcome == 'success'
+      - name: Run tests
         env:
           TEST_PHP_ARGS: "-n -d extension=${{ github.workspace }}/php-ext/modules/zvec.so"
         run: |
           php run-tests.php -q --show-diff tests/
-
-      - name: Fail job if extension failed to load
-        if: steps.verify.outcome == 'failure'
-        run: exit 1
 
       - name: Upload extension artifact
         uses: actions/upload-artifact@v4
         with:
           name: zvec-php${{ matrix.php-version }}-ubuntu24-${{ runner.arch }}
           path: php-ext/modules/zvec.so
-
-  build-macos:
-    if: false
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        php-version: ['8.4']
-
-    name: macOS - PHP ${{ matrix.php-version }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
