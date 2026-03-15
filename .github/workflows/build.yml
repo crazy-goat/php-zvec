@@ -64,11 +64,11 @@ jobs:
       - name: Verify extension loads
         working-directory: php-ext
         run: |
-          php -n -d extension=modules/zvec.so -r 'echo "zvec loaded: " . (extension_loaded("zvec") ? "yes" : "no") . "\n";'
+          php -n -d enable_dl=1 -d extension=modules/zvec.so -r 'echo "zvec loaded: " . (extension_loaded("zvec") ? "yes" : "no") . "\n";'
 
       - name: Run tests
         run: |
-          php -n -d extension=php-ext/modules/zvec.so run-tests.php -q --show-diff tests/
+          php -n -d enable_dl=1 -d extension=php-ext/modules/zvec.so run-tests.php -q --show-diff tests/
 
       - name: Upload extension artifact
         uses: actions/upload-artifact@v4
