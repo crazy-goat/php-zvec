@@ -6,7 +6,7 @@ cd "$SCRIPT_DIR"
 
 # Pobierz repozytorium zvec
 if [ ! -d "zvec" ]; then
-    git clone --recurse-submodules https://github.com/alibaba/zvec.git zvec
+    git clone --recurse-submodules --branch v0.4.0 https://github.com/alibaba/zvec.git zvec
 else
     cd zvec
     git submodule update --init --recursive
