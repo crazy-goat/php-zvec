@@ -9,7 +9,50 @@ env:
   ZVEC_BUILD_RELEASE: zvec-build-v0.4.0
 
 jobs:
+  setup-zvec:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    name: Build zvec C++ library
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake g++ \
+            libssl-dev libz-dev \
+            curl rsync
+
+      - name: Setup zvec ${{ env.ZVEC_VERSION }}
+        run: |
+          PREBUILT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
+          ./build_zvec_lib.sh "$ZVEC_VERSION" "$PREBUILT_URL"
+          test -f zvec/build/lib/libzvec_db.a
+          test -d zvec/src/include
+          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
+
+      - name: Package zvec build
+        run: |
+          PKG=$(mktemp -d)
+          mkdir -p "$PKG/zvec/src" \
+                   "$PKG/zvec/thirdparty/sparsehash/sparsehash-2.0.4" \
+                   "$PKG/zvec/build/external/usr/local"
+          rsync -a zvec/src/include                                "$PKG/zvec/src/"
+          rsync -a zvec/thirdparty/sparsehash/sparsehash-2.0.4/src "$PKG/zvec/thirdparty/sparsehash/sparsehash-2.0.4/"
+          rsync -a zvec/build/lib                                   "$PKG/zvec/build/"
+          rsync -a zvec/build/external/usr/local/lib                "$PKG/zvec/build/external/usr/local/"
+          tar -czf zvec-pkg.tar.gz -C "$PKG" zvec
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zvec-build
+          path: zvec-pkg.tar.gz
+
   build-ext:
+    needs: setup-zvec
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     strategy:
@@ -19,8 +62,20 @@ jobs:
     name: ext - PHP ${{ matrix.php-version }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Download zvec artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zvec-build
+
+      - name: Extract zvec
+        run: |
+          tar -xzf zvec-pkg.tar.gz
+          rm zvec-pkg.tar.gz
+          test -f zvec/build/lib/libzvec_db.a
+          test -d zvec/src/include
+          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
 
       - name: Install system dependencies
         run: |
@@ -30,30 +85,6 @@ jobs:
             libssl-dev libz-dev \
             autoconf automake libtool \
             curl binutils
-
-      - name: Setup zvec ${{ env.ZVEC_VERSION }}
-        run: |
-          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
-          echo "Trying prebuilt: $URL"
-          if curl -fL --connect-timeout 10 "$URL" -o /tmp/zvec.tar.gz 2>/dev/null; then
-            echo "Prebuilt zvec ${ZVEC_VERSION} downloaded"
-            rm -rf zvec
-            tar -xzf /tmp/zvec.tar.gz
-            rm /tmp/zvec.tar.gz
-          else
-            echo "Prebuilt not found. Building zvec ${ZVEC_VERSION} from source..."
-            if [ ! -d zvec ]; then
-              git clone --recurse-submodules --branch "$ZVEC_VERSION" \
-                https://github.com/alibaba/zvec.git zvec
-            fi
-            cmake -S zvec -B zvec/build \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-            cmake --build zvec/build -j$(nproc)
-          fi
-          test -f zvec/build/lib/libzvec_db.a
-          test -d zvec/src/include
-          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -104,6 +135,7 @@ jobs:
           path: php-ext/modules/zvec.so
 
   build-ffi:
+    needs: setup-zvec
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     strategy:
@@ -113,8 +145,20 @@ jobs:
     name: ffi - PHP ${{ matrix.php-version }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Download zvec artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zvec-build
+
+      - name: Extract zvec
+        run: |
+          tar -xzf zvec-pkg.tar.gz
+          rm zvec-pkg.tar.gz
+          test -f zvec/build/lib/libzvec_db.a
+          test -d zvec/src/include
+          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
 
       - name: Install system dependencies
         run: |
@@ -123,30 +167,6 @@ jobs:
             build-essential cmake g++ \
             libssl-dev libz-dev \
             curl
-
-      - name: Setup zvec ${{ env.ZVEC_VERSION }}
-        run: |
-          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
-          echo "Trying prebuilt: $URL"
-          if curl -fL --connect-timeout 10 "$URL" -o /tmp/zvec.tar.gz 2>/dev/null; then
-            echo "Prebuilt zvec ${ZVEC_VERSION} downloaded"
-            rm -rf zvec
-            tar -xzf /tmp/zvec.tar.gz
-            rm /tmp/zvec.tar.gz
-          else
-            echo "Prebuilt not found. Building zvec ${ZVEC_VERSION} from source..."
-            if [ ! -d zvec ]; then
-              git clone --recurse-submodules --branch "$ZVEC_VERSION" \
-                https://github.com/alibaba/zvec.git zvec
-            fi
-            cmake -S zvec -B zvec/build \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-            cmake --build zvec/build -j$(nproc)
-          fi
-          test -f zvec/build/lib/libzvec_db.a
-          test -d zvec/src/include
-          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
