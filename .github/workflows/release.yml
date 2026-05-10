@@ -181,7 +181,7 @@ jobs:
         run: |
           apk add --no-cache \
             build-base cmake g++ bash \
-            openssl-dev zlib-dev \
+            openssl-dev zlib-dev linux-headers \
             curl git coreutils
 
       - name: Build zvec C++ library from source
@@ -218,9 +218,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-13
-            arch: x86_64
-            asset_suffix: darwin-x86_64
           - os: macos-14
             arch: arm64
             asset_suffix: darwin-aarch64
