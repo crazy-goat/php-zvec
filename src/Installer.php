@@ -9,6 +9,7 @@ use RuntimeException;
 class Installer
 {
     private const GITHUB_REPO = 'crazy-goat/php-zvec';
+    private const DEFAULT_VERSION = 'v0.4.10';
     private const LIB_DIR = __DIR__ . '/../lib';
 
     public static function install(?string $version = null): void
@@ -99,7 +100,7 @@ class Installer
         if ($version !== null) {
             return $version;
         }
-        return self::fetchLatestVersion();
+        return self::DEFAULT_VERSION;
     }
 
     private static function versionFromInstalledJson(): ?string
@@ -123,18 +124,6 @@ class Installer
             }
         }
         return null;
-    }
-
-    private static function fetchLatestVersion(): string
-    {
-        $url = 'https://api.github.com/repos/' . self::GITHUB_REPO . '/releases/latest';
-        $ctx = stream_context_create(['http' => ['header' => "User-Agent: crazy-goat/zvec-installer\r\n"]]);
-        $json = @file_get_contents($url, false, $ctx);
-        if ($json === false) {
-            throw new RuntimeException("Failed to fetch latest release from GitHub API.");
-        }
-        $data = json_decode($json, true);
-        return $data['tag_name'] ?? throw new RuntimeException("Could not determine latest release version.");
     }
 
     private static function download(string $url, string $dest): void
