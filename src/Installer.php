@@ -69,16 +69,20 @@ class Installer
 
     private static function resolveAssetName(): ?string
     {
-        if (PHP_OS_FAMILY !== 'Linux') {
-            return null;
-        }
-        if (php_uname('m') !== 'x86_64') {
-            return null;
-        }
-        if (self::isMusl()) {
-            return null;
-        }
-        return 'libzvec_ffi-ubuntu24-x86_64.tar.gz';
+        $os = PHP_OS_FAMILY;
+        $arch = php_uname('m');
+
+        return match (true) {
+            $os === 'Linux' && $arch === 'x86_64' && !self::isMusl()
+                => 'libzvec_ffi-ubuntu24-x86_64.tar.gz',
+            $os === 'Linux' && $arch === 'x86_64' && self::isMusl()
+                => 'libzvec_ffi-alpine-x86_64.tar.gz',
+            $os === 'Darwin' && $arch === 'x86_64'
+                => 'libzvec_ffi-darwin-x86_64.tar.gz',
+            $os === 'Darwin' && $arch === 'arm64'
+                => 'libzvec_ffi-darwin-aarch64.tar.gz',
+            default => null,
+        };
     }
 
     private static function isMusl(): bool
