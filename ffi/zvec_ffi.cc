@@ -1087,6 +1087,8 @@ zvec_status_t zvec_collection_query_fp16(zvec_collection_t coll, const char* fie
     return ok_status();
 }
 
+static void fill_doc_list(const DocPtrList& doc_list, zvec_query_result_t* result);
+
 zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* field_name,
                                           const double* query_vector, uint32_t dim,
                                           int topk, int include_vector,
@@ -1115,8 +1117,6 @@ zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* fie
     fill_doc_list(res.value(), result);
     return ok_status();
 }
-
-static void fill_doc_list(const DocPtrList& doc_list, zvec_query_result_t* result);
 
 static void apply_output_fields(VectorQuery& query, const char** output_fields, int count) {
     if (output_fields && count >= 0) {
