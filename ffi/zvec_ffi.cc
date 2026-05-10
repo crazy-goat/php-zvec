@@ -1116,6 +1116,8 @@ zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* fie
     return ok_status();
 }
 
+static void fill_doc_list(const DocPtrList& doc_list, zvec_query_result_t* result);
+
 static void apply_output_fields(VectorQuery& query, const char** output_fields, int count) {
     if (output_fields && count >= 0) {
         std::vector<std::string> fields;
