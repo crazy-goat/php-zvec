@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../src/Installer.php';
+
+use CrazyGoat\ZVec\Installer;
+
+$version = null;
+if ($argc > 1) {
+    $arg = $argv[1];
+    if ($arg === '--help' || $arg === '-h') {
+        echo "Usage: zvec-install [version]\n\n";
+        echo "Downloads and installs the zvec FFI shared library for your platform.\n\n";
+        echo "Arguments:\n";
+        echo "  version   Release version to download (e.g., v0.4.10).\n";
+        echo "            Required when not running inside a Composer installation.\n\n";
+        echo "Examples:\n";
+        echo "  zvec-install          Detect version from installed.json\n";
+        echo "  zvec-install v0.4.10  Install specific version\n";
+        exit(0);
+    }
+    $version = 'v' . ltrim($argv[1], 'v');
+}
+
+Installer::install($version);

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.11] - 2026-05-10
+
+### Added
+
+- **Composer package with FFI library auto-download** (#4)
+  - Added `composer.json` with PSR-4 autoloading for `CrazyGoat\ZVec\` namespace
+  - `src/Installer.php` — standalone CLI installer for FFI shared library
+  - `bin/zvec-install` — `vendor/bin/zvec-install` entry point
+  - Platform detection: Linux x86_64 (glibc) supported; musl/Alpine, macOS rejected with clear message
+  - Version auto-detected from `vendor/composer/installed.json`; manual override via `vendor/bin/zvec-install v0.4.11`
+  - Pre-built FFI library (`libzvec_ffi-ubuntu24-x86_64.tar.gz`) uploaded to releases
+  - `ZVec.php` resolves FFI library from `lib/` (Composer) or `ffi/build/` (source build)
+
 ## [0.4.10] - 2026-05-10
 
 ### Changed
@@ -709,7 +722,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.4.10...HEAD
+[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.4.11...HEAD
+[0.4.11]: https://github.com/crazy-goat/php-zvec/compare/v0.4.10...v0.4.11
 [0.4.10]: https://github.com/alibaba/zvec-php/compare/v0.4.9...v0.4.10
 [0.4.9]: https://github.com/alibaba/zvec-php/compare/v0.4.8...v0.4.9
 [0.4.8]: https://github.com/alibaba/zvec-php/compare/v0.4.7...v0.4.8
