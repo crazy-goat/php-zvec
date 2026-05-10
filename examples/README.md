@@ -80,10 +80,10 @@ Integration of embeddings with ZVec vector database.
 ## Comprehensive Integration Example
 
 ```bash
-php php/example.php
+php run-tests.php tests/
 ```
 
-Comprehensive test showing 21 different scenarios.
+Run the full `.phpt` test suite for comprehensive integration coverage.
 
 ## Example Structure
 

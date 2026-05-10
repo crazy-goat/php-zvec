@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/ZVec.php';
-require_once __DIR__ . '/ZVecRrfReRanker.php';
-require_once __DIR__ . '/ZVecWeightedReRanker.php';
+require_once __DIR__ . '/../src/ZVec.php';
+require_once __DIR__ . '/../src/ZVecRrfReRanker.php';
+require_once __DIR__ . '/../src/ZVecWeightedReRanker.php';
 
 /**
  * Rerankers Demo - Multi-Vector Search Result Fusion

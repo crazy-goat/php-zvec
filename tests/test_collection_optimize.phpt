@@ -4,7 +4,7 @@ Collection optimize: segment optimization and read-only rejection
 <?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
-require_once __DIR__ . '/../php/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 

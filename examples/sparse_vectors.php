@@ -12,7 +12,7 @@
  * - values: array of weights at those positions (float32)
  */
 
-require_once __DIR__ . '/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 
 // Initialize with console logging
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_INFO);

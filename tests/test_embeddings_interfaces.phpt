@@ -4,7 +4,9 @@ Extensions: Embedding Functions - Interface validation
 <?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
-require_once __DIR__ . '/../php/embeddings.php';
+require_once __DIR__ . '/../src/embeddings/EmbeddingInterfaces.php';
+require_once __DIR__ . '/../src/embeddings/OpenAIDenseEmbedding.php';
+require_once __DIR__ . '/../src/embeddings/QwenDenseEmbedding.php';
 
 // Test 1: Verify interfaces exist
 echo "Interface validation:\n";

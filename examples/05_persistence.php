@@ -13,7 +13,7 @@ declare(strict_types=1);
  * - Destroying collection (destroy)
  */
 
-require_once __DIR__ . '/../php/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 
 $path = __DIR__ . '/../test_dbs/example_05_' . uniqid();
 

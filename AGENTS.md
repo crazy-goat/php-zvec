@@ -6,8 +6,13 @@ PHP FFI bindings for [Alibaba's zvec](https://github.com/alibaba/zvec) vector da
 
 ```
 zvec-php/
-├── php/ZVec.php          # Main library (ZVec, ZVecSchema, ZVecDoc, ZVecException)
-├── php/example.php       # Integration test / usage examples (21 scenarios)
+├── src/ZVec.php          # Main library (ZVec, ZVecSchema, ZVecDoc, ZVecException)
+├── src/ZVecReRanker.php  # Base re-ranker class
+├── src/ZVecRerankedDoc.php # Reranked document class
+├── src/ZVecRrfReRanker.php # RRF re-ranker
+├── src/ZVecWeightedReRanker.php # Weighted re-ranker
+├── src/embeddings/       # Embedding function interfaces and implementations
+├── examples/             # Usage examples
 ├── ffi/                  # C++ FFI bridge (zvec_ffi.h, zvec_ffi.cc, CMakeLists.txt)
 ├── src/Installer.php     # Composer CLI installer for FFI shared library
 ├── bin/zvec-install      # CLI tool entry point for FFI library download
@@ -62,7 +67,7 @@ This calls `build_zvec_lib.sh` then `build_ffi.sh`.
 ### Run the integration test suite
 
 ```bash
-php php/example.php
+php run-tests.php tests/
 ```
 
 ### Run .phpt tests (standard PHP test format)
@@ -98,7 +103,7 @@ for f in tests/*.php; do php "$f"; done
 ./build_zvec.sh
 
 # Run all tests
-php run-tests.php tests/ && php php/example.php
+php run-tests.php tests/
 ```
 
 ## Testing Requirements
@@ -126,9 +131,9 @@ Before marking any task as DONE:
    php run-tests.php tests/
    ```
 
-3. **Run integration tests**:
+3. **Run all tests**:
    ```bash
-   php php/example.php
+   php run-tests.php tests/
    ```
 
 4. **Verify test databases cleaned up:**
@@ -155,7 +160,7 @@ Feature name: brief description
 <?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
 --FILE--
 <?php
-require_once __DIR__ . '/../php/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
 $path = __DIR__ . '/../test_dbs/feature_' . uniqid();
@@ -190,8 +195,8 @@ PHP 8.1+ required. Always use `declare(strict_types=1);` at the top of every fil
 ### File Organization
 
 - All library classes (`ZVec`, `ZVecSchema`, `ZVecDoc`, `ZVecException`) live in
-  a single file: `php/ZVec.php`.
-- Test/example files use `require_once __DIR__ . '/../php/ZVec.php';`.
+  a single file: `src/ZVec.php`.
+- Test/example files use `require_once __DIR__ . '/../src/ZVec.php';`.
 
 ### Naming Conventions
 
@@ -282,7 +287,7 @@ $collection->alterColumn('value', newDataType: ZVec::TYPE_FLOAT, nullable: true)
  * Location: [Which file/component is affected]
  */
 
-require_once __DIR__ . '/../php/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 // ... test code ...
 // If bug causes crash, comment out and document
 ```
@@ -436,7 +441,7 @@ Brief explanation of what needs to be done.
 ### FFI Layer (ffi/zvec_ffi.h/.cc)
 - List changes needed in C++ wrapper
 
-### PHP Layer (php/ZVec.php)
+### PHP Layer (src/ZVec.php)
 - List PHP changes
 - Constants to add
 - Method signatures

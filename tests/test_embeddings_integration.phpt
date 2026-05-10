@@ -4,7 +4,7 @@ Extensions: Embedding Functions - Integration with ZVec
 <?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
-require_once __DIR__ . '/../php/embeddings.php';
+require_once __DIR__ . '/../src/embeddings/EmbeddingInterfaces.php';
 
 /**
  * Mock embedding function for testing (simulates API without making HTTP calls)

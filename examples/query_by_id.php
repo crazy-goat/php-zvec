@@ -11,7 +11,7 @@ declare(strict_types=1);
  * Usage: php php/example_query_by_id.php
  */
 
-require_once __DIR__ . '/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 
 // Initialize with console logging
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
