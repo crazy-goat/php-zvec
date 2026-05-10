@@ -108,7 +108,7 @@ jobs:
   release-ffi:
     needs: setup-zvec
     runs-on: ubuntu-24.04
-    name: Build & Release FFI Library
+    name: Build & Release FFI Library (Ubuntu)
 
     permissions:
       contents: write
@@ -157,6 +157,56 @@ jobs:
         run: |
           ASSET_NAME="libzvec_ffi-ubuntu24-x86_64.tar.gz"
           tar -czf "$ASSET_NAME" -C ffi/build libzvec_ffi.so
+          echo "ASSET_NAME=$ASSET_NAME" >> "$GITHUB_ENV"
+
+      - name: Upload FFI release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" "$ASSET_NAME" --clobber
+
+  release-ffi-macos:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+            arch: arm64
+            asset_suffix: darwin-aarch64
+    runs-on: ${{ matrix.os }}
+    name: Build & Release FFI (macOS ${{ matrix.arch }})
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          brew install openssl zlib
+
+      - name: Build zvec C++ library from source
+        run: |
+          ./build_zvec_lib.sh "$ZVEC_VERSION"
+          test -f zvec/build/lib/libzvec_db.a
+
+      - name: Build FFI shared library
+        working-directory: ffi
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make -j$(sysctl -n hw.ncpu)
+          ls -la libzvec_ffi.dylib
+
+      - name: Strip library
+        run: strip -S ffi/build/libzvec_ffi.dylib
+
+      - name: Package FFI library
+        run: |
+          ASSET_NAME="libzvec_ffi-${{ matrix.asset_suffix }}.tar.gz"
+          tar -czf "$ASSET_NAME" -C ffi/build libzvec_ffi.dylib
           echo "ASSET_NAME=$ASSET_NAME" >> "$GITHUB_ENV"
 
       - name: Upload FFI release asset
