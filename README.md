@@ -24,10 +24,25 @@ zvec-php provides PHP bindings for the zvec vector database through FFI (Foreign
 ## Requirements
 
 - PHP 8.1+ (FFI mode) or PHP 8.5+ (native extension mode)
-- macOS (currently macOS only)
-- CMake 3.14+ (for building)
+- Linux x86_64 (for pre-built FFI library) or build tools for other platforms
+- CMake 3.14+ (if building from source)
 
 ## Installation
+
+### Quick start via Composer (FFI mode, Linux x86_64)
+
+```bash
+composer require crazy-goat/zvec
+vendor/bin/zvec-install
+```
+
+The `zvec-install` tool detects your OS and architecture, downloads the matching
+pre-built FFI shared library from GitHub Releases, and places it in `lib/`.
+
+Supported platforms:
+- **Linux x86_64 (glibc)** — pre-built (`libzvec_ffi-ubuntu24-x86_64.tar.gz`)
+
+### Manual build (all platforms)
 
 ### 1. Clone with submodules
 
@@ -46,7 +61,7 @@ This will:
 - Clone zvec repository (if not present)
 - Download CMake 3.28 locally
 - Build zvec C++ library
-- Build FFI wrapper (`ffi/build/libzvec_ffi.dylib`)
+- Build FFI wrapper (`ffi/build/libzvec_ffi.so`)
 
 ### 3. Verify installation (FFI mode)
 
@@ -269,7 +284,8 @@ See `tasks/done/` for detailed planning documents.
 ## Known Limitations
 
 - **GroupByQuery**: The C++ API has this method but it returns all documents in a single group with empty group value. This is a known issue in upstream zvec (marked as "Coming Soon" in zvec docs).
-- **Platform**: Currently macOS only (builds `.dylib` / `.so`)
+- **Platform**: Pre-built FFI library available for Linux x86_64 (glibc). macOS builds coming soon.
+- **musl Linux** (e.g., Alpine): musl-based Linux is not yet supported by the pre-built library. Build from source instead.
 
 ## License
 

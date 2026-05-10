@@ -9,6 +9,9 @@ zvec-php/
 ├── php/ZVec.php          # Main library (ZVec, ZVecSchema, ZVecDoc, ZVecException)
 ├── php/example.php       # Integration test / usage examples (21 scenarios)
 ├── ffi/                  # C++ FFI bridge (zvec_ffi.h, zvec_ffi.cc, CMakeLists.txt)
+├── src/Installer.php     # Composer CLI installer for FFI shared library
+├── bin/zvec-install      # CLI tool entry point for FFI library download
+├── composer.json         # Composer package definition
 ├── tests/                # Bug reproduction scripts (plain PHP, no framework)
 ├── test_dbs/             # Test database directory (content ignored by git)
 ├── tasks/todo/           # Feature planning documents
@@ -180,9 +183,9 @@ PHP 8.1+ required. Always use `declare(strict_types=1);` at the top of every fil
 
 ### Namespaces & Imports
 
-- No namespaces are used — all classes live in the global namespace.
-- No `use` import statements — reference all types by their global names.
-- Keep this convention until a composer autoloader is introduced.
+- Composer PSR-4 autoloading is configured for `CrazyGoat\ZVec\` namespace in `src/`.
+- Global classes (`ZVec`, `ZVecSchema`, `ZVecDoc`, `ZVecException`) are loaded via `autoload.files` — no `require_once` needed when using Composer.
+- No `use` import statements for global classes — reference them by their unqualified names.
 
 ### File Organization
 
@@ -322,9 +325,11 @@ require_once __DIR__ . '/../php/ZVec.php';
 
 ### Platform Notes
 
-- Currently macOS-only (builds `.dylib`, links CoreFoundation/Security).
-- The FFI shared library must be at the path expected by `ZVec.php`
-  (currently `__DIR__ . '/../ffi/build/libzvec_ffi.dylib'`).
+- Pre-built FFI library available for Linux x86_64 (glibc).
+- macOS and musl Linux builds not yet available as pre-built artifacts.
+- The FFI shared library is resolved from two locations (in order):
+  1. `__DIR__ . '/../lib/libzvec_ffi.so'` — Composer-installed (via `vendor/bin/zvec-install`)
+  2. `__DIR__ . '/../ffi/build/libzvec_ffi.so'` — locally built (via `./build_zvec.sh`)
 - `zvec/` directory is a git submodule - run `git submodule update --init` if missing.
 
 ### Memory Management

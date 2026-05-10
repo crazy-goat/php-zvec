@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CrazyGoat\ZVec;
 
-use Composer\Script\Event;
 use RuntimeException;
 
 class Installer
@@ -12,24 +11,16 @@ class Installer
     private const GITHUB_REPO = 'crazy-goat/php-zvec';
     private const LIB_DIR = __DIR__ . '/../lib';
 
-    public static function install(Event $event): void
+    public static function install(?string $version = null): void
     {
-        $io = $event->getIO();
-
-        $os = PHP_OS_FAMILY;
-        if ($os !== 'Linux') {
-            $io->writeError('<warning>zvec FFI library auto-download is only supported on Linux. Please build manually.</warning>');
+        $assetName = self::resolveAssetName();
+        if ($assetName === null) {
+            echo "zvec FFI library auto-download is not supported on your platform (" . PHP_OS_FAMILY . " " . php_uname('m') . ").\n";
+            echo "See https://github.com/" . self::GITHUB_REPO . " for build instructions.\n";
             return;
         }
 
-        $arch = php_uname('m');
-        if ($arch !== 'x86_64') {
-            $io->writeError('<warning>zvec FFI library auto-download is only supported on x86_64. Please build manually.</warning>');
-            return;
-        }
-
-        $version = self::resolveVersion($event);
-        $assetName = 'libzvec_ffi-ubuntu24-x86_64.tar.gz';
+        $version = $version ?? self::detectVersion();
         $url = "https://github.com/" . self::GITHUB_REPO . "/releases/download/{$version}/{$assetName}";
 
         $libDir = self::LIB_DIR;
@@ -37,14 +28,14 @@ class Installer
             throw new RuntimeException("Failed to create lib directory: {$libDir}");
         }
 
-        $libPath = $libDir . '/libzvec_ffi.so';
+        $libName = self::libName();
+        $libPath = $libDir . '/' . $libName;
         if (file_exists($libPath)) {
-            $io->write("<info>zvec FFI library already installed at {$libPath}</info>");
+            echo "zvec FFI library already installed at {$libPath}\n";
             return;
         }
 
-        $io->write("<info>Downloading zvec FFI library {$version}...</info>");
-        $io->write("<info>URL: {$url}</info>");
+        echo "Downloading zvec FFI library {$version} for " . self::platformLabel() . "...\n";
 
         $tmpFile = tempnam(sys_get_temp_dir(), 'zvec_ffi_') . '.tar.gz';
 
@@ -58,22 +49,80 @@ class Installer
         }
 
         if (!file_exists($libPath)) {
-            throw new RuntimeException("Download succeeded but libzvec_ffi.so not found in archive.");
+            throw new RuntimeException("Download succeeded but {$libName} not found in archive.");
         }
 
-        $io->write("<info>zvec FFI library installed at {$libPath}</info>");
+        echo "zvec FFI library installed at {$libPath}\n";
     }
 
-    private static function resolveVersion(Event $event): string
+    public static function platformLabel(): string
     {
-        $package = $event->getComposer()->getPackage();
-        $version = $package->getPrettyVersion();
-
-        if (str_starts_with($version, 'dev-') || $version === 'No version set (parsed as 1.0.0)') {
-            return self::fetchLatestVersion();
+        if (PHP_OS_FAMILY === 'Darwin') {
+            return 'macOS ' . php_uname('m');
         }
+        if (PHP_OS_FAMILY === 'Linux') {
+            $libc = self::isMusl() ? 'musl' : 'glibc';
+            return 'Linux ' . php_uname('m') . ' (' . $libc . ')';
+        }
+        return PHP_OS_FAMILY . ' ' . php_uname('m');
+    }
 
-        return 'v' . ltrim($version, 'v');
+    private static function resolveAssetName(): ?string
+    {
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return null;
+        }
+        if (php_uname('m') !== 'x86_64') {
+            return null;
+        }
+        if (self::isMusl()) {
+            return null;
+        }
+        return 'libzvec_ffi-ubuntu24-x86_64.tar.gz';
+    }
+
+    private static function isMusl(): bool
+    {
+        return file_exists('/lib/ld-musl-x86_64.so.1')
+            || file_exists('/lib/ld-musl-aarch64.so.1')
+            || file_exists('/lib/ld-musl-arm.so.1');
+    }
+
+    private static function libName(): string
+    {
+        return PHP_OS_FAMILY === 'Darwin' ? 'libzvec_ffi.dylib' : 'libzvec_ffi.so';
+    }
+
+    private static function detectVersion(): string
+    {
+        $version = self::versionFromInstalledJson();
+        if ($version !== null) {
+            return $version;
+        }
+        return self::fetchLatestVersion();
+    }
+
+    private static function versionFromInstalledJson(): ?string
+    {
+        $path = __DIR__ . '/../../../composer/installed.json';
+        if (!file_exists($path)) {
+            return null;
+        }
+        $data = json_decode(file_get_contents($path), true);
+        if (!is_array($data)) {
+            return null;
+        }
+        $packages = $data['packages'] ?? $data;
+        foreach ((array)$packages as $key => $pkg) {
+            $name = $pkg['name'] ?? (is_array($pkg) && isset($data['packages']) ? $key : null);
+            if ($name === 'crazy-goat/zvec' || ($name === null && isset($pkg['name']) && $pkg['name'] === 'crazy-goat/zvec')) {
+                $version = $pkg['version'] ?? null;
+                if ($version !== null && $version !== '*') {
+                    return 'v' . ltrim($version, 'v');
+                }
+            }
+        }
+        return null;
     }
 
     private static function fetchLatestVersion(): string

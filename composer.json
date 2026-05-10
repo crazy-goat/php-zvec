@@ -19,9 +19,8 @@
             "php/ZVecWeightedReRanker.php"
         ]
     },
-    "scripts": {
-        "post-install-cmd": "CrazyGoat\\ZVec\\Installer::install",
-        "post-update-cmd": "CrazyGoat\\ZVec\\Installer::install"
-    },
+    "bin": [
+        "bin/zvec-install"
+    ],
     "minimum-stability": "stable"
 }
