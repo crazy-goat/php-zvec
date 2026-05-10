@@ -7,7 +7,7 @@ extern "C" {
 #include "zend_interfaces.h"
 }
 
-#define PHP_ZVEC_VERSION "0.4.9"
+#define PHP_ZVEC_VERSION "0.4.10"
 #define PHP_ZVEC_EXTNAME "zvec"
 
 extern zend_module_entry zvec_module_entry;
