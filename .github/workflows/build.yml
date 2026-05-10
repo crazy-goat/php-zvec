@@ -188,3 +188,85 @@ jobs:
           TEST_PHP_ARGS: "-n -d extension=ffi"
         run: |
           php run-tests.php -q --show-diff tests/
+
+  build-ffi-alpine:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    container: alpine:3.20
+    name: ffi - Alpine x86_64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          apk add --no-cache \
+            build-base cmake g++ \
+            openssl-dev zlib-dev \
+            curl git coreutils \
+            php php-ffi php-openssl
+
+      - name: Build zvec C++ library from source
+        run: |
+          ./build_zvec_lib.sh "$ZVEC_VERSION"
+          test -f zvec/build/lib/libzvec_db.a
+
+      - name: Build FFI shared library
+        working-directory: ffi
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make -j$(nproc)
+          ls -la libzvec_ffi.so
+
+      - name: Run tests
+        env:
+          TEST_PHP_ARGS: "-n -d extension=ffi"
+        run: |
+          php run-tests.php -q --show-diff tests/
+
+  build-ffi-macos:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      matrix:
+        include:
+          - os: macos-13
+            arch: x86_64
+          - os: macos-14
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    name: ffi - macOS ${{ matrix.arch }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          brew install openssl zlib
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: ffi
+
+      - name: Build zvec C++ library from source
+        run: |
+          ./build_zvec_lib.sh "$ZVEC_VERSION"
+          test -f zvec/build/lib/libzvec_db.a
+
+      - name: Build FFI shared library
+        working-directory: ffi
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make -j$(sysctl -n hw.ncpu)
+          ls -la libzvec_ffi.dylib
+
+      - name: Run tests
+        env:
+          TEST_PHP_ARGS: "-n -d extension=ffi"
+        run: |
+          php run-tests.php -q --show-diff tests/
