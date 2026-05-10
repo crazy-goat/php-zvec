@@ -172,6 +172,28 @@ PHP_METHOD(ZVecDoc, setVectorFp32) {
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
+PHP_METHOD(ZVecDoc, setVectorFp64) {
+    char *field; size_t field_len;
+    zval *arr;
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_STRING(field, field_len)
+        Z_PARAM_ARRAY(arr)
+    ZEND_PARSE_PARAMETERS_END();
+
+    HashTable *ht = Z_ARRVAL_P(arr);
+    uint32_t dim = zend_hash_num_elements(ht);
+    std::vector<double> vec;
+    vec.reserve(dim);
+    zval *val;
+    ZEND_HASH_FOREACH_VAL(ht, val) {
+        vec.push_back(zval_get_double(val));
+    } ZEND_HASH_FOREACH_END();
+
+    auto *intern = Z_ZVEC_DOC_P(ZEND_THIS);
+    intern->doc->set<std::vector<double>>(std::string(field, field_len), std::move(vec));
+    RETURN_ZVAL(ZEND_THIS, 1, 0);
+}
+
 PHP_METHOD(ZVecDoc, setVectorInt8) {
     char *field; size_t field_len;
     zval *arr;
@@ -391,6 +413,24 @@ PHP_METHOD(ZVecDoc, getVectorFp32) {
     RETURN_NULL();
 }
 
+PHP_METHOD(ZVecDoc, getVectorFp64) {
+    char *field; size_t field_len;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STRING(field, field_len)
+    ZEND_PARSE_PARAMETERS_END();
+    auto *intern = Z_ZVEC_DOC_P(ZEND_THIS);
+    auto result = intern->doc->get_field<std::vector<double>>(std::string(field, field_len));
+    if (result.ok()) {
+        const auto &vec = result.value();
+        array_init_size(return_value, vec.size());
+        for (size_t i = 0; i < vec.size(); i++) {
+            add_next_index_double(return_value, vec[i]);
+        }
+        return;
+    }
+    RETURN_NULL();
+}
+
 PHP_METHOD(ZVecDoc, getVectorInt8) {
     char *field; size_t field_len;
     ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -559,6 +599,7 @@ static const zend_function_entry zvec_doc_methods[] = {
     PHP_ME(ZVecDoc, setUint32, arginfo_zvec_doc_set_scalar, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, setUint64, arginfo_zvec_doc_set_scalar, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, setVectorFp32, arginfo_zvec_doc_set_vector, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecDoc, setVectorFp64, arginfo_zvec_doc_set_vector, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, setVectorInt8, arginfo_zvec_doc_set_vector, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, setVectorFp16, arginfo_zvec_doc_set_vector, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, setSparseVectorFp32, arginfo_zvec_doc_set_sparse, ZEND_ACC_PUBLIC)
@@ -573,6 +614,7 @@ static const zend_function_entry zvec_doc_methods[] = {
     PHP_ME(ZVecDoc, getUint32, arginfo_zvec_doc_get_field, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, getUint64, arginfo_zvec_doc_get_field, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, getVectorFp32, arginfo_zvec_doc_get_field, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecDoc, getVectorFp64, arginfo_zvec_doc_get_field, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, getVectorInt8, arginfo_zvec_doc_get_field, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, getVectorFp16, arginfo_zvec_doc_get_field, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecDoc, getSparseVectorFp32, arginfo_zvec_doc_get_field, ZEND_ACC_PUBLIC)

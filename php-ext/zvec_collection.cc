@@ -837,6 +837,43 @@ PHP_METHOD(ZVec, query) {
             zvec_throw_exception(0, "query() with docId not yet implemented. Use queryById() or fetch the vector first.");
             RETURN_THROWS();
         }
+
+        // Route to FP64 path if flagged
+        zval *fp64 = zend_read_property(zvec_vector_query_ce, Z_OBJ_P(field_name_zv), "useFp64", sizeof("useFp64") - 1, 1, nullptr);
+        if (zend_is_true(fp64)) {
+            HashTable *ht = Z_ARRVAL_P(vec);
+            uint32_t dim = zend_hash_num_elements(ht);
+            std::vector<double> fp64_vec;
+            fp64_vec.reserve(dim);
+            zval *vv;
+            ZEND_HASH_FOREACH_VAL(ht, vv) {
+                fp64_vec.push_back(zval_get_double(vv));
+            } ZEND_HASH_FOREACH_END();
+
+            zend_long fetch_topk_fp64 = (reranker_zv != nullptr) ? std::max(topk * 2, (zend_long)100) : topk;
+
+            if (!validate_query_param_type(intern->collection.get(), field_name_str, static_cast<int>(query_param_type))) {
+                RETURN_THROWS();
+            }
+
+            VectorQuery query_fp64;
+            query_fp64.topk_ = static_cast<int>(fetch_topk_fp64);
+            query_fp64.field_name_ = field_name_str;
+            query_fp64.include_vector_ = (bool)include_vector;
+            query_fp64.query_vector_.assign(reinterpret_cast<const char *>(fp64_vec.data()), dim * sizeof(double));
+            if (filter && filter[0] != '\0') query_fp64.filter_ = std::string(filter, filter_len);
+            if (output_fields) apply_output_fields(query_fp64, output_fields);
+            if (query_param_type != 0) {
+                apply_query_params(query_fp64, static_cast<int>(query_param_type),
+                    static_cast<int>(hnsw_ef), static_cast<int>(ivf_nprobe),
+                    static_cast<float>(radius), (bool)is_linear, (bool)is_using_refiner);
+            }
+
+            auto res_fp64 = intern->collection->Query(query_fp64);
+            if (!res_fp64.has_value()) { check_status(res_fp64.error()); RETURN_THROWS(); }
+            fill_results(return_value, res_fp64.value());
+            return;
+        }
     } else if (Z_TYPE_P(field_name_zv) == IS_STRING) {
         field_name_str = std::string(Z_STRVAL_P(field_name_zv), Z_STRLEN_P(field_name_zv));
         if (query_vector_zv && Z_TYPE_P(query_vector_zv) == IS_ARRAY) {
@@ -945,6 +982,49 @@ PHP_METHOD(ZVec, queryFp16) {
     query.field_name_ = std::string(field, field_len);
     query.include_vector_ = (bool)include_vector;
     query.query_vector_.assign(reinterpret_cast<const char *>(fp16_vec.data()), dim * sizeof(ailego::Float16));
+    if (filter && filter[0] != '\0') query.filter_ = std::string(filter, filter_len);
+
+    auto res = intern->collection->Query(query);
+    if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
+    fill_results(return_value, res.value());
+}
+
+// --- queryFp64 ---
+
+PHP_METHOD(ZVec, queryFp64) {
+    char *field; size_t field_len;
+    zval *query_vector_zv;
+    zend_long topk = 10;
+    zend_bool include_vector = 0;
+    char *filter = nullptr; size_t filter_len = 0;
+
+    ZEND_PARSE_PARAMETERS_START(2, 5)
+        Z_PARAM_STRING(field, field_len)
+        Z_PARAM_ARRAY(query_vector_zv)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(topk)
+        Z_PARAM_BOOL(include_vector)
+        Z_PARAM_STRING_OR_NULL(filter, filter_len)
+    ZEND_PARSE_PARAMETERS_END();
+
+    auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
+    check_closed(intern);
+    if (EG(exception)) RETURN_THROWS();
+
+    HashTable *ht = Z_ARRVAL_P(query_vector_zv);
+    uint32_t dim = zend_hash_num_elements(ht);
+    std::vector<double> fp64_vec;
+    fp64_vec.reserve(dim);
+    zval *v;
+    ZEND_HASH_FOREACH_VAL(ht, v) {
+        fp64_vec.push_back(zval_get_double(v));
+    } ZEND_HASH_FOREACH_END();
+
+    VectorQuery query;
+    query.topk_ = static_cast<int>(topk);
+    query.field_name_ = std::string(field, field_len);
+    query.include_vector_ = (bool)include_vector;
+    query.query_vector_.assign(reinterpret_cast<const char *>(fp64_vec.data()), dim * sizeof(double));
     if (filter && filter[0] != '\0') query.filter_ = std::string(filter, filter_len);
 
     auto res = intern->collection->Query(query);
@@ -1511,6 +1591,7 @@ static const zend_function_entry zvec_collection_methods[] = {
     PHP_ME(ZVec, fetch, arginfo_zvec_fetch, ZEND_ACC_PUBLIC)
     PHP_ME(ZVec, query, arginfo_zvec_query, ZEND_ACC_PUBLIC)
     PHP_ME(ZVec, queryFp16, arginfo_zvec_query_fp16, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVec, queryFp64, arginfo_zvec_query_fp16, ZEND_ACC_PUBLIC)
     PHP_ME(ZVec, queryMulti, arginfo_zvec_query_multi, ZEND_ACC_PUBLIC)
     PHP_ME(ZVec, queryByFilter, arginfo_zvec_query_by_filter, ZEND_ACC_PUBLIC)
     PHP_ME(ZVec, queryById, arginfo_zvec_query_by_id, ZEND_ACC_PUBLIC)
