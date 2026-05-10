@@ -201,7 +201,7 @@ jobs:
       - name: Install system dependencies
         run: |
           apk add --no-cache \
-            build-base cmake g++ \
+            build-base cmake g++ bash \
             openssl-dev zlib-dev \
             curl git coreutils \
             php php-ffi php-openssl
@@ -267,6 +267,6 @@ jobs:
 
       - name: Run tests
         env:
-          TEST_PHP_ARGS: "-n -d extension=ffi"
+          TEST_PHP_ARGS: "-n -d ffi.enable=true"
         run: |
           php run-tests.php -q --show-diff tests/

@@ -180,7 +180,7 @@ jobs:
       - name: Install system dependencies
         run: |
           apk add --no-cache \
-            build-base cmake g++ \
+            build-base cmake g++ bash \
             openssl-dev zlib-dev \
             curl git coreutils
 
