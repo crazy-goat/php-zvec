@@ -33,24 +33,8 @@ jobs:
 
       - name: Setup zvec ${{ env.ZVEC_VERSION }}
         run: |
-          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
-          echo "Trying prebuilt: $URL"
-          if curl -fL --connect-timeout 10 "$URL" -o /tmp/zvec.tar.gz 2>/dev/null; then
-            echo "Prebuilt zvec ${ZVEC_VERSION} downloaded"
-            rm -rf zvec
-            tar -xzf /tmp/zvec.tar.gz
-            rm /tmp/zvec.tar.gz
-          else
-            echo "Prebuilt not found. Building zvec ${ZVEC_VERSION} from source..."
-            if [ ! -d zvec ]; then
-              git clone --recurse-submodules --branch "$ZVEC_VERSION" \
-                https://github.com/alibaba/zvec.git zvec
-            fi
-            cmake -S zvec -B zvec/build \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-            cmake --build zvec/build -j$(nproc)
-          fi
+          PREBUILT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
+          ./build_zvec_lib.sh "$ZVEC_VERSION" "$PREBUILT_URL"
           test -f zvec/build/lib/libzvec_db.a
           test -d zvec/src/include
           test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
@@ -126,24 +110,8 @@ jobs:
 
       - name: Setup zvec ${{ env.ZVEC_VERSION }}
         run: |
-          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
-          echo "Trying prebuilt: $URL"
-          if curl -fL --connect-timeout 10 "$URL" -o /tmp/zvec.tar.gz 2>/dev/null; then
-            echo "Prebuilt zvec ${ZVEC_VERSION} downloaded"
-            rm -rf zvec
-            tar -xzf /tmp/zvec.tar.gz
-            rm /tmp/zvec.tar.gz
-          else
-            echo "Prebuilt not found. Building zvec ${ZVEC_VERSION} from source..."
-            if [ ! -d zvec ]; then
-              git clone --recurse-submodules --branch "$ZVEC_VERSION" \
-                https://github.com/alibaba/zvec.git zvec
-            fi
-            cmake -S zvec -B zvec/build \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-            cmake --build zvec/build -j$(nproc)
-          fi
+          PREBUILT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
+          ./build_zvec_lib.sh "$ZVEC_VERSION" "$PREBUILT_URL"
           test -f zvec/build/lib/libzvec_db.a
           test -d zvec/src/include
           test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src

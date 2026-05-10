@@ -12,21 +12,49 @@ zvec-php/
 ├── tests/                # Bug reproduction scripts (plain PHP, no framework)
 ├── test_dbs/             # Test database directory (content ignored by git)
 ├── tasks/todo/           # Feature planning documents
-├── build_zvec.sh         # Builds zvec C++ lib + FFI shared library
+├── build_zvec_lib.sh     # Builds only the zvec C++ library (with version caching)
+├── build_ffi.sh          # Builds only the FFI shared library (requires zvec built)
+├── build_zvec.sh         # Orchestrator: builds zvec C++ lib + FFI shared library
 ├── zvec/                 # Git-cloned upstream zvec C++ library (not committed)
 └── cmake-3.28.3-*/       # Vendored CMake (not committed)
 ```
 
 ## Build Commands
 
-### Build the native FFI library (required before running PHP code)
+### Step 1: Build the zvec C++ library (only if not already built for this version)
 
 ```bash
-./build_zvec.sh
+./build_zvec_lib.sh [version]
 ```
 
-This clones zvec if needed, downloads CMake 3.28 locally, builds the C++ library,
-then builds the FFI wrapper (`ffi/build/libzvec_ffi.dylib`). macOS only currently.
+Default version is `v0.4.0`. The script checks `zvec/build/.zvec_version` — if the
+stamp matches, the build is skipped. If the version changes, it auto-updates the
+git checkout and rebuilds.
+
+For CI with prebuilt download:
+```bash
+./build_zvec_lib.sh v0.4.0 "https://url-to-prebuilt.tar.gz"
+```
+
+### Step 2: Build the FFI shared library (requires zvec already built)
+
+```bash
+./build_ffi.sh
+```
+
+### Build both in one command (orchestrator)
+
+```bash
+./build_zvec.sh [version]
+```
+
+This calls `build_zvec_lib.sh` then `build_ffi.sh`.
+
+### Build PHP extension (requires zvec already built)
+
+```bash
+./php-ext/build_ext.sh
+```
 
 ### Run the integration test suite
 
@@ -80,6 +108,13 @@ Before marking any task as DONE:
 
 1. **Build the FFI library** (if C++ changes):
    ```bash
+   # If zvec version changed (e.g. new v0.5.0):
+   ./build_zvec_lib.sh v0.4.0
+
+   # Rebuild FFI wrapper (always if ffi/*.cc or ffi/*.h changed):
+   ./build_ffi.sh
+
+   # Or use the orchestrator for both:
    ./build_zvec.sh
    ```
 
