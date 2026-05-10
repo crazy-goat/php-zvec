@@ -9,7 +9,7 @@
  * Location: php/ZVec.php - cleanup logic
  */
 
-require_once __DIR__ . '/../php/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 
 $path = __DIR__ . '/../test_dbs/bug_0005_' . uniqid();
 $success = true;

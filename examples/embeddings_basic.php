@@ -9,7 +9,7 @@ declare(strict_types=1);
  * to convert text into vector representations using external APIs.
  */
 
-require_once __DIR__ . '/../php/embeddings.php';
+require_once __DIR__ . '/../src/embeddings/EmbeddingInterfaces.php';
 
 echo "=== Basic Embedding Functions Example ===\n\n";
 

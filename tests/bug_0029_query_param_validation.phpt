@@ -4,7 +4,7 @@ Bug #29: Fix segfault when using QUERY_PARAM_FLAT on HNSW index
 <?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
-require_once __DIR__ . '/../php/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
 $path = __DIR__ . '/../test_dbs/bug29_' . uniqid();

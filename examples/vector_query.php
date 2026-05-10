@@ -7,7 +7,7 @@
  * This provides a cleaner API compared to passing multiple separate parameters.
  */
 
-require_once __DIR__ . '/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 
 // Initialize
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);

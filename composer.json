@@ -16,12 +16,8 @@
         "psr-4": {
             "CrazyGoat\\ZVec\\": "src/"
         },
-        "files": [
-            "php/ZVec.php",
-            "php/ZVecRerankedDoc.php",
-            "php/ZVecReRanker.php",
-            "php/ZVecRrfReRanker.php",
-            "php/ZVecWeightedReRanker.php"
+        "classmap": [
+            "src/"
         ]
     },
     "bin": [

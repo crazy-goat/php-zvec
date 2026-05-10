@@ -4,7 +4,7 @@ Column drop: dropColumn operation and error cases
 <?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
 <?php
-require_once __DIR__ . '/../php/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 
 $path = __DIR__ . '/../test_dbs/column_drop_' . uniqid();
 

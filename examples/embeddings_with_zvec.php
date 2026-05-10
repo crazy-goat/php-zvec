@@ -9,8 +9,8 @@ declare(strict_types=1);
  * to generate vectors and store them in a ZVec collection for similarity search.
  */
 
-require_once __DIR__ . '/../php/ZVec.php';
-require_once __DIR__ . '/../php/embeddings.php';
+require_once __DIR__ . '/../src/ZVec.php';
+require_once __DIR__ . '/../src/embeddings/EmbeddingInterfaces.php';
 
 echo "=== Embeddings with ZVec Collection Example ===\n\n";
 

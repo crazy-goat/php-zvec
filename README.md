@@ -68,7 +68,7 @@ This will:
 ### 3. Verify installation (FFI mode)
 
 ```bash
-php php/example.php
+php run-tests.php tests/
 ```
 
 ### Alternative: Build the native PHP extension
@@ -90,13 +90,13 @@ echo "extension=$(pwd)/modules/zvec.so" >> $(php -r 'echo php_ini_loaded_file();
 php -r 'echo extension_loaded("zvec") ? "zvec extension loaded" : "not loaded";'
 ```
 
-When the extension is loaded, `require_once 'php/ZVec.php'` is a no-op (guard clause skips the FFI implementation), so existing code works without changes.
+When the extension is loaded, `require_once 'src/ZVec.php'` is a no-op (guard clause skips the FFI implementation), so existing code works without changes.
 
 ## Quick Start
 
 ```php
 <?php
-require_once 'php/ZVec.php';
+require_once 'src/ZVec.php';
 
 // Initialize zvec
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -224,17 +224,22 @@ php run-tests.php tests/
 
 ### Integration tests
 ```bash
-php php/example.php
+php run-tests.php tests/
 ```
 
 ## Project Structure
 
 ```
 zvec-php/
-├── php/                  # FFI-based PHP implementation
+├── src/                  # FFI-based PHP implementation
 │   ├── ZVec.php          # Main library (ZVec, ZVecSchema, ZVecDoc, ZVecException)
+│   ├── ZVecReRanker.php  # Base re-ranker class
+│   ├── ZVecRerankedDoc.php # Reranked document class
+│   ├── ZVecRrfReRanker.php # RRF re-ranker
+│   ├── ZVecWeightedReRanker.php # Weighted re-ranker
 │   ├── embeddings/       # Embedding function interfaces and implementations
-│   └── example.php       # Integration test / usage examples
+│   └── Installer.php     # Composer CLI installer
+├── examples/             # Usage examples
 ├── php-ext/              # Native PHP extension (C++)
 │   ├── zvec_collection.cc/h  # ZVec class
 │   ├── zvec_schema.cc/h      # ZVecSchema class

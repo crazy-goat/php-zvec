@@ -12,7 +12,7 @@ declare(strict_types=1);
  * - Limiting returned fields
  */
 
-require_once __DIR__ . '/../php/ZVec.php';
+require_once __DIR__ . '/../src/ZVec.php';
 
 $path = __DIR__ . '/../test_dbs/example_02_' . uniqid();
 
