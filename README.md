@@ -38,8 +38,8 @@ vendor/bin/zvec-install
 
 The `zvec-install` tool detects your OS and architecture, downloads the matching
 pre-built FFI shared library from GitHub Releases, and places it in `lib/`.
-The version is auto-detected from Composer's `installed.json` (matching your
-installed package version).
+The version is auto-detected from Composer's `installed.json`. If omitted,
+specify it explicitly: `vendor/bin/zvec-install v0.4.10`.
 
 Supported platforms:
 - **Linux x86_64 (glibc)** — pre-built (`libzvec_ffi-ubuntu24-x86_64.tar.gz`)

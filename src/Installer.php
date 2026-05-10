@@ -9,7 +9,6 @@ use RuntimeException;
 class Installer
 {
     private const GITHUB_REPO = 'crazy-goat/php-zvec';
-    private const DEFAULT_VERSION = 'v0.4.10';
     private const LIB_DIR = __DIR__ . '/../lib';
 
     public static function install(?string $version = null): void
@@ -100,7 +99,10 @@ class Installer
         if ($version !== null) {
             return $version;
         }
-        return self::DEFAULT_VERSION;
+        throw new RuntimeException(
+            "Could not determine package version. " .
+            "Run 'composer install' first, or specify a version: vendor/bin/zvec-install v0.4.10"
+        );
     }
 
     private static function versionFromInstalledJson(): ?string

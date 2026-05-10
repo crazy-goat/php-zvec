@@ -15,10 +15,9 @@ if ($argc > 1) {
         echo "Downloads and installs the zvec FFI shared library for your platform.\n\n";
         echo "Arguments:\n";
         echo "  version   Release version to download (e.g., v0.4.10).\n";
-        echo "            Default: detects version from Composer's installed.json,\n";
-        echo "            otherwise uses the hardcoded default (v0.4.10).\n\n";
+        echo "            Required when not running inside a Composer installation.\n\n";
         echo "Examples:\n";
-        echo "  zvec-install          Auto-detect version\n";
+        echo "  zvec-install          Detect version from installed.json\n";
         echo "  zvec-install v0.4.10  Install specific version\n";
         exit(0);
     }
