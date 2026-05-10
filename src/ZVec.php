@@ -75,6 +75,7 @@ class ZVec
                 void zvec_schema_add_field_float(zvec_schema_t schema, const char* name, int nullable);
                 void zvec_schema_add_field_double(zvec_schema_t schema, const char* name, int nullable);
                 void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
+                void zvec_schema_add_field_vector_fp64(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
                 void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
                 void zvec_schema_add_field_vector_fp16(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
                 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
@@ -120,6 +121,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 void zvec_doc_set_float(zvec_doc_t doc, const char* field, float value);
                 void zvec_doc_set_double(zvec_doc_t doc, const char* field, double value);
                 void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* data, uint32_t dim);
+                void zvec_doc_set_vector_fp64(zvec_doc_t doc, const char* field, const double* data, uint32_t dim);
                 void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim);
                 void zvec_doc_set_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t* data, uint32_t dim);
                 void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t* indices, const float* values, uint32_t count);
@@ -135,6 +137,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                 int zvec_doc_get_float(zvec_doc_t doc, const char* field, float* out);
                 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
                 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
+                int zvec_doc_get_vector_fp64(zvec_doc_t doc, const char* field, const double** out, uint32_t* dim);
                 int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim);
                 int zvec_doc_get_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t** out, uint32_t* dim);
                 int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const float** values_out, uint32_t* count_out);
@@ -168,8 +171,25 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
                                           int topk, int include_vector,
                                           const char* filter,
                                           zvec_query_result_t* result);
+                zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* field_name,
+                                          const double* query_vector, uint32_t dim,
+                                          int topk, int include_vector,
+                                          const char* filter,
+                                          zvec_query_result_t* result);
                 zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field_name,
                                                         const float* query_vector, uint32_t dim,
+                                                        int topk, int include_vector,
+                                                        const char* filter,
+                                                        const char** output_fields, int output_fields_count,
+                                                        int query_param_type,
+                                                        int hnsw_ef,
+                                                        int ivf_nprobe,
+                                                        float radius,
+                                                        int is_linear,
+                                                        int is_using_refiner,
+                                                        zvec_query_result_t* result);
+                zvec_status_t zvec_collection_query_fp64_ex(zvec_collection_t coll, const char* field_name,
+                                                        const double* query_vector, uint32_t dim,
                                                         int topk, int include_vector,
                                                         const char* filter,
                                                         const char** output_fields, int output_fields_count,
@@ -639,6 +659,10 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
     public const TYPE_DOUBLE = 9;
     public const TYPE_BOOL = 3;
 
+    // Vector data types for schema
+    public const TYPE_VECTOR_FP32 = 23;
+    public const TYPE_VECTOR_FP64 = 24;
+
     // Quantize types for index creation
     public const QUANTIZE_UNDEFINED = 0;
     public const QUANTIZE_FP16 = 1;
@@ -705,6 +729,25 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
 
             if ($vq->docId !== null) {
                 throw new ZVecException("query() with docId not yet implemented. Use queryById() or fetch the vector first.");
+            }
+
+            // Route to FP64 query path if flagged
+            if ($vq->useFp64) {
+                return $this->queryFp64(
+                    fieldName: $fieldName,
+                    queryVector: $queryVector,
+                    topk: $topk,
+                    includeVector: $includeVector,
+                    filter: $filter,
+                    outputFields: $outputFields,
+                    queryParamType: $queryParamType,
+                    hnswEf: $hnswEf,
+                    ivfNprobe: $ivfNprobe,
+                    radius: $radius,
+                    isLinear: $isLinear,
+                    isUsingRefiner: $isUsingRefiner,
+                    reranker: $reranker
+                );
             }
         }
 
@@ -805,6 +848,93 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
             $docs[] = new ZVecDoc($result->docs[$i], true);
         }
         $ffi->zvec_query_result_free_array(FFI::addr($result));
+
+        return $docs;
+    }
+
+    /**
+     * @param float[] $queryVector
+     * @param string[]|null $outputFields
+     * @return ZVecDoc[]|ZVecRerankedDoc[]
+     */
+    public function queryFp64(
+        string $fieldName,
+        array $queryVector,
+        int $topk = 10,
+        bool $includeVector = false,
+        ?string $filter = null,
+        ?array $outputFields = null,
+        int $queryParamType = self::QUERY_PARAM_NONE,
+        int $hnswEf = 200,
+        int $ivfNprobe = 10,
+        float $radius = 0.0,
+        bool $isLinear = false,
+        bool $isUsingRefiner = false,
+        ?ZVecReRanker $reranker = null
+    ): array {
+        $this->checkClosed();
+
+        $ffi = self::ffi();
+        $dim = count($queryVector);
+        $vecData = $ffi->new("double[$dim]");
+        foreach ($queryVector as $i => $v) {
+            $vecData[$i] = $v;
+        }
+
+        // If reranker is provided, fetch more results for two-stage retrieval
+        $fetchTopk = $reranker !== null ? max($topk * 2, 100) : $topk;
+
+        $result = $ffi->new('zvec_query_result_t');
+
+        if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
+            $ofArr = null;
+            $ofCount = -1;
+            $ofCStrings = [];
+            if ($outputFields !== null) {
+                $ofCount = count($outputFields);
+                $ofArr = $ffi->new("char*[$ofCount]");
+                foreach ($outputFields as $i => $f) {
+                    $len = strlen($f) + 1;
+                    $cStr = $ffi->new("char[$len]", false);
+                    FFI::memcpy($cStr, $f, strlen($f));
+                    $cStr[$len - 1] = "\0";
+                    $ofCStrings[] = $cStr;
+                    $ofArr[$i] = $cStr;
+                }
+            }
+
+            $status = $ffi->zvec_collection_query_fp64_ex(
+                $this->handle, $fieldName, $vecData, $dim,
+                $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                $ofArr, $ofCount,
+                $queryParamType, $hnswEf, $ivfNprobe,
+                $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                FFI::addr($result)
+            );
+
+            foreach ($ofCStrings as $cStr) {
+                FFI::free($cStr);
+            }
+        } else {
+            $status = $ffi->zvec_collection_query_fp64(
+                $this->handle, $fieldName, $vecData, $dim,
+                $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                FFI::addr($result)
+            );
+        }
+        self::checkStatus($status);
+
+        $docs = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $docs[] = new ZVecDoc($result->docs[$i], true);
+        }
+        $ffi->zvec_query_result_free_array(FFI::addr($result));
+
+        // Apply reranker if provided
+        if ($reranker !== null) {
+            $queryResults = [$fieldName => $docs];
+            return $reranker->rerank($queryResults);
+        }
 
         return $docs;
     }
@@ -954,8 +1084,21 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         }
 
         $vector = $docs[0]->getVectorFp32($fieldName);
+        $isFp64 = false;
+        if ($vector === null) {
+            $vector = $docs[0]->getVectorFp64($fieldName);
+            $isFp64 = $vector !== null;
+        }
         if ($vector === null) {
             throw new ZVecException("Vector field '$fieldName' not found in document: $docId");
+        }
+
+        if ($isFp64) {
+            return $this->queryFp64(
+                $fieldName, $vector, $topk, $includeVector, $filter,
+                $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
+                $radius, $isLinear, $isUsingRefiner
+            );
         }
 
         return $this->query(
@@ -1099,6 +1242,7 @@ class ZVecVectorQuery
     public float $radius;
     public bool $isLinear;
     public bool $isUsingRefiner;
+    public bool $useFp64 = false;
 
     /**
      * @param float[] $vector Dense vector data
@@ -1113,6 +1257,12 @@ class ZVecVectorQuery
         $this->radius = 0.0;
         $this->isLinear = false;
         $this->isUsingRefiner = false;
+    }
+
+    public function setFp64(bool $fp64 = true): self
+    {
+        $this->useFp64 = $fp64;
+        return $this;
     }
 
     /**
@@ -1247,6 +1397,12 @@ class ZVecSchema
         return $this;
     }
 
+    public function addVectorFp64(string $name, int $dimension, int $metricType = self::METRIC_IP): self
+    {
+        self::ffi()->zvec_schema_add_field_vector_fp64($this->handle, $name, $dimension, $metricType);
+        return $this;
+    }
+
     public function addSparseVectorFp32(string $name, int $metricType = self::METRIC_IP): self
     {
         self::ffi()->zvec_schema_add_field_sparse_vector_fp32($this->handle, $name, $metricType);
@@ -1335,6 +1491,21 @@ class ZVecDoc
             $data[$i] = $v;
         }
         $ffi->zvec_doc_set_vector_fp32($this->handle, $field, $data, $dim);
+        return $this;
+    }
+
+    /**
+     * @param float[] $vector
+     */
+    public function setVectorFp64(string $field, array $vector): self
+    {
+        $ffi = self::ffi();
+        $dim = count($vector);
+        $data = $ffi->new("double[$dim]");
+        foreach ($vector as $i => $v) {
+            $data[$i] = $v;
+        }
+        $ffi->zvec_doc_set_vector_fp64($this->handle, $field, $data, $dim);
         return $this;
     }
 
@@ -1485,6 +1656,24 @@ class ZVecDoc
         $out = $ffi->new('float*');
         $dim = $ffi->new('uint32_t');
         if ($ffi->zvec_doc_get_vector_fp32($this->handle, $field, FFI::addr($out), FFI::addr($dim))) {
+            $result = [];
+            for ($i = 0; $i < $dim->cdata; $i++) {
+                $result[] = $out[$i];
+            }
+            return $result;
+        }
+        return null;
+    }
+
+    /**
+     * @return float[]|null
+     */
+    public function getVectorFp64(string $field): ?array
+    {
+        $ffi = self::ffi();
+        $out = $ffi->new('double*');
+        $dim = $ffi->new('uint32_t');
+        if ($ffi->zvec_doc_get_vector_fp64($this->handle, $field, FFI::addr($out), FFI::addr($dim))) {
             $result = [];
             for ($i = 0; $i < $dim->cdata; $i++) {
                 $result[] = $out[$i];

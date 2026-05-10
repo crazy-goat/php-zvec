@@ -169,6 +169,12 @@ void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, u
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
+void zvec_schema_add_field_vector_fp64(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_FP64, dimension, false,
+        std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
+}
+
 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type) {
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::SPARSE_VECTOR_FP32, 0, false,
@@ -481,6 +487,11 @@ void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* da
     static_cast<Doc*>(doc)->set<std::vector<float>>(field, std::move(vec));
 }
 
+void zvec_doc_set_vector_fp64(zvec_doc_t doc, const char* field, const double* data, uint32_t dim) {
+    std::vector<double> vec(data, data + dim);
+    static_cast<Doc*>(doc)->set<std::vector<double>>(field, std::move(vec));
+}
+
 void zvec_doc_set_bool(zvec_doc_t doc, const char* field, int value) {
     static_cast<Doc*>(doc)->set<bool>(field, (bool)value);
 }
@@ -565,6 +576,7 @@ int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out) {
 }
 
 static thread_local std::vector<float> g_vector_buf;
+static thread_local std::vector<double> g_vector_fp64_buf;
 
 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim) {
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<float>>(field);
@@ -572,6 +584,17 @@ int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** ou
         g_vector_buf = result.value();
         *out = g_vector_buf.data();
         *dim = static_cast<uint32_t>(g_vector_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+int zvec_doc_get_vector_fp64(zvec_doc_t doc, const char* field, const double** out, uint32_t* dim) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<double>>(field);
+    if (result.ok()) {
+        g_vector_fp64_buf = result.value();
+        *out = g_vector_fp64_buf.data();
+        *dim = static_cast<uint32_t>(g_vector_fp64_buf.size());
         return 1;
     }
     return 0;
@@ -660,9 +683,10 @@ int zvec_doc_has_field(zvec_doc_t doc, const char* field) {
 int zvec_doc_has_vector(zvec_doc_t doc, const char* field) {
     auto* d = static_cast<Doc*>(doc);
     if (!d->has(field)) return 0;
-    // Check if it's a FP32 vector (we don't support other vector types in FFI yet)
     auto result = d->get_field<std::vector<float>>(field);
-    return result.ok() ? 1 : 0;
+    if (result.ok()) return 1;
+    auto result_fp64 = d->get_field<std::vector<double>>(field);
+    return result_fp64.ok() ? 1 : 0;
 }
 
 static thread_local std::string g_names_buf;
@@ -673,6 +697,7 @@ int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size) {
     std::vector<std::string> filtered;
     for (const auto& name : names) {
         if (d->get_field<std::vector<float>>(name).ok()) continue;
+        if (d->get_field<std::vector<double>>(name).ok()) continue;
         filtered.push_back(name);
     }
     std::sort(filtered.begin(), filtered.end());
@@ -699,8 +724,11 @@ int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size) {
     auto names = d->field_names();
     std::vector<std::string> filtered;
     for (const auto& name : names) {
-        if (!d->get_field<std::vector<float>>(name).ok()) continue;
-        filtered.push_back(name);
+        if (d->get_field<std::vector<float>>(name).ok()) {
+            filtered.push_back(name);
+        } else if (d->get_field<std::vector<double>>(name).ok()) {
+            filtered.push_back(name);
+        }
     }
     std::sort(filtered.begin(), filtered.end());
     g_names_buf.clear();
@@ -1059,6 +1087,35 @@ zvec_status_t zvec_collection_query_fp16(zvec_collection_t coll, const char* fie
     return ok_status();
 }
 
+zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* field_name,
+                                          const double* query_vector, uint32_t dim,
+                                          int topk, int include_vector,
+                                          const char* filter,
+                                          zvec_query_result_t* result) {
+    auto* c = static_cast<Collection*>(coll);
+
+    std::vector<double> fp64_vec(query_vector, query_vector + dim);
+
+    VectorQuery query;
+    query.topk_ = topk;
+    query.field_name_ = field_name;
+    query.include_vector_ = (bool)include_vector;
+    query.query_vector_.assign(reinterpret_cast<const char*>(fp64_vec.data()), dim * sizeof(double));
+    if (filter && filter[0] != '\0') {
+        query.filter_ = filter;
+    }
+
+    auto res = c->Query(query);
+    if (!res.has_value()) {
+        result->docs = nullptr;
+        result->count = 0;
+        return make_status(res.error());
+    }
+
+    fill_doc_list(res.value(), result);
+    return ok_status();
+}
+
 static void apply_output_fields(VectorQuery& query, const char** output_fields, int count) {
     if (output_fields && count >= 0) {
         std::vector<std::string> fields;
@@ -1173,6 +1230,50 @@ zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field
     query.field_name_ = field_name;
     query.include_vector_ = (bool)include_vector;
     query.query_vector_.assign(reinterpret_cast<const char*>(query_vector), dim * sizeof(float));
+    if (filter && filter[0] != '\0') {
+        query.filter_ = filter;
+    }
+    apply_output_fields(query, output_fields, output_fields_count);
+    apply_query_params(query, query_param_type, hnsw_ef, ivf_nprobe, radius, is_linear, is_using_refiner);
+
+    auto res = c->Query(query);
+    if (!res.has_value()) {
+        result->docs = nullptr;
+        result->count = 0;
+        return make_status(res.error());
+    }
+    fill_doc_list(res.value(), result);
+    return ok_status();
+}
+
+zvec_status_t zvec_collection_query_fp64_ex(zvec_collection_t coll, const char* field_name,
+                                              const double* query_vector, uint32_t dim,
+                                              int topk, int include_vector,
+                                              const char* filter,
+                                              const char** output_fields, int output_fields_count,
+                                              int query_param_type,
+                                              int hnsw_ef,
+                                              int ivf_nprobe,
+                                              float radius,
+                                              int is_linear,
+                                              int is_using_refiner,
+                                              zvec_query_result_t* result) {
+    auto* c = static_cast<Collection*>(coll);
+
+    auto validation_status = validate_query_param_type(c, field_name, query_param_type);
+    if (validation_status.code != 0) {
+        result->docs = nullptr;
+        result->count = 0;
+        return validation_status;
+    }
+
+    std::vector<double> fp64_vec(query_vector, query_vector + dim);
+
+    VectorQuery query;
+    query.topk_ = topk;
+    query.field_name_ = field_name;
+    query.include_vector_ = (bool)include_vector;
+    query.query_vector_.assign(reinterpret_cast<const char*>(fp64_vec.data()), dim * sizeof(double));
     if (filter && filter[0] != '\0') {
         query.filter_ = filter;
     }
