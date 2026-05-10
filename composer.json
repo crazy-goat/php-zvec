@@ -3,6 +3,11 @@
     "description": "PHP FFI bindings for zvec vector database",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/crazy-goat/php-zvec",
+    "support": {
+        "issues": "https://github.com/crazy-goat/php-zvec/issues",
+        "source": "https://github.com/crazy-goat/php-zvec"
+    },
     "require": {
         "php": ">=8.1",
         "ext-ffi": "*"
