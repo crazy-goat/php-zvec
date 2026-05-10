@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.9] - 2026-05-10
+
+### Changed
+
+- **Upgrade zvec to v0.4.0** (#8)
+  - Bumped upstream `alibaba/zvec` library from v0.2.0 to v0.4.0 (released 2026-05-09)
+  - All build scripts, Docker workflows, and CI pinned to `v0.4.0` tag
+  - Updated FFI link list: v0.4.0 merged 12 individual `libcore_*.a` libraries into aggregate `libzvec_core.a` and `libzvec_db.a` — linker now uses 4 libs instead of 14
+  - Cross-platform `build_zvec.sh`: auto-detects macOS/Linux, CPU count, and GCC version
+  - GCC 15 workaround: `-include stdint.h` for RocksDB 8.1.1 `uint64_t` compatibility
+  - CI now builds zvec from source when pre-built tarball not available
+  - All 54 tests pass (53 PASS + 1 XFAIL), all example scripts verified
+
 ## [0.4.8] - 2026-03-15
 
 ### Added
@@ -696,7 +709,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.3.22...HEAD
+[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.4.9...HEAD
+[0.4.9]: https://github.com/alibaba/zvec-php/compare/v0.4.8...v0.4.9
+[0.4.8]: https://github.com/alibaba/zvec-php/compare/v0.4.7...v0.4.8
 [0.3.22]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.22
 [0.3.21]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.21
 [0.3.20]: https://github.com/alibaba/zvec-php/releases/tag/v0.3.20

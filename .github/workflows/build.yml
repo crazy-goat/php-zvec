@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 env:
-  ZVEC_VERSION: v0.2.0
-  ZVEC_BUILD_RELEASE: zvec-build-v0.2.0
+  ZVEC_VERSION: v0.4.0
+  ZVEC_BUILD_RELEASE: zvec-build-v0.4.0
 
 jobs:
   build-ext:
@@ -31,15 +31,26 @@ jobs:
             autoconf automake libtool \
             curl binutils
 
-      - name: Download prebuilt zvec
+      - name: Setup zvec ${{ env.ZVEC_VERSION }}
         run: |
           URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
-          echo "Downloading: $URL"
-          curl -fL "$URL" -o /tmp/zvec.tar.gz
-
-          rm -rf zvec
-          tar -xzf /tmp/zvec.tar.gz
-
+          echo "Trying prebuilt: $URL"
+          if curl -fL --connect-timeout 10 "$URL" -o /tmp/zvec.tar.gz 2>/dev/null; then
+            echo "Prebuilt zvec ${ZVEC_VERSION} downloaded"
+            rm -rf zvec
+            tar -xzf /tmp/zvec.tar.gz
+            rm /tmp/zvec.tar.gz
+          else
+            echo "Prebuilt not found. Building zvec ${ZVEC_VERSION} from source..."
+            if [ ! -d zvec ]; then
+              git clone --recurse-submodules --branch "$ZVEC_VERSION" \
+                https://github.com/alibaba/zvec.git zvec
+            fi
+            cmake -S zvec -B zvec/build \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+            cmake --build zvec/build -j$(nproc)
+          fi
           test -f zvec/build/lib/libzvec_db.a
           test -d zvec/src/include
           test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
@@ -67,18 +78,8 @@ jobs:
             -Wl,--whole-archive \
               $ZVEC_LIB/libzvec_db.a \
               $ZVEC_LIB/libzvec_ailego.a \
-              $ZVEC_LIB/libcore_metric.a \
-              $ZVEC_LIB/libcore_knn_hnsw.a \
-              $ZVEC_LIB/libcore_knn_hnsw_sparse.a \
-              $ZVEC_LIB/libcore_knn_flat.a \
-              $ZVEC_LIB/libcore_knn_flat_sparse.a \
-              $ZVEC_LIB/libcore_knn_ivf.a \
-              $ZVEC_LIB/libcore_knn_cluster.a \
-              $ZVEC_LIB/libcore_quantizer.a \
-              $ZVEC_LIB/libcore_utility.a \
-              $ZVEC_LIB/libcore_mix_reducer.a \
-              $ZVEC_LIB/libcore_framework.a \
-              $ZVEC_LIB/libcore_interface.a \
+              $ZVEC_LIB/libzvec_core.a \
+              $ZVEC_LIB/libzvec_turbo.a \
               $ZVEC_EXT_LIB/*.a \
             -Wl,--no-whole-archive \
             -lssl -lcrypto -lstdc++ -lz -lpthread -ldl \
@@ -123,15 +124,26 @@ jobs:
             libssl-dev libz-dev \
             curl
 
-      - name: Download prebuilt zvec
+      - name: Setup zvec ${{ env.ZVEC_VERSION }}
         run: |
           URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
-          echo "Downloading: $URL"
-          curl -fL "$URL" -o /tmp/zvec.tar.gz
-
-          rm -rf zvec
-          tar -xzf /tmp/zvec.tar.gz
-
+          echo "Trying prebuilt: $URL"
+          if curl -fL --connect-timeout 10 "$URL" -o /tmp/zvec.tar.gz 2>/dev/null; then
+            echo "Prebuilt zvec ${ZVEC_VERSION} downloaded"
+            rm -rf zvec
+            tar -xzf /tmp/zvec.tar.gz
+            rm /tmp/zvec.tar.gz
+          else
+            echo "Prebuilt not found. Building zvec ${ZVEC_VERSION} from source..."
+            if [ ! -d zvec ]; then
+              git clone --recurse-submodules --branch "$ZVEC_VERSION" \
+                https://github.com/alibaba/zvec.git zvec
+            fi
+            cmake -S zvec -B zvec/build \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+            cmake --build zvec/build -j$(nproc)
+          fi
           test -f zvec/build/lib/libzvec_db.a
           test -d zvec/src/include
           test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
