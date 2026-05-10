@@ -19,6 +19,17 @@ PHP_METHOD(ZVecVectorQuery, __construct) {
     zend_update_property_double(zvec_vector_query_ce, Z_OBJ_P(ZEND_THIS), "radius", sizeof("radius") - 1, 0.0);
     zend_update_property_bool(zvec_vector_query_ce, Z_OBJ_P(ZEND_THIS), "isLinear", sizeof("isLinear") - 1, 0);
     zend_update_property_bool(zvec_vector_query_ce, Z_OBJ_P(ZEND_THIS), "isUsingRefiner", sizeof("isUsingRefiner") - 1, 0);
+    zend_update_property_bool(zvec_vector_query_ce, Z_OBJ_P(ZEND_THIS), "useFp64", sizeof("useFp64") - 1, 0);
+}
+
+PHP_METHOD(ZVecVectorQuery, setFp64) {
+    zend_bool fp64 = 1;
+    ZEND_PARSE_PARAMETERS_START(0, 1)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_BOOL(fp64)
+    ZEND_PARSE_PARAMETERS_END();
+    zend_update_property_bool(zvec_vector_query_ce, Z_OBJ_P(ZEND_THIS), "useFp64", sizeof("useFp64") - 1, fp64);
+    RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecVectorQuery, fromId) {
@@ -43,6 +54,7 @@ PHP_METHOD(ZVecVectorQuery, fromId) {
     zend_update_property_double(zvec_vector_query_ce, Z_OBJ_P(return_value), "radius", sizeof("radius") - 1, 0.0);
     zend_update_property_bool(zvec_vector_query_ce, Z_OBJ_P(return_value), "isLinear", sizeof("isLinear") - 1, 0);
     zend_update_property_bool(zvec_vector_query_ce, Z_OBJ_P(return_value), "isUsingRefiner", sizeof("isUsingRefiner") - 1, 0);
+    zend_update_property_bool(zvec_vector_query_ce, Z_OBJ_P(return_value), "useFp64", sizeof("useFp64") - 1, 0);
 }
 
 PHP_METHOD(ZVecVectorQuery, setHnswParams) {
@@ -131,6 +143,10 @@ ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_vq_set_refiner, 0, 1, ZVecVe
     ZEND_ARG_TYPE_INFO(0, refiner, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_vq_set_fp64, 0, 0, ZVecVectorQuery, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, fp64, _IS_BOOL, 0, "true")
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry zvec_vector_query_methods[] = {
     PHP_ME(ZVecVectorQuery, __construct, arginfo_zvec_vq___construct, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecVectorQuery, fromId, arginfo_zvec_vq_from_id, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
@@ -140,6 +156,7 @@ static const zend_function_entry zvec_vector_query_methods[] = {
     PHP_ME(ZVecVectorQuery, setRadius, arginfo_zvec_vq_set_radius, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecVectorQuery, setLinear, arginfo_zvec_vq_set_linear, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecVectorQuery, setUsingRefiner, arginfo_zvec_vq_set_refiner, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecVectorQuery, setFp64, arginfo_zvec_vq_set_fp64, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -157,4 +174,5 @@ void zvec_register_vector_query(INIT_FUNC_ARGS) {
     zend_declare_property_double(zvec_vector_query_ce, "radius", sizeof("radius") - 1, 0.0, ZEND_ACC_PUBLIC);
     zend_declare_property_bool(zvec_vector_query_ce, "isLinear", sizeof("isLinear") - 1, 0, ZEND_ACC_PUBLIC);
     zend_declare_property_bool(zvec_vector_query_ce, "isUsingRefiner", sizeof("isUsingRefiner") - 1, 0, ZEND_ACC_PUBLIC);
+    zend_declare_property_bool(zvec_vector_query_ce, "useFp64", sizeof("useFp64") - 1, 0, ZEND_ACC_PUBLIC);
 }

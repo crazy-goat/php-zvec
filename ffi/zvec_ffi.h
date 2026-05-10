@@ -56,6 +56,7 @@ void zvec_schema_add_field_uint64(zvec_schema_t schema, const char* name, int nu
 void zvec_schema_add_field_float(zvec_schema_t schema, const char* name, int nullable);
 void zvec_schema_add_field_double(zvec_schema_t schema, const char* name, int nullable);
 void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
+void zvec_schema_add_field_vector_fp64(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
 void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
 void zvec_schema_add_field_vector_fp16(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
@@ -112,6 +113,7 @@ void zvec_doc_set_string(zvec_doc_t doc, const char* field, const char* value);
 void zvec_doc_set_float(zvec_doc_t doc, const char* field, float value);
 void zvec_doc_set_double(zvec_doc_t doc, const char* field, double value);
 void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* data, uint32_t dim);
+void zvec_doc_set_vector_fp64(zvec_doc_t doc, const char* field, const double* data, uint32_t dim);
 void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim);
 void zvec_doc_set_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t* data, uint32_t dim);
 void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t* indices, const float* values, uint32_t count);
@@ -127,6 +129,7 @@ int zvec_doc_get_string(zvec_doc_t doc, const char* field, const char** out);
 int zvec_doc_get_float(zvec_doc_t doc, const char* field, float* out);
 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out);
 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim);
+int zvec_doc_get_vector_fp64(zvec_doc_t doc, const char* field, const double** out, uint32_t* dim);
 int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim);
 int zvec_doc_get_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t** out, uint32_t* dim);
 int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const float** values_out, uint32_t* count_out);
@@ -160,10 +163,15 @@ zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_na
                                      const char* filter,
                                      zvec_query_result_t* result);
 zvec_status_t zvec_collection_query_fp16(zvec_collection_t coll, const char* field_name,
-                                          const uint16_t* query_vector, uint32_t dim,
-                                          int topk, int include_vector,
-                                          const char* filter,
-                                          zvec_query_result_t* result);
+                                           const uint16_t* query_vector, uint32_t dim,
+                                           int topk, int include_vector,
+                                           const char* filter,
+                                           zvec_query_result_t* result);
+zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* field_name,
+                                           const double* query_vector, uint32_t dim,
+                                           int topk, int include_vector,
+                                           const char* filter,
+                                           zvec_query_result_t* result);
 zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field_name,
                                         const float* query_vector, uint32_t dim,
                                         int topk, int include_vector,
@@ -176,6 +184,18 @@ zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field
                                         int is_linear,
                                         int is_using_refiner,
                                         zvec_query_result_t* result);
+zvec_status_t zvec_collection_query_fp64_ex(zvec_collection_t coll, const char* field_name,
+                                              const double* query_vector, uint32_t dim,
+                                              int topk, int include_vector,
+                                              const char* filter,
+                                              const char** output_fields, int output_fields_count,
+                                              int query_param_type,
+                                              int hnsw_ef,
+                                              int ivf_nprobe,
+                                              float radius,
+                                              int is_linear,
+                                              int is_using_refiner,
+                                              zvec_query_result_t* result);
 zvec_status_t zvec_collection_query_filter(zvec_collection_t coll, const char* filter,
                                             int topk, zvec_query_result_t* result);
 zvec_status_t zvec_collection_query_filter_ex(zvec_collection_t coll, const char* filter,

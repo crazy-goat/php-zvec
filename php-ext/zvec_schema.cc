@@ -248,6 +248,23 @@ PHP_METHOD(ZVecSchema, addVectorInt8) {
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
+PHP_METHOD(ZVecSchema, addVectorFp64) {
+    char *name; size_t name_len;
+    zend_long dimension, metric_type = 2;
+    ZEND_PARSE_PARAMETERS_START(2, 3)
+        Z_PARAM_STRING(name, name_len)
+        Z_PARAM_LONG(dimension)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(metric_type)
+    ZEND_PARSE_PARAMETERS_END();
+    auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
+    intern->schema->add_field(std::make_shared<FieldSchema>(
+        std::string(name, name_len), DataType::VECTOR_FP64,
+        static_cast<uint32_t>(dimension), false,
+        std::make_shared<HnswIndexParams>(to_metric_type(static_cast<uint32_t>(metric_type)))));
+    RETURN_ZVAL(ZEND_THIS, 1, 0);
+}
+
 PHP_METHOD(ZVecSchema, addVectorFp16) {
     char *name; size_t name_len;
     zend_long dimension, metric_type = 2;
@@ -322,6 +339,7 @@ static const zend_function_entry zvec_schema_methods[] = {
     PHP_ME(ZVecSchema, addUint32, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecSchema, addUint64, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecSchema, addVectorFp32, arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecSchema, addVectorFp64, arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecSchema, addVectorInt8, arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecSchema, addVectorFp16, arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecSchema, addSparseVectorFp32, arginfo_zvec_schema_add_sparse, ZEND_ACC_PUBLIC)
