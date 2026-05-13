@@ -101,6 +101,19 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
 zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type, uint32_t concurrency);
 zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name);
 
+// Unified IndexParams API
+typedef void* zvec_index_params_t;
+
+zvec_index_params_t zvec_index_params_create(int index_type, int metric_type);
+void zvec_index_params_free(zvec_index_params_t params);
+void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type);
+void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
+void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
+void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard);
+void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantize_type);
+void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type);
+zvec_status_t zvec_collection_create_index(zvec_collection_t coll, const char* field_name, zvec_index_params_t params, uint32_t concurrency);
+
 // Doc
 zvec_doc_t zvec_doc_create(const char* pk);
 void zvec_doc_free(zvec_doc_t doc);

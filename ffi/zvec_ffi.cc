@@ -454,6 +454,109 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
     return make_status(c->DropIndex(field_name));
 }
 
+// --- Unified IndexParams API ---
+
+struct IndexParamsHolder {
+    IndexType type_;
+    MetricType metric_type_;
+    QuantizeType quantize_type_;
+    int hnsw_m_;
+    int hnsw_ef_construction_;
+    int ivf_n_list_;
+    int ivf_n_iters_;
+    bool ivf_use_soar_;
+    bool invert_enable_range_;
+    bool invert_enable_wildcard_;
+
+    IndexParamsHolder(IndexType type, MetricType metric_type)
+        : type_(type), metric_type_(metric_type), quantize_type_(QuantizeType::UNDEFINED),
+          hnsw_m_(50), hnsw_ef_construction_(500),
+          ivf_n_list_(1024), ivf_n_iters_(10), ivf_use_soar_(false),
+          invert_enable_range_(true), invert_enable_wildcard_(false) {}
+
+    IndexParams::Ptr build() const {
+        switch (type_) {
+            case IndexType::HNSW:
+                return std::make_shared<HnswIndexParams>(metric_type_, hnsw_m_, hnsw_ef_construction_, quantize_type_);
+            case IndexType::FLAT:
+                return std::make_shared<FlatIndexParams>(metric_type_, quantize_type_);
+            case IndexType::IVF:
+                return std::make_shared<IVFIndexParams>(metric_type_, ivf_n_list_, ivf_n_iters_, ivf_use_soar_, quantize_type_);
+            case IndexType::INVERT:
+                return std::make_shared<InvertIndexParams>(invert_enable_range_, invert_enable_wildcard_);
+            default:
+                return nullptr;
+        }
+    }
+};
+
+static IndexType to_index_type(int v) {
+    switch (v) {
+        case 1: return IndexType::HNSW;
+        case 2: return IndexType::IVF;
+        case 3: return IndexType::FLAT;
+        case 10: return IndexType::INVERT;
+        default: return IndexType::UNDEFINED;
+    }
+}
+
+zvec_index_params_t zvec_index_params_create(int index_type, int metric_type) {
+    auto* holder = new IndexParamsHolder(to_index_type(index_type), to_metric_type(metric_type));
+    return static_cast<zvec_index_params_t>(holder);
+}
+
+void zvec_index_params_free(zvec_index_params_t params) {
+    delete static_cast<IndexParamsHolder*>(params);
+}
+
+void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type) {
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->hnsw_m_ = m;
+    h->hnsw_ef_construction_ = ef_construction;
+    h->quantize_type_ = to_quantize_type(quantize_type);
+}
+
+void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type) {
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->quantize_type_ = to_quantize_type(quantize_type);
+}
+
+void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type) {
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->ivf_n_list_ = n_list;
+    h->ivf_n_iters_ = n_iters;
+    h->ivf_use_soar_ = (bool)use_soar;
+    h->quantize_type_ = to_quantize_type(quantize_type);
+}
+
+void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard) {
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->invert_enable_range_ = (bool)enable_range;
+    h->invert_enable_wildcard_ = (bool)enable_wildcard;
+}
+
+void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantize_type) {
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->quantize_type_ = to_quantize_type(quantize_type);
+}
+
+void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type) {
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->metric_type_ = to_metric_type(metric_type);
+}
+
+zvec_status_t zvec_collection_create_index(zvec_collection_t coll, const char* field_name, zvec_index_params_t params, uint32_t concurrency) {
+    auto* c = static_cast<Collection*>(coll);
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    auto index_params = h->build();
+    if (!index_params) {
+        return make_status(Status(StatusCode::INVALID_ARGUMENT, "Invalid or unsupported index type"));
+    }
+    CreateIndexOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->CreateIndex(field_name, index_params, opts));
+}
+
 // --- Doc ---
 
 zvec_doc_t zvec_doc_create(const char* pk) {
