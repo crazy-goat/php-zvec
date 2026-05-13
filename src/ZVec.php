@@ -108,7 +108,19 @@ class ZVec
 zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type, uint32_t concurrency);
 zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type, uint32_t concurrency);
 zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type, uint32_t concurrency);
-zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name);
+                zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name);
+
+                typedef void* zvec_index_params_t;
+
+                zvec_index_params_t zvec_index_params_create(int index_type, int metric_type);
+                void zvec_index_params_free(zvec_index_params_t params);
+                void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type);
+                void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
+                void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
+                void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard);
+                void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantize_type);
+                void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type);
+                zvec_status_t zvec_collection_create_index(zvec_collection_t coll, const char* field_name, zvec_index_params_t params, uint32_t concurrency);
 
                 zvec_doc_t zvec_doc_create(const char* pk);
                 void zvec_doc_free(zvec_doc_t doc);
@@ -421,34 +433,43 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         self::checkStatus(self::ffi()->zvec_collection_alter_column($this->handle, $columnName, $rename, $dataType, $isNullable, $concurrency));
     }
 
-    public function createInvertIndex(string $fieldName, bool $enableRange = true, bool $enableWildcard = false): void
-    {
-        $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_create_invert_index($this->handle, $fieldName, $enableRange ? 1 : 0, $enableWildcard ? 1 : 0));
-    }
-
-    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500, int $quantizeType = 0, int $concurrency = 0): void
-    {
-        $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_create_hnsw_index($this->handle, $fieldName, $metricType, $m, $efConstruction, $quantizeType, $concurrency));
-    }
-
-    public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $quantizeType = 0, int $concurrency = 0): void
-    {
-        $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_create_flat_index($this->handle, $fieldName, $metricType, $quantizeType, $concurrency));
-    }
-
-    public function createIvfIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = 0, int $concurrency = 0): void
-    {
-        $this->checkClosed();
-        self::checkStatus(self::ffi()->zvec_collection_create_ivf_index($this->handle, $fieldName, $metricType, $nList, $nIters, $useSoar ? 1 : 0, $quantizeType, $concurrency));
-    }
-
     public function dropIndex(string $fieldName): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_drop_index($this->handle, $fieldName));
+    }
+
+    /**
+     * Create an index using the unified IndexParams API.
+     */
+    public function createIndex(string $fieldName, ZVecIndexParams $params, int $concurrency = 0): void
+    {
+        $this->checkClosed();
+        self::checkStatus(self::ffi()->zvec_collection_create_index($this->handle, $fieldName, $params->getHandle(), $concurrency));
+    }
+
+    /** @deprecated Use createIndex() with ZVecIndexParams::forInvert() instead */
+    public function createInvertIndex(string $fieldName, bool $enableRange = true, bool $enableWildcard = false): void
+    {
+        $this->createIndex($fieldName, ZVecIndexParams::forInvert($enableRange, $enableWildcard));
+    }
+
+    /** @deprecated Use createIndex() with ZVecIndexParams::forHnsw() instead */
+    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500, int $quantizeType = 0, int $concurrency = 0): void
+    {
+        $this->createIndex($fieldName, ZVecIndexParams::forHnsw($metricType, $m, $efConstruction, $quantizeType), $concurrency);
+    }
+
+    /** @deprecated Use createIndex() with ZVecIndexParams::forFlat() instead */
+    public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $quantizeType = 0, int $concurrency = 0): void
+    {
+        $this->createIndex($fieldName, ZVecIndexParams::forFlat($metricType, $quantizeType), $concurrency);
+    }
+
+    /** @deprecated Use createIndex() with ZVecIndexParams::forIvf() instead */
+    public function createIvfIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = 0, int $concurrency = 0): void
+    {
+        $this->createIndex($fieldName, ZVecIndexParams::forIvf($metricType, $nList, $nIters, $useSoar, $quantizeType), $concurrency);
     }
 
     public function insert(ZVecDoc ...$docs): void
@@ -635,6 +656,12 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
 
         return $docs;
     }
+
+    // Index types for unified IndexParams API
+    public const INDEX_TYPE_HNSW = 1;
+    public const INDEX_TYPE_IVF = 2;
+    public const INDEX_TYPE_FLAT = 3;
+    public const INDEX_TYPE_INVERT = 10;
 
     public const QUERY_PARAM_NONE = 0;
     public const QUERY_PARAM_HNSW = 1;
@@ -1219,6 +1246,63 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         $buf = $ffi->new('char[4096]');
         self::checkStatus($ffi->zvec_collection_stats($this->handle, $buf, 4096));
         return FFI::string($buf);
+    }
+}
+
+class ZVecIndexParams
+{
+    private FFI\CData $handle;
+
+    private function __construct(FFI\CData $handle)
+    {
+        $this->handle = $handle;
+    }
+
+    public function __destruct()
+    {
+        self::ffi()->zvec_index_params_free($this->handle);
+    }
+
+    public function getHandle(): FFI\CData
+    {
+        return $this->handle;
+    }
+
+    public static function forHnsw(int $metricType, int $m = 50, int $efConstruction = 500, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
+    {
+        $ffi = self::ffi();
+        $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_HNSW, $metricType);
+        $ffi->zvec_index_params_set_hnsw($handle, $m, $efConstruction, $quantizeType);
+        return new self($handle);
+    }
+
+    public static function forFlat(int $metricType, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
+    {
+        $ffi = self::ffi();
+        $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_FLAT, $metricType);
+        $ffi->zvec_index_params_set_flat($handle, $quantizeType);
+        return new self($handle);
+    }
+
+    public static function forIvf(int $metricType, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
+    {
+        $ffi = self::ffi();
+        $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_IVF, $metricType);
+        $ffi->zvec_index_params_set_ivf($handle, $nList, $nIters, $useSoar ? 1 : 0, $quantizeType);
+        return new self($handle);
+    }
+
+    public static function forInvert(bool $enableRange = true, bool $enableWildcard = false): self
+    {
+        $ffi = self::ffi();
+        $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_INVERT, ZVecSchema::METRIC_IP);
+        $ffi->zvec_index_params_set_invert($handle, $enableRange ? 1 : 0, $enableWildcard ? 1 : 0);
+        return new self($handle);
+    }
+
+    private static function ffi(): FFI
+    {
+        return (new ReflectionClass(ZVec::class))->getMethod('ffi')->invoke(null);
     }
 }
 
