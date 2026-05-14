@@ -695,6 +695,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public const QUANTIZE_FP16 = 1;
     public const QUANTIZE_INT8 = 2;
     public const QUANTIZE_INT4 = 3;
+    public const QUANTIZE_RABITQ = 4;
 
     public static function init(
         int $logType = self::LOG_CONSOLE,
@@ -1474,6 +1475,7 @@ class ZVecSchema
     public const METRIC_L2 = 1;
     public const METRIC_IP = 2;
     public const METRIC_COSINE = 3;
+    public const METRIC_MIPSL2 = 4;
 
     public function addVectorFp32(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
