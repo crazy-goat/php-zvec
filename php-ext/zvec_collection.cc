@@ -1634,4 +1634,5 @@ void zvec_register_collection(INIT_FUNC_ARGS) {
     zend_declare_class_constant_long(zvec_collection_ce, "QUANTIZE_FP16", sizeof("QUANTIZE_FP16") - 1, 1);
     zend_declare_class_constant_long(zvec_collection_ce, "QUANTIZE_INT8", sizeof("QUANTIZE_INT8") - 1, 2);
     zend_declare_class_constant_long(zvec_collection_ce, "QUANTIZE_INT4", sizeof("QUANTIZE_INT4") - 1, 3);
+    zend_declare_class_constant_long(zvec_collection_ce, "QUANTIZE_RABITQ", sizeof("QUANTIZE_RABITQ") - 1, 4);
 }

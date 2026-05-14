@@ -359,4 +359,5 @@ void zvec_register_schema(INIT_FUNC_ARGS) {
     zend_declare_class_constant_long(zvec_schema_ce, "METRIC_L2", sizeof("METRIC_L2") - 1, 1);
     zend_declare_class_constant_long(zvec_schema_ce, "METRIC_IP", sizeof("METRIC_IP") - 1, 2);
     zend_declare_class_constant_long(zvec_schema_ce, "METRIC_COSINE", sizeof("METRIC_COSINE") - 1, 3);
+    zend_declare_class_constant_long(zvec_schema_ce, "METRIC_MIPSL2", sizeof("METRIC_MIPSL2") - 1, 4);
 }
