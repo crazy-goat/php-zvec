@@ -193,6 +193,81 @@ void zvec_schema_add_field_vector_fp16(zvec_schema_t schema, const char* name, u
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
+void zvec_schema_add_field_vector_int4(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_INT4, dimension, false,
+        std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
+}
+
+void zvec_schema_add_field_vector_int16(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_INT16, dimension, false,
+        std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
+}
+
+void zvec_schema_add_field_vector_binary32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_BINARY32, dimension, false,
+        std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
+}
+
+void zvec_schema_add_field_vector_binary64(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_BINARY64, dimension, false,
+        std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
+}
+
+void zvec_schema_add_field_sparse_vector_fp16(zvec_schema_t schema, const char* name, uint32_t metric_type) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::SPARSE_VECTOR_FP16, 0, false,
+        std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
+}
+
+void zvec_schema_add_field_binary(zvec_schema_t schema, const char* name, int nullable) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::BINARY, (bool)nullable));
+}
+
+void zvec_schema_add_field_array_string(zvec_schema_t schema, const char* name, int nullable) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_STRING, (bool)nullable));
+}
+
+void zvec_schema_add_field_array_bool(zvec_schema_t schema, const char* name, int nullable) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_BOOL, (bool)nullable));
+}
+
+void zvec_schema_add_field_array_int32(zvec_schema_t schema, const char* name, int nullable) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_INT32, (bool)nullable));
+}
+
+void zvec_schema_add_field_array_int64(zvec_schema_t schema, const char* name, int nullable) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_INT64, (bool)nullable));
+}
+
+void zvec_schema_add_field_array_uint32(zvec_schema_t schema, const char* name, int nullable) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_UINT32, (bool)nullable));
+}
+
+void zvec_schema_add_field_array_uint64(zvec_schema_t schema, const char* name, int nullable) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_UINT64, (bool)nullable));
+}
+
+void zvec_schema_add_field_array_float(zvec_schema_t schema, const char* name, int nullable) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_FLOAT, (bool)nullable));
+}
+
+void zvec_schema_add_field_array_double(zvec_schema_t schema, const char* name, int nullable) {
+    auto* s = static_cast<CollectionSchema*>(schema);
+    s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_DOUBLE, (bool)nullable));
+}
+
 // --- Collection ---
 
 static std::vector<Collection::Ptr> g_collections;
@@ -661,6 +736,94 @@ void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const ui
     }
 }
 
+void zvec_doc_set_vector_int4(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim) {
+    std::vector<int8_t> vec(data, data + dim);
+    static_cast<Doc*>(doc)->set<std::vector<int8_t>>(field, std::move(vec));
+}
+
+void zvec_doc_set_vector_int16(zvec_doc_t doc, const char* field, const int16_t* data, uint32_t dim) {
+    std::vector<int16_t> vec(data, data + dim);
+    static_cast<Doc*>(doc)->set<std::vector<int16_t>>(field, std::move(vec));
+}
+
+void zvec_doc_set_vector_binary32(zvec_doc_t doc, const char* field, const uint32_t* data, uint32_t dim) {
+    std::vector<uint32_t> vec(data, data + dim);
+    static_cast<Doc*>(doc)->set<std::vector<uint32_t>>(field, std::move(vec));
+}
+
+void zvec_doc_set_vector_binary64(zvec_doc_t doc, const char* field, const uint64_t* data, uint32_t dim) {
+    std::vector<uint64_t> vec(data, data + dim);
+    static_cast<Doc*>(doc)->set<std::vector<uint64_t>>(field, std::move(vec));
+}
+
+void zvec_doc_set_sparse_vector_fp16(zvec_doc_t doc, const char* field, const uint32_t* indices, const uint16_t* values, uint32_t count) {
+    if (count == 0) {
+        static_cast<Doc*>(doc)->set<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>>(field,
+            std::make_pair(std::vector<uint32_t>(), std::vector<ailego::Float16>()));
+    } else {
+        std::vector<uint32_t> idx_vec(indices, indices + count);
+        std::vector<ailego::Float16> val_vec;
+        val_vec.reserve(count);
+        for (uint32_t i = 0; i < count; i++) {
+            val_vec.push_back(ailego::FloatHelper::ToFP32(values[i]));
+        }
+        static_cast<Doc*>(doc)->set<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>>(field,
+            std::make_pair(std::move(idx_vec), std::move(val_vec)));
+    }
+}
+
+void zvec_doc_set_binary(zvec_doc_t doc, const char* field, const uint8_t* data, uint32_t size) {
+    static_cast<Doc*>(doc)->set<std::string>(field, std::string(reinterpret_cast<const char*>(data), size));
+}
+
+void zvec_doc_set_array_int32(zvec_doc_t doc, const char* field, const int32_t* data, uint32_t count) {
+    std::vector<int32_t> vec(data, data + count);
+    static_cast<Doc*>(doc)->set<std::vector<int32_t>>(field, std::move(vec));
+}
+
+void zvec_doc_set_array_int64(zvec_doc_t doc, const char* field, const int64_t* data, uint32_t count) {
+    std::vector<int64_t> vec(data, data + count);
+    static_cast<Doc*>(doc)->set<std::vector<int64_t>>(field, std::move(vec));
+}
+
+void zvec_doc_set_array_uint32(zvec_doc_t doc, const char* field, const uint32_t* data, uint32_t count) {
+    std::vector<uint32_t> vec(data, data + count);
+    static_cast<Doc*>(doc)->set<std::vector<uint32_t>>(field, std::move(vec));
+}
+
+void zvec_doc_set_array_uint64(zvec_doc_t doc, const char* field, const uint64_t* data, uint32_t count) {
+    std::vector<uint64_t> vec(data, data + count);
+    static_cast<Doc*>(doc)->set<std::vector<uint64_t>>(field, std::move(vec));
+}
+
+void zvec_doc_set_array_float(zvec_doc_t doc, const char* field, const float* data, uint32_t count) {
+    std::vector<float> vec(data, data + count);
+    static_cast<Doc*>(doc)->set<std::vector<float>>(field, std::move(vec));
+}
+
+void zvec_doc_set_array_double(zvec_doc_t doc, const char* field, const double* data, uint32_t count) {
+    std::vector<double> vec(data, data + count);
+    static_cast<Doc*>(doc)->set<std::vector<double>>(field, std::move(vec));
+}
+
+void zvec_doc_set_array_string(zvec_doc_t doc, const char* field, const char** strings, uint32_t count) {
+    std::vector<std::string> vec;
+    vec.reserve(count);
+    for (uint32_t i = 0; i < count; i++) {
+        vec.emplace_back(strings[i]);
+    }
+    static_cast<Doc*>(doc)->set<std::vector<std::string>>(field, std::move(vec));
+}
+
+void zvec_doc_set_array_bool(zvec_doc_t doc, const char* field, const uint8_t* data, uint32_t count) {
+    std::vector<bool> vec;
+    vec.reserve(count);
+    for (uint32_t i = 0; i < count; i++) {
+        vec.push_back((bool)data[i]);
+    }
+    static_cast<Doc*>(doc)->set<std::vector<bool>>(field, std::move(vec));
+}
+
 static thread_local std::string g_pk_buf;
 
 const char* zvec_doc_get_pk(zvec_doc_t doc) {
@@ -801,6 +964,210 @@ int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uin
     return 0;
 }
 
+static thread_local std::vector<int16_t> g_vector_int16_buf;
+
+int zvec_doc_get_vector_int16(zvec_doc_t doc, const char* field, const int16_t** out, uint32_t* dim) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<int16_t>>(field);
+    if (result.ok()) {
+        g_vector_int16_buf = result.value();
+        *out = g_vector_int16_buf.data();
+        *dim = static_cast<uint32_t>(g_vector_int16_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::vector<uint32_t> g_vector_binary32_buf;
+
+int zvec_doc_get_vector_binary32(zvec_doc_t doc, const char* field, const uint32_t** out, uint32_t* dim) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<uint32_t>>(field);
+    if (result.ok()) {
+        g_vector_binary32_buf = result.value();
+        *out = g_vector_binary32_buf.data();
+        *dim = static_cast<uint32_t>(g_vector_binary32_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::vector<uint64_t> g_vector_binary64_buf;
+
+int zvec_doc_get_vector_binary64(zvec_doc_t doc, const char* field, const uint64_t** out, uint32_t* dim) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<uint64_t>>(field);
+    if (result.ok()) {
+        g_vector_binary64_buf = result.value();
+        *out = g_vector_binary64_buf.data();
+        *dim = static_cast<uint32_t>(g_vector_binary64_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+// For INT4, store in same buffer type (int8_t) since they share the same variant
+int zvec_doc_get_vector_int4(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<int8_t>>(field);
+    if (result.ok()) {
+        g_vector_int8_buf = result.value();
+        *out = g_vector_int8_buf.data();
+        *dim = static_cast<uint32_t>(g_vector_int8_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+// Sparse FP16 - circular buffer
+static thread_local std::array<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>, 16> g_sparse_fp16_buffers;
+static thread_local size_t g_sparse_fp16_buffer_idx = 0;
+
+int zvec_doc_get_sparse_vector_fp16(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const uint16_t** values_out, uint32_t* count_out) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>>(field);
+    if (result.ok()) {
+        auto& slot = g_sparse_fp16_buffers[g_sparse_fp16_buffer_idx];
+        slot = result.value();
+        *indices_out = slot.first.data();
+        
+        // Convert float16_t values back to uint16_t for PHP
+        thread_local static std::vector<uint16_t> g_tmp_fp16_vals;
+        g_tmp_fp16_vals.resize(slot.second.size());
+        for (size_t i = 0; i < slot.second.size(); i++) {
+            g_tmp_fp16_vals[i] = ailego::FloatHelper::ToFP16(static_cast<float>(slot.second[i]));
+        }
+        *values_out = g_tmp_fp16_vals.data();
+        *count_out = static_cast<uint32_t>(slot.first.size());
+        g_sparse_fp16_buffer_idx = (g_sparse_fp16_buffer_idx + 1) % 16;
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::string g_binary_buf;
+
+int zvec_doc_get_binary(zvec_doc_t doc, const char* field, const uint8_t** out, uint32_t* size) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::string>(field);
+    if (result.ok()) {
+        g_binary_buf = result.value();
+        *out = reinterpret_cast<const uint8_t*>(g_binary_buf.data());
+        *size = static_cast<uint32_t>(g_binary_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::vector<int32_t> g_array_int32_buf;
+
+int zvec_doc_get_array_int32(zvec_doc_t doc, const char* field, const int32_t** out, uint32_t* count) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<int32_t>>(field);
+    if (result.ok()) {
+        g_array_int32_buf = result.value();
+        *out = g_array_int32_buf.data();
+        *count = static_cast<uint32_t>(g_array_int32_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::vector<int64_t> g_array_int64_buf;
+
+int zvec_doc_get_array_int64(zvec_doc_t doc, const char* field, const int64_t** out, uint32_t* count) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<int64_t>>(field);
+    if (result.ok()) {
+        g_array_int64_buf = result.value();
+        *out = g_array_int64_buf.data();
+        *count = static_cast<uint32_t>(g_array_int64_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::vector<uint32_t> g_array_uint32_buf;
+
+int zvec_doc_get_array_uint32(zvec_doc_t doc, const char* field, const uint32_t** out, uint32_t* count) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<uint32_t>>(field);
+    if (result.ok()) {
+        g_array_uint32_buf = result.value();
+        *out = g_array_uint32_buf.data();
+        *count = static_cast<uint32_t>(g_array_uint32_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::vector<uint64_t> g_array_uint64_buf;
+
+int zvec_doc_get_array_uint64(zvec_doc_t doc, const char* field, const uint64_t** out, uint32_t* count) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<uint64_t>>(field);
+    if (result.ok()) {
+        g_array_uint64_buf = result.value();
+        *out = g_array_uint64_buf.data();
+        *count = static_cast<uint32_t>(g_array_uint64_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::vector<float> g_array_float_buf;
+
+int zvec_doc_get_array_float(zvec_doc_t doc, const char* field, const float** out, uint32_t* count) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<float>>(field);
+    if (result.ok()) {
+        g_array_float_buf = result.value();
+        *out = g_array_float_buf.data();
+        *count = static_cast<uint32_t>(g_array_float_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+static thread_local std::vector<double> g_array_double_buf;
+
+int zvec_doc_get_array_double(zvec_doc_t doc, const char* field, const double** out, uint32_t* count) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<double>>(field);
+    if (result.ok()) {
+        g_array_double_buf = result.value();
+        *out = g_array_double_buf.data();
+        *count = static_cast<uint32_t>(g_array_double_buf.size());
+        return 1;
+    }
+    return 0;
+}
+
+int zvec_doc_get_array_string(zvec_doc_t doc, const char* field, char* buf, size_t buf_size, uint32_t* count) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<std::string>>(field);
+    if (result.ok()) {
+        const auto& strs = result.value();
+        *count = static_cast<uint32_t>(strs.size());
+        g_string_buf.clear();
+        for (size_t i = 0; i < strs.size(); i++) {
+            if (i > 0) g_string_buf += '\0';
+            g_string_buf += strs[i];
+        }
+        size_t len = g_string_buf.length();
+        if (len + 1 > buf_size) {
+            return -1;
+        }
+        memcpy(buf, g_string_buf.data(), len);
+        buf[len] = '\0';
+        return static_cast<int>(len);
+    }
+    return 0;
+}
+
+int zvec_doc_get_array_bool(zvec_doc_t doc, const char* field, uint8_t* buf, size_t buf_size) {
+    auto result = static_cast<Doc*>(doc)->get_field<std::vector<bool>>(field);
+    if (result.ok()) {
+        const auto& vec = result.value();
+        size_t count = vec.size();
+        if (count > buf_size) {
+            return -1;
+        }
+        for (size_t i = 0; i < count; i++) {
+            buf[i] = vec[i] ? 1 : 0;
+        }
+        return static_cast<int>(count);
+    }
+    return 0;
+}
+
 // --- Doc Introspection ---
 
 int zvec_doc_has_field(zvec_doc_t doc, const char* field) {
@@ -810,21 +1177,40 @@ int zvec_doc_has_field(zvec_doc_t doc, const char* field) {
 int zvec_doc_has_vector(zvec_doc_t doc, const char* field) {
     auto* d = static_cast<Doc*>(doc);
     if (!d->has(field)) return 0;
-    auto result = d->get_field<std::vector<float>>(field);
-    if (result.ok()) return 1;
-    auto result_fp64 = d->get_field<std::vector<double>>(field);
-    return result_fp64.ok() ? 1 : 0;
+    // Check all vector variant types
+    if (d->get_field<std::vector<float>>(field).ok()) return 1;
+    if (d->get_field<std::vector<double>>(field).ok()) return 1;
+    if (d->get_field<std::vector<int8_t>>(field).ok()) return 1;
+    if (d->get_field<std::vector<int16_t>>(field).ok()) return 1;
+    if (d->get_field<std::vector<uint32_t>>(field).ok()) return 1;
+    if (d->get_field<std::vector<uint64_t>>(field).ok()) return 1;
+    if (d->get_field<std::vector<ailego::Float16>>(field).ok()) return 1;
+    if (d->get_field<std::pair<std::vector<uint32_t>, std::vector<float>>>(field).ok()) return 1;
+    if (d->get_field<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>>(field).ok()) return 1;
+    return 0;
 }
 
 static thread_local std::string g_names_buf;
+
+static bool is_vector_field(Doc* d, const std::string& name) {
+    if (d->get_field<std::vector<float>>(name).ok()) return true;
+    if (d->get_field<std::vector<double>>(name).ok()) return true;
+    if (d->get_field<std::vector<int8_t>>(name).ok()) return true;
+    if (d->get_field<std::vector<int16_t>>(name).ok()) return true;
+    if (d->get_field<std::vector<uint32_t>>(name).ok()) return true;
+    if (d->get_field<std::vector<uint64_t>>(name).ok()) return true;
+    if (d->get_field<std::vector<ailego::Float16>>(name).ok()) return true;
+    if (d->get_field<std::pair<std::vector<uint32_t>, std::vector<float>>>(name).ok()) return true;
+    if (d->get_field<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>>(name).ok()) return true;
+    return false;
+}
 
 int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size) {
     auto* d = static_cast<Doc*>(doc);
     auto names = d->field_names();
     std::vector<std::string> filtered;
     for (const auto& name : names) {
-        if (d->get_field<std::vector<float>>(name).ok()) continue;
-        if (d->get_field<std::vector<double>>(name).ok()) continue;
+        if (is_vector_field(d, name)) continue;
         filtered.push_back(name);
     }
     std::sort(filtered.begin(), filtered.end());
@@ -851,9 +1237,7 @@ int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size) {
     auto names = d->field_names();
     std::vector<std::string> filtered;
     for (const auto& name : names) {
-        if (d->get_field<std::vector<float>>(name).ok()) {
-            filtered.push_back(name);
-        } else if (d->get_field<std::vector<double>>(name).ok()) {
+        if (is_vector_field(d, name)) {
             filtered.push_back(name);
         }
     }
