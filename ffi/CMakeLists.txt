@@ -15,7 +15,6 @@ add_library(zvec_ffi SHARED zvec_ffi.cc)
 target_include_directories(zvec_ffi PRIVATE
     ${ZVEC_INCLUDE}
     ${ZVEC_ROOT}/thirdparty/sparsehash/sparsehash-2.0.4/src
-    ${ZVEC_BUILD}/src/generated
 )
 
 set(ZVEC_STATIC_LIBS

@@ -98,32 +98,36 @@ const char* zvec_error_code_to_string(int error_code) {
     }
 }
 
-// Version information (compile-time constants from zvec_version.h)
-#include <zvec_version.h>
+// Version information — sourced from zvec zvec_version.h (build-time generated)
+// When updating the zvec version, update these constants to match.
+static constexpr int kVersionMajor = 0;
+static constexpr int kVersionMinor = 4;
+static constexpr int kVersionPatch = 0;
+static constexpr const char* kVersionString = "v0.4.0";
 
 const char* zvec_get_version(void) {
-    return ZVEC_VERSION_STRING;
+    return kVersionString;
 }
 
 int zvec_check_version(int major, int minor, int patch) {
     if (major < 0 || minor < 0 || patch < 0) return 0;
-    if (ZVEC_VERSION_MAJOR > major) return 1;
-    if (ZVEC_VERSION_MAJOR < major) return 0;
-    if (ZVEC_VERSION_MINOR > minor) return 1;
-    if (ZVEC_VERSION_MINOR < minor) return 0;
-    return ZVEC_VERSION_PATCH >= patch ? 1 : 0;
+    if (kVersionMajor > major) return 1;
+    if (kVersionMajor < major) return 0;
+    if (kVersionMinor > minor) return 1;
+    if (kVersionMinor < minor) return 0;
+    return kVersionPatch >= patch ? 1 : 0;
 }
 
 int zvec_get_version_major(void) {
-    return ZVEC_VERSION_MAJOR;
+    return kVersionMajor;
 }
 
 int zvec_get_version_minor(void) {
-    return ZVEC_VERSION_MINOR;
+    return kVersionMinor;
 }
 
 int zvec_get_version_patch(void) {
-    return ZVEC_VERSION_PATCH;
+    return kVersionPatch;
 }
 
 static MetricType to_metric_type(uint32_t v) {
