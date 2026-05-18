@@ -375,6 +375,16 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
                 zvec_status_t zvec_collection_stats(zvec_collection_t coll, char* buf, size_t buf_size);
 
+                // CollectionStats
+                typedef void* zvec_collection_stats_t;
+
+                zvec_status_t zvec_collection_get_stats_struct(zvec_collection_t coll, zvec_collection_stats_t* out);
+                void zvec_collection_stats_free(zvec_collection_stats_t stats);
+                uint64_t zvec_collection_stats_get_doc_count(zvec_collection_stats_t stats);
+                uint32_t zvec_collection_stats_get_index_count(zvec_collection_stats_t stats);
+                const char* zvec_collection_stats_get_index_name(zvec_collection_stats_t stats, uint32_t index);
+                float zvec_collection_stats_get_index_completeness(zvec_collection_stats_t stats, uint32_t index);
+
                 typedef struct {
                     int code;
                     const char* message;
@@ -1500,6 +1510,87 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $buf = $ffi->new('char[4096]');
         self::checkStatus($ffi->zvec_collection_stats($this->handle, $buf, 4096));
         return FFI::string($buf);
+    }
+
+    /**
+     * Get structured collection stats.
+     */
+    public function getStatsStruct(): ZVecCollectionStats
+    {
+        $this->checkClosed();
+        $ffi = self::ffi();
+        $out = $ffi->new('zvec_collection_stats_t');
+        self::checkStatus($ffi->zvec_collection_get_stats_struct($this->handle, FFI::addr($out)));
+        return new ZVecCollectionStats($out);
+    }
+}
+
+class ZVecCollectionStats
+{
+    private FFI\CData $handle;
+
+    public function __construct(FFI\CData $handle)
+    {
+        $this->handle = $handle;
+    }
+
+    public function __destruct()
+    {
+        self::ffi()->zvec_collection_stats_free($this->handle);
+    }
+
+    public function getDocCount(): int
+    {
+        return self::ffi()->zvec_collection_stats_get_doc_count($this->handle);
+    }
+
+    public function getIndexCount(): int
+    {
+        return self::ffi()->zvec_collection_stats_get_index_count($this->handle);
+    }
+
+    public function getIndexName(int $index): string
+    {
+        $ptr = self::ffi()->zvec_collection_stats_get_index_name($this->handle, $index);
+        if ($ptr === null) {
+            throw new ZVecException("Index out of range: $index");
+        }
+        return is_string($ptr) ? $ptr : FFI::string($ptr);
+    }
+
+    public function getIndexCompleteness(int $index): float
+    {
+        return self::ffi()->zvec_collection_stats_get_index_completeness($this->handle, $index);
+    }
+
+    /**
+     * @return array<string, float>
+     */
+    public function getAllIndexCompleteness(): array
+    {
+        $count = $this->getIndexCount();
+        $result = [];
+        for ($i = 0; $i < $count; $i++) {
+            $name = $this->getIndexName($i);
+            $result[$name] = $this->getIndexCompleteness($i);
+        }
+        return $result;
+    }
+
+    /**
+     * @return array{doc_count: int, index_completeness: array<string, float>}
+     */
+    public function toArray(): array
+    {
+        return [
+            'doc_count' => $this->getDocCount(),
+            'index_completeness' => $this->getAllIndexCompleteness(),
+        ];
+    }
+
+    private static function ffi(): FFI
+    {
+        return (new ReflectionClass(ZVec::class))->getMethod('ffi')->invoke(null);
     }
 }
 
