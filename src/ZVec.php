@@ -370,6 +370,43 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
                                                               zvec_group_results_t* result);
                 void zvec_group_results_free(zvec_group_results_t* result);
 
+                typedef void* zvec_vector_query_t;
+                typedef void* zvec_group_by_vector_query_t;
+
+                zvec_vector_query_t zvec_vector_query_create(void);
+                void zvec_vector_query_free(zvec_vector_query_t q);
+
+                void zvec_vector_query_set_field_name(zvec_vector_query_t q, const char* field_name);
+                void zvec_vector_query_set_topk(zvec_vector_query_t q, int topk);
+                void zvec_vector_query_set_include_vector(zvec_vector_query_t q, int include);
+                void zvec_vector_query_set_filter(zvec_vector_query_t q, const char* filter);
+                void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fields, int count);
+                void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef);
+                void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe);
+                void zvec_vector_query_set_flat_mode(zvec_vector_query_t q);
+                void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius);
+                void zvec_vector_query_set_is_linear(zvec_vector_query_t q, int is_linear);
+                void zvec_vector_query_set_using_refiner(zvec_vector_query_t q, int refiner);
+                void zvec_vector_query_set_vector_fp32(zvec_vector_query_t q, const float* data, uint32_t dim);
+                void zvec_vector_query_set_vector_fp64(zvec_vector_query_t q, const double* data, uint32_t dim);
+
+                zvec_group_by_vector_query_t zvec_group_by_vector_query_create(void);
+                void zvec_group_by_vector_query_free(zvec_group_by_vector_query_t q);
+                void zvec_group_by_vector_query_set_field_name(zvec_group_by_vector_query_t q, const char* field_name);
+                void zvec_group_by_vector_query_set_vector_fp32(zvec_group_by_vector_query_t q, const float* data, uint32_t dim);
+                void zvec_group_by_vector_query_set_group_by_field(zvec_group_by_vector_query_t q, const char* field);
+                void zvec_group_by_vector_query_set_group_count(zvec_group_by_vector_query_t q, uint32_t count);
+                void zvec_group_by_vector_query_set_group_topk(zvec_group_by_vector_query_t q, uint32_t topk);
+                void zvec_group_by_vector_query_set_include_vector(zvec_group_by_vector_query_t q, int include);
+                void zvec_group_by_vector_query_set_filter(zvec_group_by_vector_query_t q, const char* filter);
+                void zvec_group_by_vector_query_set_output_fields(zvec_group_by_vector_query_t q, const char** fields, int count);
+                void zvec_group_by_vector_query_set_radius(zvec_group_by_vector_query_t q, float radius);
+                void zvec_group_by_vector_query_set_is_linear(zvec_group_by_vector_query_t q, int is_linear);
+                void zvec_group_by_vector_query_set_using_refiner(zvec_group_by_vector_query_t q, int refiner);
+
+                zvec_status_t zvec_collection_query_vector(zvec_collection_t coll, const zvec_vector_query_t q, zvec_query_result_t* result);
+                zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, const zvec_group_by_vector_query_t q, zvec_group_results_t* result);
+
                 void zvec_query_result_free(zvec_query_result_t* result);
                 void zvec_query_result_free_array(zvec_query_result_t* result);
 
@@ -1000,6 +1037,59 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public static function getVersionPatch(): int
     {
         return self::ffi()->zvec_get_version_patch();
+    }
+
+    /**
+     * Query using a native ZVecVectorQuery object.
+     *
+     * @return ZVecDoc[]
+     */
+    public function queryVector(ZVecVectorQuery $query): array
+    {
+        $this->checkClosed();
+
+        $ffi = self::ffi();
+        $result = $ffi->new('zvec_query_result_t');
+        $status = $ffi->zvec_collection_query_vector($this->handle, $query->getHandle(), FFI::addr($result));
+        self::checkStatus($status);
+
+        $docs = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $docs[] = new ZVecDoc($result->docs[$i], true);
+        }
+        $ffi->zvec_query_result_free_array(FFI::addr($result));
+
+        return $docs;
+    }
+
+    /**
+     * GroupBy query using a native ZVecGroupByVectorQuery object.
+     *
+     * @return array<array{group_value: string, docs: ZVecDoc[]}>
+     */
+    public function groupByVectorQuery(ZVecGroupByVectorQuery $query): array
+    {
+        $this->checkClosed();
+
+        $ffi = self::ffi();
+        $result = $ffi->new('zvec_group_results_t');
+        $status = $ffi->zvec_collection_group_by_query_vector($this->handle, $query->getHandle(), FFI::addr($result));
+        self::checkStatus($status);
+
+        $groups = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $group = $result->groups[$i];
+            $gv = $group->group_by_value;
+            $groupValue = is_string($gv) ? $gv : FFI::string($gv);
+            $docs = [];
+            for ($j = 0; $j < $group->count; $j++) {
+                $docs[] = new ZVecDoc($group->docs[$j], true);
+            }
+            $groups[] = ['group_value' => $groupValue, 'docs' => $docs];
+        }
+        $ffi->zvec_group_results_free(FFI::addr($result));
+
+        return $groups;
     }
 
     /**
@@ -1785,6 +1875,9 @@ class ZVecIndexParams
 
 class ZVecVectorQuery
 {
+    protected FFI\CData $handle;
+    protected ?string $handleType = null;
+
     public string $fieldName;
 
     /**
@@ -1810,6 +1903,9 @@ class ZVecVectorQuery
      */
     public function __construct(string $fieldName, array $vector)
     {
+        $ffi = self::ffi();
+        $this->handle = $ffi->zvec_vector_query_create();
+        $this->handleType = 'vector_query';
         $this->fieldName = $fieldName;
         $this->vector = $vector;
         $this->queryParamType = ZVec::QUERY_PARAM_NONE;
@@ -1818,6 +1914,34 @@ class ZVecVectorQuery
         $this->radius = 0.0;
         $this->isLinear = false;
         $this->isUsingRefiner = false;
+
+        $ffi->zvec_vector_query_set_field_name($this->handle, $fieldName);
+        $dim = count($vector);
+        if ($dim > 0) {
+            $data = $ffi->new("float[$dim]");
+            foreach ($vector as $i => $v) {
+                $data[$i] = (float)$v;
+            }
+            $ffi->zvec_vector_query_set_vector_fp32($this->handle, $data, $dim);
+        }
+    }
+
+    public function __destruct()
+    {
+        try {
+            $ffi = self::ffi();
+            if ($this->handleType === 'vector_query') {
+                $ffi->zvec_vector_query_free($this->handle);
+            } elseif ($this->handleType === 'group_by_query') {
+                $ffi->zvec_group_by_vector_query_free($this->handle);
+            }
+        } catch (\Throwable) {
+        }
+    }
+
+    public function getHandle(): FFI\CData
+    {
+        return $this->handle;
     }
 
     public function setFp64(bool $fp64 = true): self
@@ -1840,6 +1964,7 @@ class ZVecVectorQuery
     {
         $this->queryParamType = ZVec::QUERY_PARAM_HNSW;
         $this->hnswEf = $ef;
+        self::ffi()->zvec_vector_query_set_hnsw_ef($this->handle, $ef);
         return $this;
     }
 
@@ -1847,6 +1972,7 @@ class ZVecVectorQuery
     {
         $this->queryParamType = ZVec::QUERY_PARAM_HNSW_RABITQ;
         $this->hnswEf = $ef;
+        self::ffi()->zvec_vector_query_set_hnsw_ef($this->handle, $ef);
         return $this;
     }
 
@@ -1854,12 +1980,14 @@ class ZVecVectorQuery
     {
         $this->queryParamType = ZVec::QUERY_PARAM_IVF;
         $this->ivfNprobe = $nprobe;
+        self::ffi()->zvec_vector_query_set_ivf_nprobe($this->handle, $nprobe);
         return $this;
     }
 
     public function setFlatParams(): self
     {
         $this->queryParamType = ZVec::QUERY_PARAM_FLAT;
+        self::ffi()->zvec_vector_query_set_flat_mode($this->handle);
         return $this;
     }
 
@@ -1867,25 +1995,137 @@ class ZVecVectorQuery
     {
         $this->queryParamType = ZVec::QUERY_PARAM_VAMANA;
         $this->hnswEf = $efSearch;
+        self::ffi()->zvec_vector_query_set_hnsw_ef($this->handle, $efSearch);
         return $this;
     }
 
     public function setRadius(float $radius): self
     {
         $this->radius = $radius;
+        self::ffi()->zvec_vector_query_set_radius($this->handle, $radius);
         return $this;
     }
 
     public function setLinear(bool $linear): self
     {
         $this->isLinear = $linear;
+        self::ffi()->zvec_vector_query_set_is_linear($this->handle, $linear ? 1 : 0);
         return $this;
     }
 
     public function setUsingRefiner(bool $refiner): self
     {
         $this->isUsingRefiner = $refiner;
+        self::ffi()->zvec_vector_query_set_using_refiner($this->handle, $refiner ? 1 : 0);
         return $this;
+    }
+
+    public function setTopk(int $topk): self
+    {
+        self::ffi()->zvec_vector_query_set_topk($this->handle, $topk);
+        return $this;
+    }
+
+    public function setIncludeVector(bool $include): self
+    {
+        self::ffi()->zvec_vector_query_set_include_vector($this->handle, $include ? 1 : 0);
+        return $this;
+    }
+
+    public function setFilter(string $filter): self
+    {
+        self::ffi()->zvec_vector_query_set_filter($this->handle, $filter);
+        return $this;
+    }
+
+    /**
+     * @param string[] $fields
+     */
+    public function setOutputFields(array $fields): self
+    {
+        $ffi = self::ffi();
+        $count = count($fields);
+        if ($count > 0) {
+            $cStrings = [];
+            $arr = $ffi->new("char*[$count]");
+            foreach ($fields as $i => $f) {
+                $len = strlen($f) + 1;
+                $cStr = $ffi->new("char[$len]", false);
+                FFI::memcpy($cStr, $f, strlen($f));
+                $cStr[$len - 1] = "\0";
+                $cStrings[] = $cStr;
+                $arr[$i] = $cStr;
+            }
+            $ffi->zvec_vector_query_set_output_fields($this->handle, $arr, $count);
+            foreach ($cStrings as $cStr) {
+                FFI::free($cStr);
+            }
+        }
+        return $this;
+    }
+
+    private static function ffi(): FFI
+    {
+        return (new ReflectionClass(ZVec::class))->getMethod('ffi')->invoke(null);
+    }
+}
+
+class ZVecGroupByVectorQuery extends ZVecVectorQuery
+{
+    /**
+     * @param float[] $vector
+     */
+    public function __construct(string $fieldName, array $vector, string $groupByField, int $groupCount = 2, int $groupTopk = 3)
+    {
+        $ffi = self::ffi();
+        // Override handle from parent - create group_by_vector_query instead
+        $this->handle = $ffi->zvec_group_by_vector_query_create();
+        $this->handleType = 'group_by_query';
+        $this->fieldName = $fieldName;
+        $this->vector = $vector;
+        $this->queryParamType = ZVec::QUERY_PARAM_NONE;
+        $this->hnswEf = 200;
+        $this->ivfNprobe = 10;
+        $this->radius = 0.0;
+        $this->isLinear = false;
+        $this->isUsingRefiner = false;
+
+        $ffi->zvec_group_by_vector_query_set_field_name($this->handle, $fieldName);
+        $ffi->zvec_group_by_vector_query_set_group_by_field($this->handle, $groupByField);
+        $ffi->zvec_group_by_vector_query_set_group_count($this->handle, $groupCount);
+        $ffi->zvec_group_by_vector_query_set_group_topk($this->handle, $groupTopk);
+
+        $dim = count($vector);
+        if ($dim > 0) {
+            $data = $ffi->new("float[$dim]");
+            foreach ($vector as $i => $v) {
+                $data[$i] = (float)$v;
+            }
+            $ffi->zvec_group_by_vector_query_set_vector_fp32($this->handle, $data, $dim);
+        }
+    }
+
+    public function setGroupByField(string $field): self
+    {
+        self::ffi()->zvec_group_by_vector_query_set_group_by_field($this->handle, $field);
+        return $this;
+    }
+
+    public function setGroupCount(int $count): self
+    {
+        self::ffi()->zvec_group_by_vector_query_set_group_count($this->handle, $count);
+        return $this;
+    }
+
+    public function setGroupTopk(int $topk): self
+    {
+        self::ffi()->zvec_group_by_vector_query_set_group_topk($this->handle, $topk);
+        return $this;
+    }
+
+    private static function ffi(): FFI
+    {
+        return (new ReflectionClass(ZVec::class))->getMethod('ffi')->invoke(null);
     }
 }
 

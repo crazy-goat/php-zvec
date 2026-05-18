@@ -265,6 +265,45 @@ zvec_status_t zvec_collection_upsert_batch(zvec_collection_t coll, zvec_doc_t* d
 zvec_status_t zvec_collection_update_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result);
 void zvec_batch_result_free(zvec_batch_result_t* result);
 
+// VectorQuery opaque object
+typedef void* zvec_vector_query_t;
+typedef void* zvec_group_by_vector_query_t;
+
+zvec_vector_query_t zvec_vector_query_create(void);
+void zvec_vector_query_free(zvec_vector_query_t q);
+
+// VectorQuery setters
+void zvec_vector_query_set_field_name(zvec_vector_query_t q, const char* field_name);
+void zvec_vector_query_set_topk(zvec_vector_query_t q, int topk);
+void zvec_vector_query_set_include_vector(zvec_vector_query_t q, int include);
+void zvec_vector_query_set_filter(zvec_vector_query_t q, const char* filter);
+void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fields, int count);
+void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef);
+void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe);
+void zvec_vector_query_set_flat_mode(zvec_vector_query_t q);
+void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius);
+void zvec_vector_query_set_is_linear(zvec_vector_query_t q, int is_linear);
+void zvec_vector_query_set_using_refiner(zvec_vector_query_t q, int refiner);
+
+// Set query vector for fp32 (float)
+void zvec_vector_query_set_vector_fp32(zvec_vector_query_t q, const float* data, uint32_t dim);
+void zvec_vector_query_set_vector_fp64(zvec_vector_query_t q, const double* data, uint32_t dim);
+
+// GroupByVectorQuery setters (extends VectorQuery)
+zvec_group_by_vector_query_t zvec_group_by_vector_query_create(void);
+void zvec_group_by_vector_query_free(zvec_group_by_vector_query_t q);
+void zvec_group_by_vector_query_set_field_name(zvec_group_by_vector_query_t q, const char* field_name);
+void zvec_group_by_vector_query_set_vector_fp32(zvec_group_by_vector_query_t q, const float* data, uint32_t dim);
+void zvec_group_by_vector_query_set_group_by_field(zvec_group_by_vector_query_t q, const char* field);
+void zvec_group_by_vector_query_set_group_count(zvec_group_by_vector_query_t q, uint32_t count);
+void zvec_group_by_vector_query_set_group_topk(zvec_group_by_vector_query_t q, uint32_t topk);
+void zvec_group_by_vector_query_set_include_vector(zvec_group_by_vector_query_t q, int include);
+void zvec_group_by_vector_query_set_filter(zvec_group_by_vector_query_t q, const char* filter);
+void zvec_group_by_vector_query_set_output_fields(zvec_group_by_vector_query_t q, const char** fields, int count);
+void zvec_group_by_vector_query_set_radius(zvec_group_by_vector_query_t q, float radius);
+void zvec_group_by_vector_query_set_is_linear(zvec_group_by_vector_query_t q, int is_linear);
+void zvec_group_by_vector_query_set_using_refiner(zvec_group_by_vector_query_t q, int refiner);
+
 // Fetch
 zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result);
 
@@ -342,6 +381,10 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
                                               int is_using_refiner,
                                               zvec_group_results_t* result);
 void zvec_group_results_free(zvec_group_results_t* result);
+
+// New query entry points using opaque VectorQuery objects
+zvec_status_t zvec_collection_query_vector(zvec_collection_t coll, const zvec_vector_query_t q, zvec_query_result_t* result);
+zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, const zvec_group_by_vector_query_t q, zvec_group_results_t* result);
 
 // CollectionStats
 typedef void* zvec_collection_stats_t;
