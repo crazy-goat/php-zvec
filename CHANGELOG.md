@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **BUG-003: WeightedReRanker produces wrong normalization for negative IP scores** (#50)
+  - `PHP_FLOAT_MIN` (smallest positive float) replaced with `-PHP_FLOAT_MAX` (most negative finite float) as initial `max` value in score normalization — fixes incorrect min-max normalization when all scores are negative (IP, COSINE metrics)
+  - Magic number `1` replaced with `ZVecSchema::METRIC_L2` named constant for readability and maintainability
+  - Added `tests/bug_0050.phpt` — regression test verifying normalized scores in [0, 1] range for negative IP scores and correct L2 metric normalization
+
 ## [0.4.11] - 2026-05-10
 
 ### Added

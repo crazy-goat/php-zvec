@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 if (extension_loaded('zvec')) return;
 
+require_once __DIR__ . '/ZVec.php';
 require_once __DIR__ . '/ZVecReRanker.php';
 require_once __DIR__ . '/ZVecRerankedDoc.php';
 
@@ -70,7 +71,7 @@ class ZVecWeightedReRanker implements ZVecReRanker
                 continue;
             }
 
-            $fieldStats[$fieldName] = ['min' => PHP_FLOAT_MAX, 'max' => PHP_FLOAT_MIN];
+            $fieldStats[$fieldName] = ['min' => PHP_FLOAT_MAX, 'max' => -PHP_FLOAT_MAX];
             $allDocs[$fieldName] = [];
 
             foreach ($docs as $rank => $doc) {
@@ -121,7 +122,7 @@ class ZVecWeightedReRanker implements ZVecReRanker
 
                 // Normalize score based on metric type
                 // 1 = L2 (distance, lower is better), 2 = IP, 3 = COSINE (both higher is better)
-                if ($this->metricType === 1) {
+                if ($this->metricType === ZVecSchema::METRIC_L2) {
                     // L2: invert so lower distance => higher normalized score
                     $normalizedScore = ($stats['max'] - $score) / $range;
                 } else {
