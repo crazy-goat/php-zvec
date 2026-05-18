@@ -1146,6 +1146,9 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             $radius = $vq->radius;
             $isLinear = $vq->isLinear;
             $isUsingRefiner = $vq->isUsingRefiner;
+            $topk = $vq->topk ?? $topk;
+            $includeVector = $vq->includeVector ?? $includeVector;
+            $filter = $vq->filter ?? $filter;
 
             if ($vq->docId !== null) {
                 throw new ZVecException("query() with docId not yet implemented. Use queryById() or fetch the vector first.");
@@ -1571,6 +1574,8 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             $radius = $vq->radius;
             $isLinear = $vq->isLinear;
             $isUsingRefiner = $vq->isUsingRefiner;
+            $includeVector = $vq->includeVector ?? $includeVector;
+            $filter = $vq->filter ?? $filter;
 
             if ($vq->docId !== null) {
                 throw new ZVecException("groupByQuery() with docId not yet implemented. Use queryById() or fetch the vector first.");
@@ -1980,6 +1985,9 @@ class ZVecVectorQuery
     public bool $isLinear;
     public bool $isUsingRefiner;
     public bool $useFp64 = false;
+    public ?int $topk = null;
+    public ?bool $includeVector = null;
+    public ?string $filter = null;
 
     /**
      * @param float[] $vector Dense vector data
@@ -2105,18 +2113,21 @@ class ZVecVectorQuery
 
     public function setTopk(int $topk): self
     {
+        $this->topk = $topk;
         self::ffi()->zvec_vector_query_set_topk($this->handle, $topk);
         return $this;
     }
 
     public function setIncludeVector(bool $include): self
     {
+        $this->includeVector = $include;
         self::ffi()->zvec_vector_query_set_include_vector($this->handle, $include ? 1 : 0);
         return $this;
     }
 
     public function setFilter(string $filter): self
     {
+        $this->filter = $filter;
         self::ffi()->zvec_vector_query_set_filter($this->handle, $filter);
         return $this;
     }
