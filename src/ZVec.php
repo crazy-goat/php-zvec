@@ -174,7 +174,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
                 zvec_index_params_t zvec_index_params_create(int index_type, int metric_type);
                 void zvec_index_params_free(zvec_index_params_t params);
-                void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type);
+                void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type, int use_contiguous_memory);
                 void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bits, int num_clusters, int m, int ef_construction, int sample_count);
                 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
                 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
@@ -563,9 +563,9 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     }
 
     /** @deprecated Use createIndex() with ZVecIndexParams::forHnsw() instead */
-    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500, int $quantizeType = 0, int $concurrency = 0): void
+    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500, int $quantizeType = 0, int $concurrency = 0, bool $useContiguousMemory = false): void
     {
-        $this->createIndex($fieldName, ZVecIndexParams::forHnsw($metricType, $m, $efConstruction, $quantizeType), $concurrency);
+        $this->createIndex($fieldName, ZVecIndexParams::forHnsw($metricType, $m, $efConstruction, $quantizeType, $useContiguousMemory), $concurrency);
     }
 
     /** @deprecated Use createIndex() with ZVecIndexParams::forHnswRabitq() instead */
@@ -1424,11 +1424,11 @@ class ZVecIndexParams
         return $this->handle;
     }
 
-    public static function forHnsw(int $metricType, int $m = 50, int $efConstruction = 500, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
+    public static function forHnsw(int $metricType, int $m = 50, int $efConstruction = 500, int $quantizeType = ZVec::QUANTIZE_UNDEFINED, bool $useContiguousMemory = false): self
     {
         $ffi = self::ffi();
         $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_HNSW, $metricType);
-        $ffi->zvec_index_params_set_hnsw($handle, $m, $efConstruction, $quantizeType);
+        $ffi->zvec_index_params_set_hnsw($handle, $m, $efConstruction, $quantizeType, $useContiguousMemory ? 1 : 0);
         return new self($handle);
     }
 

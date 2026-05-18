@@ -133,7 +133,7 @@ typedef void* zvec_index_params_t;
 
 zvec_index_params_t zvec_index_params_create(int index_type, int metric_type);
 void zvec_index_params_free(zvec_index_params_t params);
-void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type);
+void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type, int use_contiguous_memory);
 void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bits, int num_clusters, int m, int ef_construction, int sample_count);
 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
