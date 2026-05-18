@@ -1072,6 +1072,71 @@ void zvec_doc_set_array_bool(zvec_doc_t doc, const char* field, const uint8_t* d
     static_cast<Doc*>(doc)->set<std::vector<bool>>(field, std::move(vec));
 }
 
+// --- Enhanced Doc API ---
+
+void zvec_doc_set_field_null(zvec_doc_t doc, const char* field) {
+    static_cast<Doc*>(doc)->set_null(field);
+}
+
+int zvec_doc_is_field_null(zvec_doc_t doc, const char* field) {
+    return static_cast<Doc*>(doc)->is_null(field) ? 1 : 0;
+}
+
+void zvec_doc_remove_field(zvec_doc_t doc, const char* field) {
+    static_cast<Doc*>(doc)->remove(field);
+}
+
+void zvec_doc_merge(zvec_doc_t doc, zvec_doc_t other) {
+    static_cast<Doc*>(doc)->merge(*static_cast<Doc*>(other));
+}
+
+zvec_status_t zvec_doc_serialize(zvec_doc_t doc, uint8_t** data, size_t* size) {
+    auto serialized = static_cast<Doc*>(doc)->serialize();
+    *size = serialized.size();
+    *data = static_cast<uint8_t*>(malloc(*size));
+    if (!*data) {
+        return MAKE_STATUS(Status(StatusCode::RESOURCE_EXHAUSTED, "Failed to allocate memory for serialized data"));
+    }
+    memcpy(*data, serialized.data(), *size);
+    return ok_status();
+}
+
+void zvec_free_serialized(uint8_t* data) {
+    free(data);
+}
+
+zvec_status_t zvec_doc_deserialize(const uint8_t* data, size_t size, zvec_doc_t* out) {
+    auto doc = Doc::deserialize(data, size);
+    if (!doc) {
+        return MAKE_STATUS(Status(StatusCode::INVALID_ARGUMENT, "Failed to deserialize document"));
+    }
+    // Doc::deserialize returns a shared_ptr<Doc>, we need to release ownership
+    // to a raw pointer that the caller will free with zvec_doc_free
+    auto* raw_doc = new Doc(*doc);
+    *out = static_cast<zvec_doc_t>(raw_doc);
+    return ok_status();
+}
+
+int zvec_doc_is_empty(zvec_doc_t doc) {
+    return static_cast<Doc*>(doc)->is_empty() ? 1 : 0;
+}
+
+void zvec_doc_clear(zvec_doc_t doc) {
+    static_cast<Doc*>(doc)->clear();
+}
+
+size_t zvec_doc_memory_usage(zvec_doc_t doc) {
+    return static_cast<Doc*>(doc)->memory_usage();
+}
+
+void zvec_doc_set_operator(zvec_doc_t doc, int op) {
+    static_cast<Doc*>(doc)->set_operator(static_cast<Operator>(op));
+}
+
+int zvec_doc_get_operator(zvec_doc_t doc) {
+    return static_cast<int>(static_cast<Doc*>(doc)->get_operator());
+}
+
 static thread_local std::string g_pk_buf;
 
 const char* zvec_doc_get_pk(zvec_doc_t doc) {
