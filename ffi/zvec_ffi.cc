@@ -433,6 +433,14 @@ zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const ch
     return make_status(c->CreateIndex(field_name, params, opts));
 }
 
+zvec_status_t zvec_collection_create_hnsw_rabitq_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int total_bits, int num_clusters, int m, int ef_construction, int sample_count, uint32_t concurrency) {
+    auto* c = static_cast<Collection*>(coll);
+    auto params = std::make_shared<HnswRabitqIndexParams>(to_metric_type(metric_type), total_bits, num_clusters, m, ef_construction, sample_count);
+    CreateIndexOptions opts;
+    if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
+    return make_status(c->CreateIndex(field_name, params, opts));
+}
+
 zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type, uint32_t concurrency) {
     auto* c = static_cast<Collection*>(coll);
     auto params = std::make_shared<FlatIndexParams>(to_metric_type(metric_type), to_quantize_type(quantize_type));
@@ -467,17 +475,23 @@ struct IndexParamsHolder {
     bool ivf_use_soar_;
     bool invert_enable_range_;
     bool invert_enable_wildcard_;
+    int rabitq_total_bits_;
+    int rabitq_num_clusters_;
+    int rabitq_sample_count_;
 
     IndexParamsHolder(IndexType type, MetricType metric_type)
         : type_(type), metric_type_(metric_type), quantize_type_(QuantizeType::UNDEFINED),
           hnsw_m_(50), hnsw_ef_construction_(500),
           ivf_n_list_(1024), ivf_n_iters_(10), ivf_use_soar_(false),
-          invert_enable_range_(true), invert_enable_wildcard_(false) {}
+          invert_enable_range_(true), invert_enable_wildcard_(false),
+          rabitq_total_bits_(7), rabitq_num_clusters_(16), rabitq_sample_count_(0) {}
 
     IndexParams::Ptr build() const {
         switch (type_) {
             case IndexType::HNSW:
                 return std::make_shared<HnswIndexParams>(metric_type_, hnsw_m_, hnsw_ef_construction_, quantize_type_);
+            case IndexType::HNSW_RABITQ:
+                return std::make_shared<HnswRabitqIndexParams>(metric_type_, rabitq_total_bits_, rabitq_num_clusters_, hnsw_m_, hnsw_ef_construction_, rabitq_sample_count_);
             case IndexType::FLAT:
                 return std::make_shared<FlatIndexParams>(metric_type_, quantize_type_);
             case IndexType::IVF:
@@ -495,6 +509,7 @@ static IndexType to_index_type(int v) {
         case 1: return IndexType::HNSW;
         case 2: return IndexType::IVF;
         case 3: return IndexType::FLAT;
+        case 4: return IndexType::HNSW_RABITQ;
         case 10: return IndexType::INVERT;
         default: return IndexType::UNDEFINED;
     }
@@ -527,6 +542,15 @@ void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_ite
     h->ivf_n_iters_ = n_iters;
     h->ivf_use_soar_ = (bool)use_soar;
     h->quantize_type_ = to_quantize_type(quantize_type);
+}
+
+void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bits, int num_clusters, int m, int ef_construction, int sample_count) {
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->rabitq_total_bits_ = total_bits;
+    h->rabitq_num_clusters_ = num_clusters;
+    h->hnsw_m_ = m;
+    h->hnsw_ef_construction_ = ef_construction;
+    h->rabitq_sample_count_ = sample_count;
 }
 
 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard) {
@@ -1261,6 +1285,7 @@ static zvec_status_t validate_query_param_type(Collection* c, const char* field_
         case 1: expected_index_type = IndexType::HNSW; break;
         case 2: expected_index_type = IndexType::IVF; break;
         case 3: expected_index_type = IndexType::FLAT; break;
+        case 4: expected_index_type = IndexType::HNSW_RABITQ; break;
     }
     
     if (expected_index_type != IndexType::UNDEFINED && 
@@ -1293,6 +1318,9 @@ static void apply_query_params(VectorQuery& query, int type, int hnsw_ef, int iv
         params->set_radius(radius);
         params->set_is_linear((bool)is_linear);
         query.query_params_ = params;
+    } else if (type == 4) {
+        query.query_params_ = std::make_shared<HnswRabitqQueryParams>(
+            hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
     }
 }
 

@@ -97,6 +97,7 @@ zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* c
 // Schema evolution - Index DDL
 zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard);
 zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type, uint32_t concurrency);
+zvec_status_t zvec_collection_create_hnsw_rabitq_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int total_bits, int num_clusters, int m, int ef_construction, int sample_count, uint32_t concurrency);
 zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type, uint32_t concurrency);
 zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type, uint32_t concurrency);
 zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name);
@@ -107,6 +108,7 @@ typedef void* zvec_index_params_t;
 zvec_index_params_t zvec_index_params_create(int index_type, int metric_type);
 void zvec_index_params_free(zvec_index_params_t params);
 void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type);
+void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bits, int num_clusters, int m, int ef_construction, int sample_count);
 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard);

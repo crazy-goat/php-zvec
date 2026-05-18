@@ -106,6 +106,7 @@ class ZVec
 
                 zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard);
 zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type, uint32_t concurrency);
+zvec_status_t zvec_collection_create_hnsw_rabitq_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int total_bits, int num_clusters, int m, int ef_construction, int sample_count, uint32_t concurrency);
 zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type, uint32_t concurrency);
 zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type, uint32_t concurrency);
                 zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name);
@@ -115,6 +116,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
                 zvec_index_params_t zvec_index_params_create(int index_type, int metric_type);
                 void zvec_index_params_free(zvec_index_params_t params);
                 void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type);
+                void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bits, int num_clusters, int m, int ef_construction, int sample_count);
                 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
                 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
                 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard);
@@ -460,6 +462,12 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $this->createIndex($fieldName, ZVecIndexParams::forHnsw($metricType, $m, $efConstruction, $quantizeType), $concurrency);
     }
 
+    /** @deprecated Use createIndex() with ZVecIndexParams::forHnswRabitq() instead */
+    public function createHnswRabitqIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $totalBits = 7, int $numClusters = 16, int $m = 50, int $efConstruction = 500, int $sampleCount = 0, int $concurrency = 0): void
+    {
+        $this->createIndex($fieldName, ZVecIndexParams::forHnswRabitq($metricType, $totalBits, $numClusters, $m, $efConstruction, $sampleCount), $concurrency);
+    }
+
     /** @deprecated Use createIndex() with ZVecIndexParams::forFlat() instead */
     public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $quantizeType = 0, int $concurrency = 0): void
     {
@@ -661,12 +669,14 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public const INDEX_TYPE_HNSW = 1;
     public const INDEX_TYPE_IVF = 2;
     public const INDEX_TYPE_FLAT = 3;
+    public const INDEX_TYPE_HNSW_RABITQ = 4;
     public const INDEX_TYPE_INVERT = 10;
 
     public const QUERY_PARAM_NONE = 0;
     public const QUERY_PARAM_HNSW = 1;
     public const QUERY_PARAM_IVF = 2;
     public const QUERY_PARAM_FLAT = 3;
+    public const QUERY_PARAM_HNSW_RABITQ = 4;
 
     public const LOG_CONSOLE = 0;
     public const LOG_FILE = 1;
@@ -1277,6 +1287,14 @@ class ZVecIndexParams
         return new self($handle);
     }
 
+    public static function forHnswRabitq(int $metricType, int $totalBits = 7, int $numClusters = 16, int $m = 50, int $efConstruction = 500, int $sampleCount = 0): self
+    {
+        $ffi = self::ffi();
+        $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_HNSW_RABITQ, $metricType);
+        $ffi->zvec_index_params_set_hnsw_rabitq($handle, $totalBits, $numClusters, $m, $efConstruction, $sampleCount);
+        return new self($handle);
+    }
+
     public static function forFlat(int $metricType, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
     {
         $ffi = self::ffi();
@@ -1363,6 +1381,13 @@ class ZVecVectorQuery
     public function setHnswParams(int $ef): self
     {
         $this->queryParamType = ZVec::QUERY_PARAM_HNSW;
+        $this->hnswEf = $ef;
+        return $this;
+    }
+
+    public function setHnswRabitqParams(int $ef): self
+    {
+        $this->queryParamType = ZVec::QUERY_PARAM_HNSW_RABITQ;
         $this->hnswEf = $ef;
         return $this;
     }
