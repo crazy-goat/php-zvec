@@ -549,7 +549,9 @@ zvec_status_t zvec_collection_destroy(zvec_collection_t coll) {
     for (auto it = g_collections.begin(); it != g_collections.end(); ++it) {
         if (it->get() == raw) {
             auto status = raw->Destroy();
-            g_collections.erase(it);
+            if (status.ok()) {
+                g_collections.erase(it);
+            }
             return MAKE_STATUS(status);
         }
     }

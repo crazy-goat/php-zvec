@@ -34,8 +34,7 @@ echo "Collection destroyed\n";
 assert(!is_dir($path), 'Directory should be removed after destroy');
 echo "Directory removed OK\n";
 
-// Note: Using any methods on destroyed collection causes segfault
-// This is expected behavior - destroy() invalidates the object
+// Note: Using methods on destroyed collection throws ZVecException (see bug_0003.phpt and bug_0007.phpt)
 
 // Cleanup just in case
 if (is_dir($path)) exec("rm -rf " . escapeshellarg($path));
