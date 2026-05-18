@@ -1,4 +1,5 @@
 #include "zvec_exception.h"
+#include "zvec_collection_options.h"
 #include "zvec_vector_query.h"
 #include "zvec_reranker.h"
 
@@ -195,6 +196,99 @@ PHP_METHOD(ZVec, open) {
     auto *intern = Z_ZVEC_COLLECTION_P(return_value);
     intern->collection = std::move(result).value();
     intern->closed = false;
+}
+
+PHP_METHOD(ZVec, createWith) {
+    char *path; size_t path_len;
+    zval *schema_zv, *opts_zv;
+    zend_bool read_only, enable_mmap;
+    zend_long max_buffer_size;
+
+    ZEND_PARSE_PARAMETERS_START(3, 3)
+        Z_PARAM_STRING(path, path_len)
+        Z_PARAM_OBJECT_OF_CLASS(schema_zv, zvec_schema_ce)
+        Z_PARAM_OBJECT_OF_CLASS(opts_zv, zvec_collection_options_ce)
+    ZEND_PARSE_PARAMETERS_END();
+
+    {
+        zval *prop = zend_read_property(zvec_collection_options_ce, Z_OBJ_P(opts_zv), "readOnly", sizeof("readOnly") - 1, 0, nullptr);
+        read_only = prop ? zval_is_true(prop) : 0;
+    }
+    {
+        zval *prop = zend_read_property(zvec_collection_options_ce, Z_OBJ_P(opts_zv), "enableMmap", sizeof("enableMmap") - 1, 0, nullptr);
+        enable_mmap = prop ? zval_is_true(prop) : 1;
+    }
+    {
+        zval *prop = zend_read_property(zvec_collection_options_ce, Z_OBJ_P(opts_zv), "maxBufferSize", sizeof("maxBufferSize") - 1, 0, nullptr);
+        max_buffer_size = prop ? Z_LVAL_P(prop) : 67108864;
+    }
+
+    auto *schema = zvec_schema_get_native(schema_zv);
+    CollectionOptions opts{(bool)read_only, (bool)enable_mmap, static_cast<uint32_t>(max_buffer_size)};
+    auto result = Collection::CreateAndOpen(std::string(path, path_len), *schema, opts);
+    if (!result.has_value()) {
+        check_status(result.error());
+        RETURN_THROWS();
+    }
+
+    object_init_ex(return_value, zvec_collection_ce);
+    auto *intern = Z_ZVEC_COLLECTION_P(return_value);
+    intern->collection = std::move(result).value();
+    intern->closed = false;
+}
+
+PHP_METHOD(ZVec, openWith) {
+    char *path; size_t path_len;
+    zval *opts_zv;
+    zend_bool read_only, enable_mmap;
+    zend_long max_buffer_size;
+
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_STRING(path, path_len)
+        Z_PARAM_OBJECT_OF_CLASS(opts_zv, zvec_collection_options_ce)
+    ZEND_PARSE_PARAMETERS_END();
+
+    {
+        zval *prop = zend_read_property(zvec_collection_options_ce, Z_OBJ_P(opts_zv), "readOnly", sizeof("readOnly") - 1, 0, nullptr);
+        read_only = prop ? zval_is_true(prop) : 0;
+    }
+    {
+        zval *prop = zend_read_property(zvec_collection_options_ce, Z_OBJ_P(opts_zv), "enableMmap", sizeof("enableMmap") - 1, 0, nullptr);
+        enable_mmap = prop ? zval_is_true(prop) : 1;
+    }
+    {
+        zval *prop = zend_read_property(zvec_collection_options_ce, Z_OBJ_P(opts_zv), "maxBufferSize", sizeof("maxBufferSize") - 1, 0, nullptr);
+        max_buffer_size = prop ? Z_LVAL_P(prop) : 67108864;
+    }
+
+    CollectionOptions opts{(bool)read_only, (bool)enable_mmap, static_cast<uint32_t>(max_buffer_size)};
+    auto result = Collection::Open(std::string(path, path_len), opts);
+    if (!result.has_value()) {
+        check_status(result.error());
+        RETURN_THROWS();
+    }
+
+    object_init_ex(return_value, zvec_collection_ce);
+    auto *intern = Z_ZVEC_COLLECTION_P(return_value);
+    intern->collection = std::move(result).value();
+    intern->closed = false;
+}
+
+PHP_METHOD(ZVec, getOptions) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
+    check_closed(intern);
+    if (EG(exception)) RETURN_THROWS();
+    auto res = intern->collection->Options();
+    if (!res.has_value()) {
+        check_status(res.error());
+        RETURN_THROWS();
+    }
+
+    object_init_ex(return_value, zvec_collection_options_ce);
+    zend_update_property_bool(zvec_collection_options_ce, Z_OBJ_P(return_value), "readOnly", sizeof("readOnly") - 1, res.value().read_only_);
+    zend_update_property_bool(zvec_collection_options_ce, Z_OBJ_P(return_value), "enableMmap", sizeof("enableMmap") - 1, res.value().enable_mmap_);
+    zend_update_property_long(zvec_collection_options_ce, Z_OBJ_P(return_value), "maxBufferSize", sizeof("maxBufferSize") - 1, static_cast<zend_long>(res.value().max_buffer_size_));
 }
 
 PHP_METHOD(ZVec, close) {
@@ -1391,6 +1485,20 @@ ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_open, 0, 1, ZVec, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, maxBufferSize, IS_LONG, 0, "67108864")
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_create_with, 0, 3, ZVec, 0)
+    ZEND_ARG_TYPE_INFO(0, path, IS_STRING, 0)
+    ZEND_ARG_OBJ_INFO(0, schema, ZVecSchema, 0)
+    ZEND_ARG_OBJ_INFO(0, options, ZVecCollectionOptions, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_open_with, 0, 2, ZVec, 0)
+    ZEND_ARG_TYPE_INFO(0, path, IS_STRING, 0)
+    ZEND_ARG_OBJ_INFO(0, options, ZVecCollectionOptions, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zvec_get_options, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zvec_void, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
@@ -1555,6 +1663,9 @@ static const zend_function_entry zvec_collection_methods[] = {
     PHP_ME(ZVec, init, arginfo_zvec_init, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
     PHP_ME(ZVec, create, arginfo_zvec_create, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
     PHP_ME(ZVec, open, arginfo_zvec_open, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+    PHP_ME(ZVec, createWith, arginfo_zvec_create_with, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+    PHP_ME(ZVec, openWith, arginfo_zvec_open_with, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+    PHP_ME(ZVec, getOptions, arginfo_zvec_get_options, ZEND_ACC_PUBLIC)
     PHP_ME(ZVec, close, arginfo_zvec_void, ZEND_ACC_PUBLIC)
     PHP_ME(ZVec, __destruct, arginfo_zvec_void, ZEND_ACC_PUBLIC)
     PHP_ME(ZVec, flush, arginfo_zvec_void, ZEND_ACC_PUBLIC)

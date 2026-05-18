@@ -501,6 +501,26 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         return new self($out);
     }
 
+    public static function createWith(string $path, ZVecSchema $schema, ZVecCollectionOptions $options): self
+    {
+        return self::create($path, $schema, $options->readOnly, $options->enableMmap, $options->maxBufferSize);
+    }
+
+    public static function openWith(string $path, ZVecCollectionOptions $options): self
+    {
+        return self::open($path, $options->readOnly, $options->enableMmap, $options->maxBufferSize);
+    }
+
+    public function getOptions(): ZVecCollectionOptions
+    {
+        $arr = $this->options();
+        return new ZVecCollectionOptions(
+            readOnly: $arr['read_only'],
+            enableMmap: $arr['enable_mmap'],
+            maxBufferSize: $arr['max_buffer_size']
+        );
+    }
+
     private function __construct(FFI\CData $handle)
     {
         $this->handle = $handle;
@@ -1642,6 +1662,68 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $out = $ffi->new('zvec_field_schema_t');
         self::checkStatus($ffi->zvec_collection_get_field_schema($this->handle, $fieldName, FFI::addr($out)));
         return new ZVecFieldSchema($out);
+    }
+}
+
+class ZVecCollectionOptions
+{
+    public bool $readOnly = false;
+    public bool $enableMmap = true;
+    public int $maxBufferSize = 67108864;
+
+    public function __construct(bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864)
+    {
+        $this->readOnly = $readOnly;
+        $this->enableMmap = $enableMmap;
+        $this->maxBufferSize = $maxBufferSize;
+    }
+
+    public static function readOnly(): self
+    {
+        return new self(readOnly: true);
+    }
+
+    public static function readWrite(): self
+    {
+        return new self(readOnly: false);
+    }
+
+    public static function defaults(): self
+    {
+        return new self();
+    }
+
+    public function setReadOnly(bool $readOnly): self
+    {
+        $this->readOnly = $readOnly;
+        return $this;
+    }
+
+    public function getReadOnly(): bool
+    {
+        return $this->readOnly;
+    }
+
+    public function setEnableMmap(bool $enableMmap): self
+    {
+        $this->enableMmap = $enableMmap;
+        return $this;
+    }
+
+    public function getEnableMmap(): bool
+    {
+        return $this->enableMmap;
+    }
+
+    public function setMaxBufferSize(int $maxBufferSize): self
+    {
+        $this->maxBufferSize = $maxBufferSize;
+        return $this;
+    }
+
+    public function getMaxBufferSize(): int
+    {
+        return $this->maxBufferSize;
     }
 }
 

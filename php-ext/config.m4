@@ -19,6 +19,7 @@ if test "$PHP_ZVEC" != "no"; then
 
   ZVEC_SOURCES="zvec.cc \
     zvec_exception.cc \
+    zvec_collection_options.cc \
     zvec_schema.cc \
     zvec_doc.cc \
     zvec_vector_query.cc \
