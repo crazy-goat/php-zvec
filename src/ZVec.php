@@ -531,6 +531,10 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $this->close();
     }
 
+    private function __clone()
+    {
+    }
+
     public function close(): void
     {
         if (!$this->closed) {
@@ -1747,6 +1751,10 @@ class ZVecCollectionStats
         self::ffi()->zvec_collection_stats_free($this->handle);
     }
 
+    private function __clone()
+    {
+    }
+
     public function getDocCount(): int
     {
         return self::ffi()->zvec_collection_stats_get_doc_count($this->handle);
@@ -1814,6 +1822,10 @@ class ZVecFieldSchema
     public function __destruct()
     {
         self::ffi()->zvec_field_schema_free($this->handle);
+    }
+
+    private function __clone()
+    {
     }
 
     public function getName(): string
@@ -1900,6 +1912,10 @@ class ZVecIndexParams
     public function __destruct()
     {
         self::ffi()->zvec_index_params_free($this->handle);
+    }
+
+    private function __clone()
+    {
     }
 
     public function getHandle(): FFI\CData
@@ -2028,6 +2044,10 @@ class ZVecVectorQuery
             }
         } catch (\Throwable) {
         }
+    }
+
+    private function __clone()
+    {
     }
 
     public function getHandle(): FFI\CData
@@ -2341,6 +2361,10 @@ class ZVecSchema
         self::ffi()->zvec_schema_free($this->handle);
     }
 
+    private function __clone()
+    {
+    }
+
     public function getHandle(): FFI\CData
     {
         return $this->handle;
@@ -2546,6 +2570,10 @@ class ZVecDoc
         if ($this->ownsHandle) {
             self::ffi()->zvec_doc_free($this->handle);
         }
+    }
+
+    private function __clone()
+    {
     }
 
     public function getHandle(): FFI\CData
