@@ -2367,3 +2367,112 @@ zvec_status_t zvec_collection_stats(zvec_collection_t coll, char* buf, size_t bu
     buf[buf_size - 1] = '\0';
     return ok_status();
 }
+
+// --- FieldSchema introspection ---
+
+struct FieldSchemaHolder {
+    std::string name;
+    DataType data_type;
+    uint32_t dimension;
+    bool nullable;
+    IndexType index_type;
+    bool has_index;
+};
+
+zvec_status_t zvec_collection_get_field_schema(zvec_collection_t coll, const char* field_name, zvec_field_schema_t* out) {
+    auto* c = static_cast<Collection*>(coll);
+    auto schema_res = c->Schema();
+    if (!schema_res.has_value()) {
+        *out = nullptr;
+        return MAKE_STATUS(schema_res.error());
+    }
+    
+    const auto& schema = schema_res.value();
+    const FieldSchema* field = schema.get_field(field_name);
+    if (!field) {
+        *out = nullptr;
+        zvec_status_t st;
+        st.code = static_cast<int>(StatusCode::NOT_FOUND);
+        std::string msg = std::string("Field not found: ") + field_name;
+        strncpy(st.message, msg.c_str(), sizeof(st.message) - 1);
+        st.message[sizeof(st.message) - 1] = '\0';
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    
+    auto* holder = new FieldSchemaHolder();
+    holder->name = field->name();
+    holder->data_type = field->data_type();
+    holder->dimension = field->dimension();
+    holder->nullable = field->nullable();
+    holder->index_type = field->index_type();
+    holder->has_index = field->index_type() != IndexType::UNDEFINED;
+    
+    *out = static_cast<zvec_field_schema_t>(holder);
+    return ok_status();
+}
+
+void zvec_field_schema_free(zvec_field_schema_t schema) {
+    delete static_cast<FieldSchemaHolder*>(schema);
+}
+
+const char* zvec_field_schema_get_name(zvec_field_schema_t schema) {
+    return static_cast<FieldSchemaHolder*>(schema)->name.c_str();
+}
+
+static thread_local std::string g_elem_data_type_name_buf;
+
+int zvec_field_schema_get_data_type(zvec_field_schema_t schema) {
+    return static_cast<int>(static_cast<FieldSchemaHolder*>(schema)->data_type);
+}
+
+int zvec_field_schema_get_element_data_type(zvec_field_schema_t schema) {
+    auto* h = static_cast<FieldSchemaHolder*>(schema);
+    return static_cast<int>(FieldSchema::get_element_data_type(h->data_type));
+}
+
+size_t zvec_field_schema_get_element_data_size(zvec_field_schema_t schema) {
+    auto* h = static_cast<FieldSchemaHolder*>(schema);
+    return FieldSchema::get_element_data_size(h->data_type);
+}
+
+uint32_t zvec_field_schema_get_dimension(zvec_field_schema_t schema) {
+    return static_cast<FieldSchemaHolder*>(schema)->dimension;
+}
+
+int zvec_field_schema_is_vector_field(zvec_field_schema_t schema) {
+    auto* h = static_cast<FieldSchemaHolder*>(schema);
+    return FieldSchema::is_vector_field(h->data_type) ? 1 : 0;
+}
+
+int zvec_field_schema_is_dense_vector(zvec_field_schema_t schema) {
+    auto* h = static_cast<FieldSchemaHolder*>(schema);
+    return FieldSchema::is_dense_vector_field(h->data_type) ? 1 : 0;
+}
+
+int zvec_field_schema_is_sparse_vector(zvec_field_schema_t schema) {
+    auto* h = static_cast<FieldSchemaHolder*>(schema);
+    return FieldSchema::is_sparse_vector_field(h->data_type) ? 1 : 0;
+}
+
+int zvec_field_schema_is_array_type(zvec_field_schema_t schema) {
+    auto* h = static_cast<FieldSchemaHolder*>(schema);
+    return h->data_type >= DataType::ARRAY_BINARY && h->data_type <= DataType::ARRAY_DOUBLE ? 1 : 0;
+}
+
+int zvec_field_schema_is_nullable(zvec_field_schema_t schema) {
+    return static_cast<FieldSchemaHolder*>(schema)->nullable ? 1 : 0;
+}
+
+int zvec_field_schema_has_invert_index(zvec_field_schema_t schema) {
+    auto* h = static_cast<FieldSchemaHolder*>(schema);
+    return (!FieldSchema::is_vector_field(h->data_type) && h->has_index) ? 1 : 0;
+}
+
+int zvec_field_schema_has_index(zvec_field_schema_t schema) {
+    return static_cast<FieldSchemaHolder*>(schema)->has_index ? 1 : 0;
+}
+
+int zvec_field_schema_get_index_type(zvec_field_schema_t schema) {
+    return static_cast<int>(static_cast<FieldSchemaHolder*>(schema)->index_type);
+}

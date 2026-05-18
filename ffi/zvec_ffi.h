@@ -357,6 +357,26 @@ float zvec_collection_stats_get_index_completeness(zvec_collection_stats_t stats
 void zvec_query_result_free(zvec_query_result_t* result);
 void zvec_query_result_free_array(zvec_query_result_t* result);
 
+// FieldSchema introspection
+typedef void* zvec_field_schema_t;
+
+zvec_status_t zvec_collection_get_field_schema(zvec_collection_t coll, const char* field_name, zvec_field_schema_t* out);
+void zvec_field_schema_free(zvec_field_schema_t schema);
+
+const char* zvec_field_schema_get_name(zvec_field_schema_t schema);
+int zvec_field_schema_get_data_type(zvec_field_schema_t schema);
+int zvec_field_schema_get_element_data_type(zvec_field_schema_t schema);
+size_t zvec_field_schema_get_element_data_size(zvec_field_schema_t schema);
+uint32_t zvec_field_schema_get_dimension(zvec_field_schema_t schema);
+int zvec_field_schema_is_vector_field(zvec_field_schema_t schema);
+int zvec_field_schema_is_dense_vector(zvec_field_schema_t schema);
+int zvec_field_schema_is_sparse_vector(zvec_field_schema_t schema);
+int zvec_field_schema_is_array_type(zvec_field_schema_t schema);
+int zvec_field_schema_is_nullable(zvec_field_schema_t schema);
+int zvec_field_schema_has_invert_index(zvec_field_schema_t schema);
+int zvec_field_schema_has_index(zvec_field_schema_t schema);
+int zvec_field_schema_get_index_type(zvec_field_schema_t schema);
+
 #ifdef __cplusplus
 }
 #endif

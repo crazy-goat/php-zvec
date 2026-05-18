@@ -402,6 +402,24 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
                 int zvec_get_version_major(void);
                 int zvec_get_version_minor(void);
                 int zvec_get_version_patch(void);
+
+                typedef void* zvec_field_schema_t;
+
+                zvec_status_t zvec_collection_get_field_schema(zvec_collection_t coll, const char* field_name, zvec_field_schema_t* out);
+                void zvec_field_schema_free(zvec_field_schema_t schema);
+                const char* zvec_field_schema_get_name(zvec_field_schema_t schema);
+                int zvec_field_schema_get_data_type(zvec_field_schema_t schema);
+                int zvec_field_schema_get_element_data_type(zvec_field_schema_t schema);
+                size_t zvec_field_schema_get_element_data_size(zvec_field_schema_t schema);
+                uint32_t zvec_field_schema_get_dimension(zvec_field_schema_t schema);
+                int zvec_field_schema_is_vector_field(zvec_field_schema_t schema);
+                int zvec_field_schema_is_dense_vector(zvec_field_schema_t schema);
+                int zvec_field_schema_is_sparse_vector(zvec_field_schema_t schema);
+                int zvec_field_schema_is_array_type(zvec_field_schema_t schema);
+                int zvec_field_schema_is_nullable(zvec_field_schema_t schema);
+                int zvec_field_schema_has_invert_index(zvec_field_schema_t schema);
+                int zvec_field_schema_has_index(zvec_field_schema_t schema);
+                int zvec_field_schema_get_index_type(zvec_field_schema_t schema);
             ', $libPath);
         }
         return self::$ffi;
@@ -1523,6 +1541,18 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         self::checkStatus($ffi->zvec_collection_get_stats_struct($this->handle, FFI::addr($out)));
         return new ZVecCollectionStats($out);
     }
+
+    /**
+     * Get structured field schema for a specific field.
+     */
+    public function getFieldSchema(string $fieldName): ZVecFieldSchema
+    {
+        $this->checkClosed();
+        $ffi = self::ffi();
+        $out = $ffi->new('zvec_field_schema_t');
+        self::checkStatus($ffi->zvec_collection_get_field_schema($this->handle, $fieldName, FFI::addr($out)));
+        return new ZVecFieldSchema($out);
+    }
 }
 
 class ZVecCollectionStats
@@ -1586,6 +1616,92 @@ class ZVecCollectionStats
             'doc_count' => $this->getDocCount(),
             'index_completeness' => $this->getAllIndexCompleteness(),
         ];
+    }
+
+    private static function ffi(): FFI
+    {
+        return (new ReflectionClass(ZVec::class))->getMethod('ffi')->invoke(null);
+    }
+}
+
+class ZVecFieldSchema
+{
+    private FFI\CData $handle;
+
+    public function __construct(FFI\CData $handle)
+    {
+        $this->handle = $handle;
+    }
+
+    public function __destruct()
+    {
+        self::ffi()->zvec_field_schema_free($this->handle);
+    }
+
+    public function getName(): string
+    {
+        $ptr = self::ffi()->zvec_field_schema_get_name($this->handle);
+        return is_string($ptr) ? $ptr : FFI::string($ptr);
+    }
+
+    public function getDataType(): int
+    {
+        return self::ffi()->zvec_field_schema_get_data_type($this->handle);
+    }
+
+    public function getElementDataType(): int
+    {
+        return self::ffi()->zvec_field_schema_get_element_data_type($this->handle);
+    }
+
+    public function getElementDataSize(): int
+    {
+        return self::ffi()->zvec_field_schema_get_element_data_size($this->handle);
+    }
+
+    public function getDimension(): int
+    {
+        return self::ffi()->zvec_field_schema_get_dimension($this->handle);
+    }
+
+    public function isVectorField(): bool
+    {
+        return self::ffi()->zvec_field_schema_is_vector_field($this->handle) !== 0;
+    }
+
+    public function isDenseVector(): bool
+    {
+        return self::ffi()->zvec_field_schema_is_dense_vector($this->handle) !== 0;
+    }
+
+    public function isSparseVector(): bool
+    {
+        return self::ffi()->zvec_field_schema_is_sparse_vector($this->handle) !== 0;
+    }
+
+    public function isArrayType(): bool
+    {
+        return self::ffi()->zvec_field_schema_is_array_type($this->handle) !== 0;
+    }
+
+    public function isNullable(): bool
+    {
+        return self::ffi()->zvec_field_schema_is_nullable($this->handle) !== 0;
+    }
+
+    public function hasInvertIndex(): bool
+    {
+        return self::ffi()->zvec_field_schema_has_invert_index($this->handle) !== 0;
+    }
+
+    public function hasIndex(): bool
+    {
+        return self::ffi()->zvec_field_schema_has_index($this->handle) !== 0;
+    }
+
+    public function getIndexType(): int
+    {
+        return self::ffi()->zvec_field_schema_get_index_type($this->handle);
     }
 
     private static function ffi(): FFI
