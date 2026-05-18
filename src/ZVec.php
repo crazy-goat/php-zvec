@@ -351,6 +351,12 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
                 int zvec_get_last_error_details(zvec_error_details_t* out);
                 void zvec_clear_error(void);
                 const char* zvec_error_code_to_string(int error_code);
+
+                const char* zvec_get_version(void);
+                int zvec_check_version(int major, int minor, int patch);
+                int zvec_get_version_major(void);
+                int zvec_get_version_minor(void);
+                int zvec_get_version_patch(void);
             ', $libPath);
         }
         return self::$ffi;
@@ -874,6 +880,31 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public static function clearError(): void
     {
         self::ffi()->zvec_clear_error();
+    }
+
+    public static function getVersion(): string
+    {
+        return self::ffi()->zvec_get_version();
+    }
+
+    public static function checkVersion(int $major, int $minor, int $patch): bool
+    {
+        return self::ffi()->zvec_check_version($major, $minor, $patch) !== 0;
+    }
+
+    public static function getVersionMajor(): int
+    {
+        return self::ffi()->zvec_get_version_major();
+    }
+
+    public static function getVersionMinor(): int
+    {
+        return self::ffi()->zvec_get_version_minor();
+    }
+
+    public static function getVersionPatch(): int
+    {
+        return self::ffi()->zvec_get_version_patch();
     }
 
     /**
