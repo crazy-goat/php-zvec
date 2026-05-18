@@ -16,9 +16,7 @@ try {
         ->addVectorFp32('embedding', dimension: 4, metricType: ZVecSchema::METRIC_IP);
 
     // Create with explicit options
-    $opts = ZVecCollectionOptions::readWrite()
-        ->setEnableMmap(true)
-        ->setMaxBufferSize(128 * 1024 * 1024);
+    $opts = new ZVecCollectionOptions(readOnly: false, enableMmap: true, maxBufferSize: 128 * 1024 * 1024);
     $c = ZVec::createWith($path, $schema, $opts);
 
     // Verify options via getOptions
@@ -43,7 +41,7 @@ try {
     $c->close();
 
     // Reopen read-only
-    $opts2 = ZVecCollectionOptions::readOnly()->setEnableMmap(true);
+    $opts2 = new ZVecCollectionOptions(readOnly: true, enableMmap: true);
     $c2 = ZVec::openWith($path, $opts2);
     $ro2 = $c2->getOptions();
     assert($ro2->getReadOnly() === true, 'Reopened should be read-only');
@@ -68,7 +66,7 @@ try {
     $c2->close();
 
     // Verify data persists by reopening read-write
-    $opts3 = ZVecCollectionOptions::readWrite()->setEnableMmap(true);
+    $opts3 = new ZVecCollectionOptions(readOnly: false, enableMmap: true);
     $c3 = ZVec::openWith($path, $opts3);
     $results2 = $c3->query('embedding', [0.1, 0.2, 0.3, 0.4], topk: 10);
     assert(count($results2) > 0, 'Data should persist');
@@ -79,7 +77,7 @@ try {
     // Test invalid path with openWith
     $invalidPath = '/nonexistent/path';
     try {
-        $badOpts = ZVecCollectionOptions::readWrite();
+        $badOpts = new ZVecCollectionOptions();
         ZVec::openWith($invalidPath, $badOpts);
         echo "FAIL: Should fail for invalid path\n";
         exit(1);

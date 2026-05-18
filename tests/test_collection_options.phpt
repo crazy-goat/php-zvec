@@ -16,9 +16,7 @@ try {
         ->addVectorFp32('embedding', dimension: 4, metricType: ZVecSchema::METRIC_IP);
 
     // Test 1: createWith with read-write options
-    $opts = ZVecCollectionOptions::readWrite()
-        ->setEnableMmap(false)
-        ->setMaxBufferSize(64 * 1024 * 1024);
+    $opts = new ZVecCollectionOptions(readOnly: false, enableMmap: false, maxBufferSize: 64 * 1024 * 1024);
     $c = ZVec::createWith($path, $schema, $opts);
 
     $ro = $c->getOptions();
@@ -29,7 +27,7 @@ try {
     $c->close();
 
     // Test 2: Reopen read-only
-    $opts2 = ZVecCollectionOptions::readOnly()->setEnableMmap(true);
+    $opts2 = new ZVecCollectionOptions(readOnly: true, enableMmap: true);
     $c2 = ZVec::openWith($path, $opts2);
     $ro2 = $c2->getOptions();
     echo "reopen readOnly: " . ($ro2->getReadOnly() ? 'true' : 'false') . "\n";
@@ -48,19 +46,16 @@ try {
         exec("rm -rf " . escapeshellarg($legacyPath));
     }
 
-    // Test 4: defaults() factory
-    $defaults = ZVecCollectionOptions::defaults();
-    echo "defaults readOnly: " . ($defaults->getReadOnly() ? 'true' : 'false') . "\n";
-    echo "defaults mmap: " . ($defaults->getEnableMmap() ? 'true' : 'false') . "\n";
+    // Test 4: Direct property access
+    $opts4 = new ZVecCollectionOptions();
+    echo "defaults readOnly: " . ($opts4->readOnly ? 'true' : 'false') . "\n";
+    echo "defaults mmap: " . ($opts4->enableMmap ? 'true' : 'false') . "\n";
 
-    // Test 5: Fluent setters return $this
-    $opts5 = ZVecCollectionOptions::readWrite()
-        ->setReadOnly(true)
-        ->setEnableMmap(false)
-        ->setMaxBufferSize(1024);
-    echo "fluent readOnly: " . ($opts5->getReadOnly() ? 'true' : 'false') . "\n";
-    echo "fluent mmap: " . ($opts5->getEnableMmap() ? 'true' : 'false') . "\n";
-    echo "fluent buffer: " . $opts5->getMaxBufferSize() . "\n";
+    // Test 5: Constructor with specific values
+    $opts5 = new ZVecCollectionOptions(readOnly: true, enableMmap: false, maxBufferSize: 1024);
+    echo "custom readOnly: " . ($opts5->getReadOnly() ? 'true' : 'false') . "\n";
+    echo "custom mmap: " . ($opts5->getEnableMmap() ? 'true' : 'false') . "\n";
+    echo "custom buffer: " . $opts5->getMaxBufferSize() . "\n";
 
     echo "OK\n";
 } finally {
@@ -77,7 +72,7 @@ legacy mmap: false
 legacy buffer: 33554432
 defaults readOnly: false
 defaults mmap: true
-fluent readOnly: true
-fluent mmap: false
-fluent buffer: 1024
+custom readOnly: true
+custom mmap: false
+custom buffer: 1024
 OK
