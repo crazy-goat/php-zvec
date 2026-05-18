@@ -1,7 +1,10 @@
 --TEST--
 VectorQuery object: queryVector(), groupByVectorQuery(), backward compat
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php
+if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available');
+if (extension_loaded('zvec') && !extension_loaded('ffi')) die('skip This test requires FFI (new ZVecVectorQuery with setTopk)');
+?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
