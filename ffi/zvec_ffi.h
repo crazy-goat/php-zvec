@@ -60,20 +60,7 @@ void zvec_schema_add_field_vector_fp64(zvec_schema_t schema, const char* name, u
 void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
 void zvec_schema_add_field_vector_fp16(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
-void zvec_schema_add_field_vector_int4(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
-void zvec_schema_add_field_vector_int16(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
-void zvec_schema_add_field_vector_binary32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
-void zvec_schema_add_field_vector_binary64(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type);
-void zvec_schema_add_field_sparse_vector_fp16(zvec_schema_t schema, const char* name, uint32_t metric_type);
-void zvec_schema_add_field_binary(zvec_schema_t schema, const char* name, int nullable);
-void zvec_schema_add_field_array_string(zvec_schema_t schema, const char* name, int nullable);
-void zvec_schema_add_field_array_bool(zvec_schema_t schema, const char* name, int nullable);
-void zvec_schema_add_field_array_int32(zvec_schema_t schema, const char* name, int nullable);
-void zvec_schema_add_field_array_int64(zvec_schema_t schema, const char* name, int nullable);
-void zvec_schema_add_field_array_uint32(zvec_schema_t schema, const char* name, int nullable);
-void zvec_schema_add_field_array_uint64(zvec_schema_t schema, const char* name, int nullable);
-void zvec_schema_add_field_array_float(zvec_schema_t schema, const char* name, int nullable);
-void zvec_schema_add_field_array_double(zvec_schema_t schema, const char* name, int nullable);
+void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type);
 
 // Collection lifecycle
 zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
@@ -145,20 +132,6 @@ void zvec_doc_set_vector_fp64(zvec_doc_t doc, const char* field, const double* d
 void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim);
 void zvec_doc_set_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t* data, uint32_t dim);
 void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t* indices, const float* values, uint32_t count);
-void zvec_doc_set_vector_int4(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim);
-void zvec_doc_set_vector_int16(zvec_doc_t doc, const char* field, const int16_t* data, uint32_t dim);
-void zvec_doc_set_vector_binary32(zvec_doc_t doc, const char* field, const uint32_t* data, uint32_t dim);
-void zvec_doc_set_vector_binary64(zvec_doc_t doc, const char* field, const uint64_t* data, uint32_t dim);
-void zvec_doc_set_sparse_vector_fp16(zvec_doc_t doc, const char* field, const uint32_t* indices, const uint16_t* values, uint32_t count);
-void zvec_doc_set_binary(zvec_doc_t doc, const char* field, const uint8_t* data, uint32_t size);
-void zvec_doc_set_array_int32(zvec_doc_t doc, const char* field, const int32_t* data, uint32_t count);
-void zvec_doc_set_array_int64(zvec_doc_t doc, const char* field, const int64_t* data, uint32_t count);
-void zvec_doc_set_array_uint32(zvec_doc_t doc, const char* field, const uint32_t* data, uint32_t count);
-void zvec_doc_set_array_uint64(zvec_doc_t doc, const char* field, const uint64_t* data, uint32_t count);
-void zvec_doc_set_array_float(zvec_doc_t doc, const char* field, const float* data, uint32_t count);
-void zvec_doc_set_array_double(zvec_doc_t doc, const char* field, const double* data, uint32_t count);
-void zvec_doc_set_array_string(zvec_doc_t doc, const char* field, const char** strings, uint32_t count);
-void zvec_doc_set_array_bool(zvec_doc_t doc, const char* field, const uint8_t* data, uint32_t count);
 
 const char* zvec_doc_get_pk(zvec_doc_t doc);
 float zvec_doc_get_score(zvec_doc_t doc);
@@ -175,20 +148,6 @@ int zvec_doc_get_vector_fp64(zvec_doc_t doc, const char* field, const double** o
 int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim);
 int zvec_doc_get_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t** out, uint32_t* dim);
 int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const float** values_out, uint32_t* count_out);
-int zvec_doc_get_vector_int4(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim);
-int zvec_doc_get_vector_int16(zvec_doc_t doc, const char* field, const int16_t** out, uint32_t* dim);
-int zvec_doc_get_vector_binary32(zvec_doc_t doc, const char* field, const uint32_t** out, uint32_t* dim);
-int zvec_doc_get_vector_binary64(zvec_doc_t doc, const char* field, const uint64_t** out, uint32_t* dim);
-int zvec_doc_get_sparse_vector_fp16(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const uint16_t** values_out, uint32_t* count_out);
-int zvec_doc_get_binary(zvec_doc_t doc, const char* field, const uint8_t** out, uint32_t* size);
-int zvec_doc_get_array_int32(zvec_doc_t doc, const char* field, const int32_t** out, uint32_t* count);
-int zvec_doc_get_array_int64(zvec_doc_t doc, const char* field, const int64_t** out, uint32_t* count);
-int zvec_doc_get_array_uint32(zvec_doc_t doc, const char* field, const uint32_t** out, uint32_t* count);
-int zvec_doc_get_array_uint64(zvec_doc_t doc, const char* field, const uint64_t** out, uint32_t* count);
-int zvec_doc_get_array_float(zvec_doc_t doc, const char* field, const float** out, uint32_t* count);
-int zvec_doc_get_array_double(zvec_doc_t doc, const char* field, const double** out, uint32_t* count);
-int zvec_doc_get_array_string(zvec_doc_t doc, const char* field, char* buf, size_t buf_size, uint32_t* count);
-int zvec_doc_get_array_bool(zvec_doc_t doc, const char* field, uint8_t* buf, size_t buf_size);
 
 // Doc introspection
 int zvec_doc_has_field(zvec_doc_t doc, const char* field);
