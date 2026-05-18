@@ -57,6 +57,27 @@ zvec_status_t zvec_init(int log_type, int log_level,
                         float brute_force_by_keys_ratio,
                         uint64_t memory_limit_mb);
 
+// Opaque config initialization API (zvec v0.4.0+)
+typedef void* zvec_log_config_t;
+typedef void* zvec_config_data_t;
+
+zvec_log_config_t zvec_log_config_create_console(int level);
+zvec_log_config_t zvec_log_config_create_file(int level, const char* dir, const char* basename, uint32_t file_size, uint32_t overdue_days);
+void zvec_log_config_free(zvec_log_config_t config);
+
+zvec_config_data_t zvec_config_data_create(void);
+void zvec_config_data_free(zvec_config_data_t config);
+void zvec_config_data_set_memory_limit(zvec_config_data_t config, uint64_t bytes);
+void zvec_config_data_set_log_config(zvec_config_data_t config, zvec_log_config_t log_config);
+void zvec_config_data_set_query_thread_count(zvec_config_data_t config, uint32_t count);
+void zvec_config_data_set_optimize_thread_count(zvec_config_data_t config, uint32_t count);
+void zvec_config_data_set_invert_to_forward_scan_ratio(zvec_config_data_t config, float ratio);
+void zvec_config_data_set_brute_force_by_keys_ratio(zvec_config_data_t config, float ratio);
+
+zvec_status_t zvec_ffi_initialize(zvec_config_data_t config);
+zvec_status_t zvec_ffi_shutdown(void);
+int zvec_ffi_is_initialized(void);
+
 typedef struct {
     zvec_doc_t* docs;
     int count;

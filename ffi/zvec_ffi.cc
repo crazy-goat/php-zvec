@@ -151,6 +151,18 @@ static QuantizeType to_quantize_type(uint32_t v) {
 
 // --- Init ---
 
+// Track initialization state for isInitialized/shutdown
+#include <atomic>
+static std::atomic<int> g_ffi_initialized{0};
+
+struct LogConfigHolder {
+    std::shared_ptr<GlobalConfig::LogConfig> config;
+};
+
+struct ConfigDataHolder {
+    GlobalConfig::ConfigData config;
+};
+
 zvec_status_t zvec_init(int log_type, int log_level,
                         const char* log_dir, const char* log_basename,
                         uint32_t log_file_size, uint32_t log_overdue_days,
@@ -181,7 +193,116 @@ zvec_status_t zvec_init(int log_type, int log_level,
     if (memory_limit_mb > 0) config.memory_limit_bytes = memory_limit_mb * 1024ULL * 1024ULL;
 
     auto& gc = GlobalConfig::Instance();
-    return MAKE_STATUS(gc.Initialize(config));
+    auto st = MAKE_STATUS(gc.Initialize(config));
+    if (st.code == 0) {
+        g_ffi_initialized.store(1, std::memory_order_release);
+    }
+    return st;
+}
+
+// --- Opaque Config Init API ---
+
+zvec_log_config_t zvec_log_config_create_console(int level) {
+    auto* holder = new LogConfigHolder();
+    holder->config = std::make_shared<GlobalConfig::ConsoleLogConfig>(
+        static_cast<GlobalConfig::LogLevel>(level)
+    );
+    return static_cast<zvec_log_config_t>(holder);
+}
+
+zvec_log_config_t zvec_log_config_create_file(int level, const char* dir, const char* basename, uint32_t file_size, uint32_t overdue_days) {
+    auto* holder = new LogConfigHolder();
+    holder->config = std::make_shared<GlobalConfig::FileLogConfig>(
+        static_cast<GlobalConfig::LogLevel>(level),
+        dir ? dir : DEFAULT_LOG_DIR,
+        basename ? basename : DEFAULT_LOG_BASENAME,
+        file_size > 0 ? file_size : DEFAULT_LOG_FILE_SIZE,
+        overdue_days > 0 ? overdue_days : DEFAULT_LOG_OVERDUE_DAYS
+    );
+    return static_cast<zvec_log_config_t>(holder);
+}
+
+void zvec_log_config_free(zvec_log_config_t config) {
+    if (config) {
+        delete static_cast<LogConfigHolder*>(config);
+    }
+}
+
+zvec_config_data_t zvec_config_data_create(void) {
+    auto* holder = new ConfigDataHolder();
+    return static_cast<zvec_config_data_t>(holder);
+}
+
+void zvec_config_data_free(zvec_config_data_t config) {
+    if (config) {
+        delete static_cast<ConfigDataHolder*>(config);
+    }
+}
+
+void zvec_config_data_set_memory_limit(zvec_config_data_t config, uint64_t bytes) {
+    if (config) {
+        static_cast<ConfigDataHolder*>(config)->config.memory_limit_bytes = bytes;
+    }
+}
+
+void zvec_config_data_set_log_config(zvec_config_data_t config, zvec_log_config_t log_config) {
+    if (config && log_config) {
+        static_cast<ConfigDataHolder*>(config)->config.log_config =
+            static_cast<LogConfigHolder*>(log_config)->config;
+    }
+}
+
+void zvec_config_data_set_query_thread_count(zvec_config_data_t config, uint32_t count) {
+    if (config) {
+        static_cast<ConfigDataHolder*>(config)->config.query_thread_count = count;
+    }
+}
+
+void zvec_config_data_set_optimize_thread_count(zvec_config_data_t config, uint32_t count) {
+    if (config) {
+        static_cast<ConfigDataHolder*>(config)->config.optimize_thread_count = count;
+    }
+}
+
+void zvec_config_data_set_invert_to_forward_scan_ratio(zvec_config_data_t config, float ratio) {
+    if (config) {
+        static_cast<ConfigDataHolder*>(config)->config.invert_to_forward_scan_ratio = ratio;
+    }
+}
+
+void zvec_config_data_set_brute_force_by_keys_ratio(zvec_config_data_t config, float ratio) {
+    if (config) {
+        static_cast<ConfigDataHolder*>(config)->config.brute_force_by_keys_ratio = ratio;
+    }
+}
+
+zvec_status_t zvec_ffi_initialize(zvec_config_data_t config) {
+    if (!config) {
+        auto* holder = new ConfigDataHolder();
+        auto& gc = GlobalConfig::Instance();
+        auto st = MAKE_STATUS(gc.Initialize(holder->config));
+        delete holder;
+        if (st.code == 0) {
+            g_ffi_initialized.store(1, std::memory_order_release);
+        }
+        return st;
+    }
+    auto* holder = static_cast<ConfigDataHolder*>(config);
+    auto& gc = GlobalConfig::Instance();
+    auto st = MAKE_STATUS(gc.Initialize(holder->config));
+    if (st.code == 0) {
+        g_ffi_initialized.store(1, std::memory_order_release);
+    }
+    return st;
+}
+
+zvec_status_t zvec_ffi_shutdown(void) {
+    g_ffi_initialized.store(0, std::memory_order_release);
+    return ok_status();
+}
+
+int zvec_ffi_is_initialized(void) {
+    return g_ffi_initialized.load(std::memory_order_acquire);
 }
 
 // --- Schema ---
