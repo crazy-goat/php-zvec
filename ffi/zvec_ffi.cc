@@ -656,6 +656,12 @@ struct IndexParamsHolder {
     int rabitq_num_clusters_;
     int rabitq_sample_count_;
     bool hnsw_use_contiguous_memory_;
+    int vamana_max_degree_;
+    int vamana_search_list_size_;
+    float vamana_alpha_;
+    bool vamana_saturate_graph_;
+    bool vamana_use_contiguous_memory_;
+    bool vamana_use_id_map_;
 
     IndexParamsHolder(IndexType type, MetricType metric_type)
         : type_(type), metric_type_(metric_type), quantize_type_(QuantizeType::UNDEFINED),
@@ -663,7 +669,9 @@ struct IndexParamsHolder {
           ivf_n_list_(1024), ivf_n_iters_(10), ivf_use_soar_(false),
           invert_enable_range_(true), invert_enable_wildcard_(false),
           rabitq_total_bits_(7), rabitq_num_clusters_(16), rabitq_sample_count_(0),
-          hnsw_use_contiguous_memory_(false) {}
+          hnsw_use_contiguous_memory_(false),
+          vamana_max_degree_(64), vamana_search_list_size_(100), vamana_alpha_(1.2f),
+          vamana_saturate_graph_(false), vamana_use_contiguous_memory_(false), vamana_use_id_map_(false) {}
 
     IndexParams::Ptr build() const {
         switch (type_) {
@@ -677,6 +685,8 @@ struct IndexParamsHolder {
                 return std::make_shared<IVFIndexParams>(metric_type_, ivf_n_list_, ivf_n_iters_, ivf_use_soar_, quantize_type_);
             case IndexType::INVERT:
                 return std::make_shared<InvertIndexParams>(invert_enable_range_, invert_enable_wildcard_);
+            case IndexType::VAMANA:
+                return std::make_shared<VamanaIndexParams>(metric_type_, vamana_max_degree_, vamana_search_list_size_, vamana_alpha_, vamana_saturate_graph_, vamana_use_contiguous_memory_, vamana_use_id_map_, quantize_type_);
             default:
                 return nullptr;
         }
@@ -689,6 +699,7 @@ static IndexType to_index_type(int v) {
         case 2: return IndexType::IVF;
         case 3: return IndexType::FLAT;
         case 4: return IndexType::HNSW_RABITQ;
+        case 5: return IndexType::VAMANA;
         case 10: return IndexType::INVERT;
         default: return IndexType::UNDEFINED;
     }
@@ -731,6 +742,17 @@ void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bit
     h->hnsw_m_ = m;
     h->hnsw_ef_construction_ = ef_construction;
     h->rabitq_sample_count_ = sample_count;
+}
+
+void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, int search_list_size, float alpha, int saturate_graph, int use_contiguous_memory, int use_id_map, int quantize_type) {
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->vamana_max_degree_ = max_degree;
+    h->vamana_search_list_size_ = search_list_size;
+    h->vamana_alpha_ = alpha;
+    h->vamana_saturate_graph_ = (bool)saturate_graph;
+    h->vamana_use_contiguous_memory_ = (bool)use_contiguous_memory;
+    h->vamana_use_id_map_ = (bool)use_id_map;
+    h->quantize_type_ = to_quantize_type(quantize_type);
 }
 
 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard) {
@@ -1776,6 +1798,7 @@ static zvec_status_t validate_query_param_type(Collection* c, const char* field_
         case 2: expected_index_type = IndexType::IVF; break;
         case 3: expected_index_type = IndexType::FLAT; break;
         case 4: expected_index_type = IndexType::HNSW_RABITQ; break;
+        case 5: expected_index_type = IndexType::VAMANA; break;
     }
     
     if (expected_index_type != IndexType::UNDEFINED && 
@@ -1811,6 +1834,9 @@ static void apply_query_params(VectorQuery& query, int type, int hnsw_ef, int iv
         query.query_params_ = params;
     } else if (type == 4) {
         query.query_params_ = std::make_shared<HnswRabitqQueryParams>(
+            hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
+    } else if (type == 5) {
+        query.query_params_ = std::make_shared<VamanaQueryParams>(
             hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
     }
 }
@@ -2006,6 +2032,9 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
         params->set_radius(radius);
         params->set_is_linear((bool)is_linear);
         query.query_params_ = params;
+    } else if (query_param_type == 5) {
+        query.query_params_ = std::make_shared<VamanaQueryParams>(
+            hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
     }
 
     auto res = c->GroupByQuery(query);

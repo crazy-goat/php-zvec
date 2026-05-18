@@ -1,5 +1,5 @@
 --TEST--
-IndexParams: unified createIndex() with ZVecIndexParams (all 4 types)
+IndexParams: unified createIndex() with ZVecIndexParams (all 5 types)
 --SKIPIF--
 <?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
 --FILE--
@@ -46,6 +46,18 @@ try {
     $coll->createIndex('vec', $params4);
     echo "IVF via unified API\n";
 
+    // Vamana via unified API (only unified API, no legacy wrapper)
+    $params5 = ZVecIndexParams::forVamana(
+        metricType: ZVecSchema::METRIC_COSINE,
+        maxDegree: 32,
+        searchListSize: 50,
+        alpha: 1.0,
+        saturateGraph: false,
+        quantizeType: ZVec::QUANTIZE_UNDEFINED
+    );
+    $coll->createIndex('vec', $params5);
+    echo "Vamana via unified API\n";
+
     // Deprecated wrappers still work
     $coll->createHnswIndex('vec', metricType: ZVecSchema::METRIC_COSINE, m: 16, efConstruction: 200);
     echo "HNSW via legacy API\n";
@@ -70,6 +82,7 @@ HNSW via unified API
 Flat via unified API
 Invert via unified API
 IVF via unified API
+Vamana via unified API
 HNSW via legacy API
 Flat via legacy API
 Invert via legacy API

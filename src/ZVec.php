@@ -178,6 +178,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
                 void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bits, int num_clusters, int m, int ef_construction, int sample_count);
                 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
                 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
+                void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, int search_list_size, float alpha, int saturate_graph, int use_contiguous_memory, int use_id_map, int quantize_type);
                 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard);
                 void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantize_type);
                 void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type);
@@ -782,6 +783,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public const INDEX_TYPE_IVF = 2;
     public const INDEX_TYPE_FLAT = 3;
     public const INDEX_TYPE_HNSW_RABITQ = 4;
+    public const INDEX_TYPE_VAMANA = 5;
     public const INDEX_TYPE_INVERT = 10;
 
     public const QUERY_PARAM_NONE = 0;
@@ -789,6 +791,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public const QUERY_PARAM_IVF = 2;
     public const QUERY_PARAM_FLAT = 3;
     public const QUERY_PARAM_HNSW_RABITQ = 4;
+    public const QUERY_PARAM_VAMANA = 5;
 
     public const LOG_CONSOLE = 0;
     public const LOG_FILE = 1;
@@ -1487,6 +1490,14 @@ class ZVecIndexParams
         return new self($handle);
     }
 
+    public static function forVamana(int $metricType, int $maxDegree = 64, int $searchListSize = 100, float $alpha = 1.2, bool $saturateGraph = false, bool $useContiguousMemory = false, bool $useIdMap = false, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
+    {
+        $ffi = self::ffi();
+        $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_VAMANA, $metricType);
+        $ffi->zvec_index_params_set_vamana($handle, $maxDegree, $searchListSize, $alpha, $saturateGraph ? 1 : 0, $useContiguousMemory ? 1 : 0, $useIdMap ? 1 : 0, $quantizeType);
+        return new self($handle);
+    }
+
     public static function forInvert(bool $enableRange = true, bool $enableWildcard = false): self
     {
         $ffi = self::ffi();
@@ -1578,6 +1589,13 @@ class ZVecVectorQuery
     public function setFlatParams(): self
     {
         $this->queryParamType = ZVec::QUERY_PARAM_FLAT;
+        return $this;
+    }
+
+    public function setVamanaParams(int $efSearch): self
+    {
+        $this->queryParamType = ZVec::QUERY_PARAM_VAMANA;
+        $this->hnswEf = $efSearch;
         return $this;
     }
 
