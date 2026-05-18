@@ -554,7 +554,8 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public function destroy(): void
     {
         if (!$this->closed) {
-            self::checkStatus(self::ffi()->zvec_collection_destroy($this->handle));
+            $status = self::ffi()->zvec_collection_destroy($this->handle);
+            self::checkStatus($status);
             $this->closed = true;
         }
     }
