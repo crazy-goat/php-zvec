@@ -623,18 +623,20 @@ struct IndexParamsHolder {
     int rabitq_total_bits_;
     int rabitq_num_clusters_;
     int rabitq_sample_count_;
+    bool hnsw_use_contiguous_memory_;
 
     IndexParamsHolder(IndexType type, MetricType metric_type)
         : type_(type), metric_type_(metric_type), quantize_type_(QuantizeType::UNDEFINED),
           hnsw_m_(50), hnsw_ef_construction_(500),
           ivf_n_list_(1024), ivf_n_iters_(10), ivf_use_soar_(false),
           invert_enable_range_(true), invert_enable_wildcard_(false),
-          rabitq_total_bits_(7), rabitq_num_clusters_(16), rabitq_sample_count_(0) {}
+          rabitq_total_bits_(7), rabitq_num_clusters_(16), rabitq_sample_count_(0),
+          hnsw_use_contiguous_memory_(false) {}
 
     IndexParams::Ptr build() const {
         switch (type_) {
             case IndexType::HNSW:
-                return std::make_shared<HnswIndexParams>(metric_type_, hnsw_m_, hnsw_ef_construction_, quantize_type_);
+                return std::make_shared<HnswIndexParams>(metric_type_, hnsw_m_, hnsw_ef_construction_, quantize_type_, hnsw_use_contiguous_memory_);
             case IndexType::HNSW_RABITQ:
                 return std::make_shared<HnswRabitqIndexParams>(metric_type_, rabitq_total_bits_, rabitq_num_clusters_, hnsw_m_, hnsw_ef_construction_, rabitq_sample_count_);
             case IndexType::FLAT:
@@ -669,11 +671,12 @@ void zvec_index_params_free(zvec_index_params_t params) {
     delete static_cast<IndexParamsHolder*>(params);
 }
 
-void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type) {
+void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type, int use_contiguous_memory) {
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->hnsw_m_ = m;
     h->hnsw_ef_construction_ = ef_construction;
     h->quantize_type_ = to_quantize_type(quantize_type);
+    h->hnsw_use_contiguous_memory_ = (bool)use_contiguous_memory;
 }
 
 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type) {
