@@ -1,7 +1,10 @@
 --TEST--
 Enhanced Doc API: setFieldNull, isFieldNull, removeField, merge, serialize/deserialize, isEmpty, clear, memoryUsage, docOperator
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php
+if (!extension_loaded('ffi')) die('skip FFI extension not available');
+if (extension_loaded('zvec') && !extension_loaded('ffi')) die('skip FFI-based test, not applicable for ext builds');
+?>
 --FILE--
 <?php
 declare(strict_types=1);
