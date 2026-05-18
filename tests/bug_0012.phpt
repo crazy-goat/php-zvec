@@ -1,7 +1,10 @@
 --TEST--
 Bug 0012: query() with ZVecVectorQuery ignores query object's topk, includeVector, and filter
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php
+if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available');
+if (extension_loaded('zvec') && !extension_loaded('ffi')) die('skip This test uses ZVecVectorQuery which requires FFI');
+?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
