@@ -4,7 +4,53 @@ declare(strict_types=1);
 
 if (extension_loaded('zvec')) return;
 
-class ZVecException extends RuntimeException {}
+class ZVecException extends RuntimeException
+{
+    private ?string $errorFile = null;
+    private ?int $errorLine = null;
+    private ?string $errorFunction = null;
+
+    public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null, ?string $errorFile = null, ?int $errorLine = null, ?string $errorFunction = null)
+    {
+        parent::__construct($message, $code, $previous);
+        $this->errorFile = $errorFile;
+        $this->errorLine = $errorLine;
+        $this->errorFunction = $errorFunction;
+    }
+
+    public function getErrorFile(): ?string
+    {
+        return $this->errorFile;
+    }
+
+    public function getErrorLine(): ?int
+    {
+        return $this->errorLine;
+    }
+
+    public function getErrorFunction(): ?string
+    {
+        return $this->errorFunction;
+    }
+
+    public function getErrorCodeString(): string
+    {
+        return match ($this->getCode()) {
+            0 => 'OK',
+            1 => 'NOT_FOUND',
+            2 => 'ALREADY_EXISTS',
+            3 => 'INVALID_ARGUMENT',
+            4 => 'PERMISSION_DENIED',
+            5 => 'FAILED_PRECONDITION',
+            6 => 'RESOURCE_EXHAUSTED',
+            7 => 'UNAVAILABLE',
+            8 => 'INTERNAL_ERROR',
+            9 => 'NOT_SUPPORTED',
+            10 => 'UNKNOWN',
+            default => 'UNRECOGNIZED',
+        };
+    }
+}
 
 class ZVec
 {
@@ -293,6 +339,18 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
                 void zvec_query_result_free_array(zvec_query_result_t* result);
 
                 zvec_status_t zvec_collection_stats(zvec_collection_t coll, char* buf, size_t buf_size);
+
+                typedef struct {
+                    int code;
+                    const char* message;
+                    const char* file;
+                    int line;
+                    const char* function;
+                } zvec_error_details_t;
+
+                int zvec_get_last_error_details(zvec_error_details_t* out);
+                void zvec_clear_error(void);
+                const char* zvec_error_code_to_string(int error_code);
             ', $libPath);
         }
         return self::$ffi;
@@ -301,7 +359,14 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     private static function checkStatus(FFI\CData $status): void
     {
         if ($status->code !== 0) {
-            throw new ZVecException(FFI::string($status->message), $status->code);
+            $ffi = self::ffi();
+            $details = $ffi->new('zvec_error_details_t');
+            $ffi->zvec_get_last_error_details(FFI::addr($details));
+            $msg = $details->message !== null ? FFI::string($details->message) : FFI::string($status->message);
+            $file = $details->file !== null ? FFI::string($details->file) : null;
+            $line = $details->line;
+            $function = $details->function !== null ? FFI::string($details->function) : null;
+            throw new ZVecException($msg, $status->code, null, $file, $line, $function);
         }
     }
 
@@ -787,6 +852,28 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             $bruteForceByKeysRatio,
             $memoryLimitMb
         ));
+    }
+
+    /**
+     * @return array{code: int, message: ?string, file: ?string, line: int, function: ?string}
+     */
+    public static function getLastErrorDetails(): array
+    {
+        $ffi = self::ffi();
+        $details = $ffi->new('zvec_error_details_t');
+        $ffi->zvec_get_last_error_details(FFI::addr($details));
+        return [
+            'code' => $details->code,
+            'message' => $details->message !== null ? FFI::string($details->message) : null,
+            'file' => $details->file !== null ? FFI::string($details->file) : null,
+            'line' => $details->line,
+            'function' => $details->function !== null ? FFI::string($details->function) : null,
+        ];
+    }
+
+    public static function clearError(): void
+    {
+        self::ffi()->zvec_clear_error();
     }
 
     /**
