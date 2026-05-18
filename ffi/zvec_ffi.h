@@ -343,6 +343,17 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
                                               zvec_group_results_t* result);
 void zvec_group_results_free(zvec_group_results_t* result);
 
+// CollectionStats
+typedef void* zvec_collection_stats_t;
+
+zvec_status_t zvec_collection_get_stats_struct(zvec_collection_t coll, zvec_collection_stats_t* out);
+void zvec_collection_stats_free(zvec_collection_stats_t stats);
+
+uint64_t zvec_collection_stats_get_doc_count(zvec_collection_stats_t stats);
+uint32_t zvec_collection_stats_get_index_count(zvec_collection_stats_t stats);
+const char* zvec_collection_stats_get_index_name(zvec_collection_stats_t stats, uint32_t index);
+float zvec_collection_stats_get_index_completeness(zvec_collection_stats_t stats, uint32_t index);
+
 void zvec_query_result_free(zvec_query_result_t* result);
 void zvec_query_result_free_array(zvec_query_result_t* result);
 

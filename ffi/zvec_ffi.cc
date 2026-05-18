@@ -2288,7 +2288,73 @@ void zvec_query_result_free_array(zvec_query_result_t* result) {
     }
 }
 
-// --- Stats ---
+// --- CollectionStats struct ---
+
+struct CollectionStatsHolder {
+    zvec::CollectionStats stats;
+    // Thread-local buffers for index names
+    std::vector<std::string> index_names;
+};
+
+static CollectionStatsHolder* stats_holder_from_coll(Collection* c) {
+    auto res = c->Stats();
+    if (!res.has_value()) {
+        return nullptr;
+    }
+    auto* holder = new CollectionStatsHolder();
+    holder->stats = std::move(res.value());
+    // Extract index names into vector for indexed access
+    for (const auto& pair : holder->stats.index_completeness) {
+        holder->index_names.push_back(pair.first);
+    }
+    return holder;
+}
+
+zvec_status_t zvec_collection_get_stats_struct(zvec_collection_t coll, zvec_collection_stats_t* out) {
+    auto* c = static_cast<Collection*>(coll);
+    auto* holder = stats_holder_from_coll(c);
+    if (!holder) {
+        *out = nullptr;
+        auto res = c->Stats();
+        if (!res.has_value()) {
+            return MAKE_STATUS(res.error());
+        }
+        return MAKE_STATUS(Status(StatusCode::INTERNAL_ERROR, "Failed to create stats holder"));
+    }
+    *out = static_cast<zvec_collection_stats_t>(holder);
+    return ok_status();
+}
+
+void zvec_collection_stats_free(zvec_collection_stats_t stats) {
+    delete static_cast<CollectionStatsHolder*>(stats);
+}
+
+uint64_t zvec_collection_stats_get_doc_count(zvec_collection_stats_t stats) {
+    auto* holder = static_cast<CollectionStatsHolder*>(stats);
+    return holder->stats.doc_count;
+}
+
+uint32_t zvec_collection_stats_get_index_count(zvec_collection_stats_t stats) {
+    auto* holder = static_cast<CollectionStatsHolder*>(stats);
+    return static_cast<uint32_t>(holder->index_names.size());
+}
+
+const char* zvec_collection_stats_get_index_name(zvec_collection_stats_t stats, uint32_t index) {
+    auto* holder = static_cast<CollectionStatsHolder*>(stats);
+    if (index >= holder->index_names.size()) return nullptr;
+    return holder->index_names[index].c_str();
+}
+
+float zvec_collection_stats_get_index_completeness(zvec_collection_stats_t stats, uint32_t index) {
+    auto* holder = static_cast<CollectionStatsHolder*>(stats);
+    if (index >= holder->index_names.size()) return 0.0f;
+    const auto& name = holder->index_names[index];
+    auto it = holder->stats.index_completeness.find(name);
+    if (it != holder->stats.index_completeness.end()) {
+        return it->second;
+    }
+    return 0.0f;
+}
 
 zvec_status_t zvec_collection_stats(zvec_collection_t coll, char* buf, size_t buf_size) {
     auto* c = static_cast<Collection*>(coll);
