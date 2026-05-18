@@ -143,13 +143,13 @@ try {
 }
 ?>
 --EXPECT--
-OK 1: ZVecSchema clone blocked - Call to private method ZVecSchema::__clone() from global scope
-OK 2: ZVecIndexParams clone blocked - Call to private method ZVecIndexParams::__clone() from global scope
-OK 3: ZVecVectorQuery clone blocked - Call to private method ZVecVectorQuery::__clone() from global scope
-OK 4: ZVecCollectionStats clone blocked - Call to private method ZVecCollectionStats::__clone() from global scope
-OK 5: ZVecFieldSchema clone blocked - Call to private method ZVecFieldSchema::__clone() from global scope
-OK 6: ZVecDoc clone blocked - Call to private method ZVecDoc::__clone() from global scope
-OK 7: ZVec clone blocked - Call to private method ZVec::__clone() from global scope
+OK 1: ZVecSchema clone blocked - Call to private ZVecSchema::__clone() from global scope
+OK 2: ZVecIndexParams clone blocked - Call to private ZVecIndexParams::__clone() from global scope
+OK 3: ZVecVectorQuery clone blocked - Call to private ZVecVectorQuery::__clone() from global scope
+OK 4: ZVecCollectionStats clone blocked - Call to private ZVecCollectionStats::__clone() from global scope
+OK 5: ZVecFieldSchema clone blocked - Call to private ZVecFieldSchema::__clone() from global scope
+OK 6: ZVecDoc clone blocked - Call to private ZVecDoc::__clone() from global scope
+OK 7: ZVec clone blocked - Call to private ZVec::__clone() from global scope
 OK 8: ZVecSchema normal use works
 OK 9: ZVecIndexParams normal use works
 OK 10: ZVecVectorQuery normal use works
