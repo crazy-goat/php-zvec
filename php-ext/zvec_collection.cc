@@ -1496,7 +1496,7 @@ ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_open_with, 0, 2, ZVec, 0)
     ZEND_ARG_OBJ_INFO(0, options, ZVecCollectionOptions, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_get_options, 0, 0, ZVecCollectionOptions, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zvec_get_options, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zvec_void, 0, 0, 0)
