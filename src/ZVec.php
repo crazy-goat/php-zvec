@@ -109,6 +109,26 @@ class ZVec
                                         float brute_force_by_keys_ratio,
                                         uint64_t memory_limit_mb);
 
+                typedef void* zvec_log_config_t;
+                typedef void* zvec_config_data_t;
+
+                zvec_log_config_t zvec_log_config_create_console(int level);
+                zvec_log_config_t zvec_log_config_create_file(int level, const char* dir, const char* basename, uint32_t file_size, uint32_t overdue_days);
+                void zvec_log_config_free(zvec_log_config_t config);
+
+                zvec_config_data_t zvec_config_data_create(void);
+                void zvec_config_data_free(zvec_config_data_t config);
+                void zvec_config_data_set_memory_limit(zvec_config_data_t config, uint64_t bytes);
+                void zvec_config_data_set_log_config(zvec_config_data_t config, zvec_log_config_t log_config);
+                void zvec_config_data_set_query_thread_count(zvec_config_data_t config, uint32_t count);
+                void zvec_config_data_set_optimize_thread_count(zvec_config_data_t config, uint32_t count);
+                void zvec_config_data_set_invert_to_forward_scan_ratio(zvec_config_data_t config, float ratio);
+                void zvec_config_data_set_brute_force_by_keys_ratio(zvec_config_data_t config, float ratio);
+
+                zvec_status_t zvec_ffi_initialize(zvec_config_data_t config);
+                zvec_status_t zvec_ffi_shutdown(void);
+                int zvec_ffi_is_initialized(void);
+
                 zvec_schema_t zvec_schema_create(const char* name);
                 void zvec_schema_free(zvec_schema_t schema);
                 void zvec_schema_set_max_doc_count_per_segment(zvec_schema_t schema, uint64_t count);
@@ -852,15 +872,45 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         float $bruteForceByKeysRatio = 0.0,
         int $memoryLimitMb = 0
     ): void {
-        self::checkStatus(self::ffi()->zvec_init(
-            $logType, $logLevel,
-            $logDir, $logBasename,
-            $logFileSize, $logOverdueDays,
-            $queryThreads, $optimizeThreads,
-            $invertToForwardScanRatio,
-            $bruteForceByKeysRatio,
-            $memoryLimitMb
-        ));
+        $ffi = self::ffi();
+
+        $logConfig = $logType === self::LOG_FILE
+            ? $ffi->zvec_log_config_create_file($logLevel, $logDir, $logBasename, $logFileSize, $logOverdueDays)
+            : $ffi->zvec_log_config_create_console($logLevel);
+
+        $configData = $ffi->zvec_config_data_create();
+        $ffi->zvec_config_data_set_log_config($configData, $logConfig);
+
+        if ($queryThreads > 0) {
+            $ffi->zvec_config_data_set_query_thread_count($configData, $queryThreads);
+        }
+        if ($optimizeThreads > 0) {
+            $ffi->zvec_config_data_set_optimize_thread_count($configData, $optimizeThreads);
+        }
+        if ($invertToForwardScanRatio > 0.0) {
+            $ffi->zvec_config_data_set_invert_to_forward_scan_ratio($configData, $invertToForwardScanRatio);
+        }
+        if ($bruteForceByKeysRatio > 0.0) {
+            $ffi->zvec_config_data_set_brute_force_by_keys_ratio($configData, $bruteForceByKeysRatio);
+        }
+        if ($memoryLimitMb > 0) {
+            $ffi->zvec_config_data_set_memory_limit($configData, $memoryLimitMb * 1048576);
+        }
+
+        self::checkStatus($ffi->zvec_ffi_initialize($configData));
+
+        $ffi->zvec_log_config_free($logConfig);
+        $ffi->zvec_config_data_free($configData);
+    }
+
+    public static function isInitialized(): bool
+    {
+        return self::ffi()->zvec_ffi_is_initialized() !== 0;
+    }
+
+    public static function shutdown(): void
+    {
+        self::ffi()->zvec_ffi_shutdown();
     }
 
     /**
