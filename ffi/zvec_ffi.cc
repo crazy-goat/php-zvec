@@ -1797,6 +1797,319 @@ zvec_status_t zvec_collection_delete_by_filter(zvec_collection_t coll, const cha
     return MAKE_STATUS(c->DeleteByFilter(filter));
 }
 
+// --- VectorQuery opaque object ---
+
+struct VectorQueryHolder {
+    VectorQuery query;
+    float radius_ = 0.0f;
+    bool is_linear_ = false;
+    bool is_using_refiner_ = false;
+};
+
+struct GroupByVectorQueryHolder {
+    GroupByVectorQuery query;
+    float radius_ = 0.0f;
+    bool is_linear_ = false;
+    bool is_using_refiner_ = false;
+};
+
+zvec_vector_query_t zvec_vector_query_create(void) {
+    auto* holder = new VectorQueryHolder();
+    return static_cast<zvec_vector_query_t>(holder);
+}
+
+void zvec_vector_query_free(zvec_vector_query_t q) {
+    delete static_cast<VectorQueryHolder*>(q);
+}
+
+void zvec_vector_query_set_field_name(zvec_vector_query_t q, const char* field_name) {
+    static_cast<VectorQueryHolder*>(q)->query.field_name_ = field_name ? field_name : "";
+}
+
+void zvec_vector_query_set_topk(zvec_vector_query_t q, int topk) {
+    static_cast<VectorQueryHolder*>(q)->query.topk_ = topk;
+}
+
+void zvec_vector_query_set_include_vector(zvec_vector_query_t q, int include) {
+    static_cast<VectorQueryHolder*>(q)->query.include_vector_ = (bool)include;
+}
+
+void zvec_vector_query_set_filter(zvec_vector_query_t q, const char* filter) {
+    if (filter && filter[0] != '\0') {
+        static_cast<VectorQueryHolder*>(q)->query.filter_ = filter;
+    }
+}
+
+void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fields, int count) {
+    if (fields && count >= 0) {
+        std::vector<std::string> field_vec;
+        field_vec.reserve(count);
+        for (int i = 0; i < count; i++) {
+            field_vec.emplace_back(fields[i]);
+        }
+        static_cast<VectorQueryHolder*>(q)->query.output_fields_ = std::move(field_vec);
+    }
+}
+
+void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef) {
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->query.query_params_ = std::make_shared<HnswQueryParams>(ef);
+}
+
+void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe) {
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->query.query_params_ = std::make_shared<IVFQueryParams>(nprobe);
+}
+
+void zvec_vector_query_set_flat_mode(zvec_vector_query_t q) {
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->query.query_params_ = std::make_shared<FlatQueryParams>();
+}
+
+void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius) {
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->radius_ = radius;
+    if (holder->query.query_params_) {
+        holder->query.query_params_->set_radius(radius);
+    }
+}
+
+void zvec_vector_query_set_is_linear(zvec_vector_query_t q, int is_linear) {
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->is_linear_ = (bool)is_linear;
+    if (holder->query.query_params_) {
+        holder->query.query_params_->set_is_linear((bool)is_linear);
+    }
+}
+
+void zvec_vector_query_set_using_refiner(zvec_vector_query_t q, int refiner) {
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->is_using_refiner_ = (bool)refiner;
+    if (holder->query.query_params_) {
+        holder->query.query_params_->set_is_using_refiner((bool)refiner);
+    }
+}
+
+void zvec_vector_query_set_vector_fp32(zvec_vector_query_t q, const float* data, uint32_t dim) {
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->query.query_vector_.assign(reinterpret_cast<const char*>(data), dim * sizeof(float));
+}
+
+void zvec_vector_query_set_vector_fp64(zvec_vector_query_t q, const double* data, uint32_t dim) {
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->query.query_vector_.assign(reinterpret_cast<const char*>(data), dim * sizeof(double));
+}
+
+// GroupByVectorQuery
+
+zvec_group_by_vector_query_t zvec_group_by_vector_query_create(void) {
+    auto* holder = new GroupByVectorQueryHolder();
+    return static_cast<zvec_group_by_vector_query_t>(holder);
+}
+
+void zvec_group_by_vector_query_free(zvec_group_by_vector_query_t q) {
+    delete static_cast<GroupByVectorQueryHolder*>(q);
+}
+
+void zvec_group_by_vector_query_set_field_name(zvec_group_by_vector_query_t q, const char* field_name) {
+    static_cast<GroupByVectorQueryHolder*>(q)->query.field_name_ = field_name ? field_name : "";
+}
+
+void zvec_group_by_vector_query_set_vector_fp32(zvec_group_by_vector_query_t q, const float* data, uint32_t dim) {
+    auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
+    holder->query.query_vector_.assign(reinterpret_cast<const char*>(data), dim * sizeof(float));
+}
+
+void zvec_group_by_vector_query_set_group_by_field(zvec_group_by_vector_query_t q, const char* field) {
+    static_cast<GroupByVectorQueryHolder*>(q)->query.group_by_field_name_ = field ? field : "";
+}
+
+void zvec_group_by_vector_query_set_group_count(zvec_group_by_vector_query_t q, uint32_t count) {
+    static_cast<GroupByVectorQueryHolder*>(q)->query.group_count_ = count;
+}
+
+void zvec_group_by_vector_query_set_group_topk(zvec_group_by_vector_query_t q, uint32_t topk) {
+    static_cast<GroupByVectorQueryHolder*>(q)->query.group_topk_ = topk;
+}
+
+void zvec_group_by_vector_query_set_include_vector(zvec_group_by_vector_query_t q, int include) {
+    static_cast<GroupByVectorQueryHolder*>(q)->query.include_vector_ = (bool)include;
+}
+
+void zvec_group_by_vector_query_set_filter(zvec_group_by_vector_query_t q, const char* filter) {
+    if (filter && filter[0] != '\0') {
+        static_cast<GroupByVectorQueryHolder*>(q)->query.filter_ = filter;
+    }
+}
+
+void zvec_group_by_vector_query_set_output_fields(zvec_group_by_vector_query_t q, const char** fields, int count) {
+    if (fields && count >= 0) {
+        std::vector<std::string> field_vec;
+        field_vec.reserve(count);
+        for (int i = 0; i < count; i++) {
+            field_vec.emplace_back(fields[i]);
+        }
+        static_cast<GroupByVectorQueryHolder*>(q)->query.output_fields_ = std::move(field_vec);
+    }
+}
+
+void zvec_group_by_vector_query_set_radius(zvec_group_by_vector_query_t q, float radius) {
+    auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
+    holder->radius_ = radius;
+    if (holder->query.query_params_) {
+        holder->query.query_params_->set_radius(radius);
+    }
+}
+
+void zvec_group_by_vector_query_set_is_linear(zvec_group_by_vector_query_t q, int is_linear) {
+    auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
+    holder->is_linear_ = (bool)is_linear;
+    if (holder->query.query_params_) {
+        holder->query.query_params_->set_is_linear((bool)is_linear);
+    }
+}
+
+void zvec_group_by_vector_query_set_using_refiner(zvec_group_by_vector_query_t q, int refiner) {
+    auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
+    holder->is_using_refiner_ = (bool)refiner;
+    if (holder->query.query_params_) {
+        holder->query.query_params_->set_is_using_refiner((bool)refiner);
+    }
+}
+
+// New query entry points
+
+static void fill_doc_list(const DocPtrList& doc_list, zvec_query_result_t* result);
+
+static void ensure_query_params_for_field(Collection* c, VectorQuery& query, const VectorQueryHolder* holder) {
+    // If query_params_ already set (via setHnswParams, setIvfParams, etc.), keep it
+    if (query.query_params_) return;
+
+    // If radius, is_linear, or is_using_refiner has non-default value, create params
+    if (holder->radius_ != 0.0f || holder->is_linear_ || holder->is_using_refiner_) {
+        // Try to determine the field's index type from schema
+        auto schema_res = c->Schema();
+        if (schema_res.has_value()) {
+            const FieldSchema* field = schema_res.value().get_field(query.field_name_.c_str());
+            if (field) {
+                IndexType idx_type = field->index_type();
+                switch (idx_type) {
+                    case IndexType::HNSW:
+                        query.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        return;
+                    case IndexType::IVF:
+                        query.query_params_ = std::make_shared<IVFQueryParams>(10, holder->is_using_refiner_);
+                        query.query_params_->set_radius(holder->radius_);
+                        query.query_params_->set_is_linear(holder->is_linear_);
+                        return;
+                    case IndexType::FLAT:
+                        query.query_params_ = std::make_shared<FlatQueryParams>(holder->is_using_refiner_);
+                        query.query_params_->set_radius(holder->radius_);
+                        query.query_params_->set_is_linear(holder->is_linear_);
+                        return;
+                    case IndexType::HNSW_RABITQ:
+                        query.query_params_ = std::make_shared<HnswRabitqQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        return;
+                    case IndexType::VAMANA:
+                        query.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        return;
+                    default:
+                        break;
+                }
+            }
+        }
+        // Fallback: use HNSW params if can't determine index type
+        query.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+    }
+}
+
+zvec_status_t zvec_collection_query_vector(zvec_collection_t coll, const zvec_vector_query_t q, zvec_query_result_t* result) {
+    auto* c = static_cast<Collection*>(coll);
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+
+    // Ensure query params match the field's index type if radius/linear/refiner are set
+    ensure_query_params_for_field(c, holder->query, holder);
+
+    auto res = c->Query(holder->query);
+    if (!res.has_value()) {
+        result->docs = nullptr;
+        result->count = 0;
+        return MAKE_STATUS(res.error());
+    }
+
+    fill_doc_list(res.value(), result);
+    return ok_status();
+}
+
+zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, const zvec_group_by_vector_query_t q, zvec_group_results_t* result) {
+    auto* c = static_cast<Collection*>(coll);
+    auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
+
+    // Ensure query params match the field's index type if radius/linear/refiner are set
+    if (!holder->query.query_params_ && (holder->radius_ != 0.0f || holder->is_linear_ || holder->is_using_refiner_)) {
+        auto schema_res = c->Schema();
+        if (schema_res.has_value()) {
+            const FieldSchema* field = schema_res.value().get_field(holder->query.field_name_.c_str());
+            if (field) {
+                IndexType idx_type = field->index_type();
+                switch (idx_type) {
+                    case IndexType::HNSW:
+                        holder->query.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        break;
+                    case IndexType::IVF:
+                        holder->query.query_params_ = std::make_shared<IVFQueryParams>(10, holder->is_using_refiner_);
+                        holder->query.query_params_->set_radius(holder->radius_);
+                        holder->query.query_params_->set_is_linear(holder->is_linear_);
+                        break;
+                    case IndexType::FLAT:
+                        holder->query.query_params_ = std::make_shared<FlatQueryParams>(holder->is_using_refiner_);
+                        holder->query.query_params_->set_radius(holder->radius_);
+                        holder->query.query_params_->set_is_linear(holder->is_linear_);
+                        break;
+                    case IndexType::HNSW_RABITQ:
+                        holder->query.query_params_ = std::make_shared<HnswRabitqQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        break;
+                    case IndexType::VAMANA:
+                        holder->query.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        break;
+                    default:
+                        holder->query.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        break;
+                }
+            }
+        }
+    }
+
+    auto res = c->GroupByQuery(holder->query);
+    if (!res.has_value()) {
+        result->groups = nullptr;
+        result->count = 0;
+        return MAKE_STATUS(res.error());
+    }
+
+    auto& groups = res.value();
+    result->count = static_cast<int>(groups.size());
+    if (result->count > 0) {
+        result->groups = new zvec_group_result_t[result->count];
+        for (int i = 0; i < result->count; i++) {
+            result->groups[i].docs = nullptr;
+            result->groups[i].count = 0;
+            result->groups[i].group_by_value = strdup(groups[i].group_by_value_.c_str());
+            int doc_count = static_cast<int>(groups[i].docs_.size());
+            result->groups[i].count = doc_count;
+            if (doc_count > 0) {
+                result->groups[i].docs = new zvec_doc_t[doc_count];
+                for (int j = 0; j < doc_count; j++) {
+                    result->groups[i].docs[j] = static_cast<zvec_doc_t>(new Doc(groups[i].docs_[j]));
+                }
+            }
+        }
+    } else {
+        result->groups = nullptr;
+    }
+    return ok_status();
+}
+
 // --- Fetch ---
 
 zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result) {
