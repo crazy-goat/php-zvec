@@ -270,6 +270,20 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
                 int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size);
                 int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size);
 
+                // Enhanced Doc API
+                void zvec_doc_set_field_null(zvec_doc_t doc, const char* field);
+                int zvec_doc_is_field_null(zvec_doc_t doc, const char* field);
+                void zvec_doc_remove_field(zvec_doc_t doc, const char* field);
+                void zvec_doc_merge(zvec_doc_t doc, zvec_doc_t other);
+                zvec_status_t zvec_doc_serialize(zvec_doc_t doc, uint8_t** data, size_t* size);
+                void zvec_free_serialized(uint8_t* data);
+                zvec_status_t zvec_doc_deserialize(const uint8_t* data, size_t size, zvec_doc_t* out);
+                int zvec_doc_is_empty(zvec_doc_t doc);
+                void zvec_doc_clear(zvec_doc_t doc);
+                size_t zvec_doc_memory_usage(zvec_doc_t doc);
+                void zvec_doc_set_operator(zvec_doc_t doc, int op);
+                int zvec_doc_get_operator(zvec_doc_t doc);
+
                 zvec_status_t zvec_collection_insert(zvec_collection_t coll, zvec_doc_t* docs, int count);
                 zvec_status_t zvec_collection_upsert(zvec_collection_t coll, zvec_doc_t* docs, int count);
                 zvec_status_t zvec_collection_update(zvec_collection_t coll, zvec_doc_t* docs, int count);
@@ -383,7 +397,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         return self::$ffi;
     }
 
-    private static function checkStatus(FFI\CData $status): void
+    public static function checkStatus(FFI\CData $status): void
     {
         if ($status->code !== 0) {
             $ffi = self::ffi();
@@ -2748,6 +2762,88 @@ class ZVecDoc
         $str = FFI::string($buf);
         return $str === '' ? [] : explode("\n", $str);
     }
+
+    // --- Enhanced Doc API ---
+
+    public function setFieldNull(string $field): self
+    {
+        self::ffi()->zvec_doc_set_field_null($this->handle, $field);
+        return $this;
+    }
+
+    public function isFieldNull(string $field): bool
+    {
+        return self::ffi()->zvec_doc_is_field_null($this->handle, $field) !== 0;
+    }
+
+    public function removeField(string $field): self
+    {
+        self::ffi()->zvec_doc_remove_field($this->handle, $field);
+        return $this;
+    }
+
+    public function merge(ZVecDoc $other): self
+    {
+        self::ffi()->zvec_doc_merge($this->handle, $other->handle);
+        return $this;
+    }
+
+    public function serialize(): string
+    {
+        $ffi = self::ffi();
+        $data = $ffi->new('uint8_t*');
+        $size = $ffi->new('size_t');
+        ZVec::checkStatus($ffi->zvec_doc_serialize($this->handle, FFI::addr($data), FFI::addr($size)));
+        if ($size->cdata === 0) {
+            return '';
+        }
+        $result = FFI::string($data, $size->cdata);
+        $ffi->zvec_free_serialized($data);
+        return $result;
+    }
+
+    public static function deserialize(string $data): self
+    {
+        $ffi = self::ffi();
+        $size = strlen($data);
+        $buf = $ffi->new("uint8_t[$size]", false);
+        FFI::memcpy($buf, $data, $size);
+        $out = $ffi->new('zvec_doc_t');
+        ZVec::checkStatus($ffi->zvec_doc_deserialize($buf, $size, FFI::addr($out)));
+        return new self($out, true);
+    }
+
+    public function isEmpty(): bool
+    {
+        return self::ffi()->zvec_doc_is_empty($this->handle) !== 0;
+    }
+
+    public function clear(): self
+    {
+        self::ffi()->zvec_doc_clear($this->handle);
+        return $this;
+    }
+
+    public function getMemoryUsage(): int
+    {
+        return self::ffi()->zvec_doc_memory_usage($this->handle);
+    }
+
+    public function setOperator(int $op): self
+    {
+        self::ffi()->zvec_doc_set_operator($this->handle, $op);
+        return $this;
+    }
+
+    public function getOperator(): int
+    {
+        return self::ffi()->zvec_doc_get_operator($this->handle);
+    }
+
+    public const OP_INSERT = 0;
+    public const OP_UPDATE = 1;
+    public const OP_UPSERT = 2;
+    public const OP_DELETE = 3;
 
     private static function ffi(): FFI
     {

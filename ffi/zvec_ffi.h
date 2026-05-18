@@ -238,6 +238,20 @@ int zvec_doc_has_vector(zvec_doc_t doc, const char* field);
 int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size);
 int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size);
 
+// Enhanced Doc API
+void zvec_doc_set_field_null(zvec_doc_t doc, const char* field);
+int zvec_doc_is_field_null(zvec_doc_t doc, const char* field);
+void zvec_doc_remove_field(zvec_doc_t doc, const char* field);
+void zvec_doc_merge(zvec_doc_t doc, zvec_doc_t other);
+zvec_status_t zvec_doc_serialize(zvec_doc_t doc, uint8_t** data, size_t* size);
+void zvec_free_serialized(uint8_t* data);
+zvec_status_t zvec_doc_deserialize(const uint8_t* data, size_t size, zvec_doc_t* out);
+int zvec_doc_is_empty(zvec_doc_t doc);
+void zvec_doc_clear(zvec_doc_t doc);
+size_t zvec_doc_memory_usage(zvec_doc_t doc);
+void zvec_doc_set_operator(zvec_doc_t doc, int op);
+int zvec_doc_get_operator(zvec_doc_t doc);
+
 // Insert / Upsert / Update / Delete
 zvec_status_t zvec_collection_insert(zvec_collection_t coll, zvec_doc_t* docs, int count);
 zvec_status_t zvec_collection_upsert(zvec_collection_t coll, zvec_doc_t* docs, int count);
