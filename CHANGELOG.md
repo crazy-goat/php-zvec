@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **BUG-011: Clone-Safety Double-Free in Handle-Holding Classes** (#58)
+  - Added `private function __clone()` to `ZVec`, `ZVecSchema`, `ZVecIndexParams`, `ZVecCollectionStats`, `ZVecFieldSchema`, `ZVecDoc`, and `ZVecVectorQuery`
+  - Cloning any of these classes now throws `\Error` instead of creating a shallow copy that causes double-free on destruction
+  - Added `tests/bug_0011.phpt` — 13 test scenarios covering clone prevention and normal use verification
+
 - **BUG-012: `query()` with `ZVecVectorQuery` ignores query object's `topk`, `includeVector`, and `filter`** (#59)
   - Added `topk`, `includeVector`, `filter` public properties to `ZVecVectorQuery`
   - `setTopk()`, `setIncludeVector()`, `setFilter()` now store values in properties
