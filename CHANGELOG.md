@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **BUG-012: `query()` with `ZVecVectorQuery` ignores query object's `topk`, `includeVector`, and `filter`** (#59)
+  - Added `topk`, `includeVector`, `filter` public properties to `ZVecVectorQuery`
+  - `setTopk()`, `setIncludeVector()`, `setFilter()` now store values in properties
+  - `query()` extracts `topk`, `includeVector`, `filter` from query object
+  - `groupByQuery()` extracts `includeVector` and `filter` from query object (topk not applicable — use `groupTopk`)
+  - Method signature parameters act as fallback when query object properties not set
+  - Added `tests/bug_0012.phpt` — 5 test scenarios verifying ZVecVectorQuery topk/filter/includeVector
+
 - **BUG-003: WeightedReRanker produces wrong normalization for negative IP scores** (#50)
   - `PHP_FLOAT_MIN` (smallest positive float) replaced with `-PHP_FLOAT_MAX` (most negative finite float) as initial `max` value in score normalization — fixes incorrect min-max normalization when all scores are negative (IP, COSINE metrics)
   - Magic number `1` replaced with `ZVecSchema::METRIC_L2` named constant for readability and maintainability
