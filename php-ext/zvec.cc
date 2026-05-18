@@ -6,6 +6,7 @@ extern "C" {
 
 PHP_MINIT_FUNCTION(zvec) {
     zvec_register_exception(INIT_FUNC_ARGS_PASSTHRU);
+    zvec_register_collection_options(INIT_FUNC_ARGS_PASSTHRU);
     zvec_register_schema(INIT_FUNC_ARGS_PASSTHRU);
     zvec_register_doc(INIT_FUNC_ARGS_PASSTHRU);
     zvec_register_vector_query(INIT_FUNC_ARGS_PASSTHRU);

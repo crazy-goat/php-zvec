@@ -18,6 +18,7 @@ PHP_MSHUTDOWN_FUNCTION(zvec);
 PHP_MINFO_FUNCTION(zvec);
 
 void zvec_register_exception(INIT_FUNC_ARGS);
+void zvec_register_collection_options(INIT_FUNC_ARGS);
 void zvec_register_schema(INIT_FUNC_ARGS);
 void zvec_register_doc(INIT_FUNC_ARGS);
 void zvec_register_vector_query(INIT_FUNC_ARGS);
@@ -31,6 +32,7 @@ void zvec_register_openai_embedding(INIT_FUNC_ARGS);
 void zvec_register_qwen_embedding(INIT_FUNC_ARGS);
 
 extern zend_class_entry *zvec_exception_ce;
+extern zend_class_entry *zvec_collection_options_ce;
 extern zend_class_entry *zvec_schema_ce;
 extern zend_class_entry *zvec_doc_ce;
 extern zend_class_entry *zvec_vector_query_ce;
