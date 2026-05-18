@@ -25,6 +25,19 @@ typedef struct {
     char** doc_pks;       // Array of document primary keys
 } zvec_batch_result_t;
 
+// Error details
+typedef struct {
+    int code;
+    const char* message;
+    const char* file;
+    int line;
+    const char* function;
+} zvec_error_details_t;
+
+int zvec_get_last_error_details(zvec_error_details_t* out);
+void zvec_clear_error(void);
+const char* zvec_error_code_to_string(int error_code);
+
 // Global init (call once before any other operation)
 // log_type: 0=console, 1=file
 // log_level: 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=FATAL
