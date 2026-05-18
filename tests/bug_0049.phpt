@@ -1,7 +1,7 @@
 --TEST--
 Bug 0049: ZVecGroupByVectorQuery inherited methods call wrong FFI functions (UB)
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';

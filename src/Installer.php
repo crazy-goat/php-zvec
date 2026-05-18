@@ -37,15 +37,24 @@ class Installer
 
         echo "Downloading zvec FFI library {$version} for " . self::platformLabel() . "...\n";
 
-        $tmpFile = tempnam(sys_get_temp_dir(), 'zvec_ffi_') . '.tar.gz';
+        $tmpDir = sys_get_temp_dir() . '/zvec_ffi_' . bin2hex(random_bytes(8));
+        if (!mkdir($tmpDir, 0700)) {
+            throw new RuntimeException("Failed to create temporary directory");
+        }
+        $tmpFile = $tmpDir . '/download.tar.gz';
 
         try {
             self::download($url, $tmpFile);
+
+            $expectedHash = self::getExpectedHash($version, $assetName);
+            self::verifyChecksum($tmpFile, $expectedHash);
+
             self::extract($tmpFile, $libDir);
         } finally {
             if (file_exists($tmpFile)) {
                 unlink($tmpFile);
             }
+            exec("rm -rf " . escapeshellarg($tmpDir));
         }
 
         if (!file_exists($libPath)) {
@@ -53,6 +62,17 @@ class Installer
         }
 
         echo "zvec FFI library installed at {$libPath}\n";
+    }
+
+    public static function verifyChecksum(string $filePath, string $expectedHash): void
+    {
+        $actualHash = hash_file('sha256', $filePath);
+        if (!hash_equals($expectedHash, $actualHash)) {
+            throw new RuntimeException(
+                "Checksum mismatch for " . basename($filePath) . ". " .
+                "Expected: {$expectedHash}, Got: {$actualHash}"
+            );
+        }
     }
 
     public static function platformLabel(): string
@@ -134,12 +154,41 @@ class Installer
 
     private static function download(string $url, string $dest): void
     {
-        $ctx = stream_context_create(['http' => ['header' => "User-Agent: crazy-goat/zvec-installer\r\n"]]);
-        $data = @file_get_contents($url, false, $ctx);
+        $ctx = stream_context_create([
+            'https' => [
+                'header' => "User-Agent: crazy-goat/zvec-installer\r\n",
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+        $data = file_get_contents($url, false, $ctx);
         if ($data === false) {
             throw new RuntimeException("Failed to download: {$url}");
         }
         file_put_contents($dest, $data);
+    }
+
+    private static function getExpectedHash(string $version, string $assetName): string
+    {
+        $sumsUrl = "https://github.com/" . self::GITHUB_REPO . "/releases/download/{$version}/checksums.sha256";
+        $ctx = stream_context_create([
+            'https' => [
+                'header' => "User-Agent: crazy-goat/zvec-installer\r\n",
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+        $sumsContent = @file_get_contents($sumsUrl, false, $ctx);
+        if ($sumsContent === false) {
+            throw new RuntimeException("Cannot fetch checksums for {$version}");
+        }
+        foreach (explode("\n", $sumsContent) as $line) {
+            $parts = preg_split('/\s+/', trim($line));
+            if (count($parts) >= 2 && $parts[1] === $assetName) {
+                return strtolower($parts[0]);
+            }
+        }
+        throw new RuntimeException("No checksum found for {$assetName} in release {$version}");
     }
 
     private static function extract(string $tarGz, string $destDir): void
