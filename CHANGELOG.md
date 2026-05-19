@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **SMELL-004: Triplicated Insert/Upsert/Update Code** (#85)
+  - Extracted shared `writeDocs()` and `writeDocsBatch()` private helpers from `insert()`, `upsert()`, `update()` and their batch variants
+  - Each public method is now a 1-line wrapper around the shared helper
+  - Eliminated ~74 lines of duplicated code — bug fixes to write logic now apply to all 6 operations at once
+  - Added `tests/test_write_helpers.phpt` — comprehensive test covering all 6 operations, error paths (duplicate insert, non-existent update)
+
 ### Fixed
 
 - **BUG-011: Clone-Safety Double-Free in Handle-Holding Classes** (#58)
