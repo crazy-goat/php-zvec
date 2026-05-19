@@ -794,9 +794,12 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             $cStrings[] = $cStr;
             $arr[$i] = $cStr;
         }
-        self::checkStatus($ffi->zvec_collection_delete($this->handle, $arr, $count));
-        foreach ($cStrings as $cStr) {
-            FFI::free($cStr);
+        try {
+            self::checkStatus($ffi->zvec_collection_delete($this->handle, $arr, $count));
+        } finally {
+            foreach ($cStrings as $cStr) {
+                FFI::free($cStr);
+            }
         }
     }
 
