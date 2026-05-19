@@ -717,7 +717,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $this->createIndex($fieldName, ZVecIndexParams::forIvf($metricType, $nList, $nIters, $useSoar, $quantizeType), $concurrency);
     }
 
-    public function insert(ZVecDoc ...$docs): void
+    private function writeDocs(string $operation, ZVecDoc ...$docs): void
     {
         $this->checkClosed();
         $ffi = self::ffi();
@@ -726,37 +726,19 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         foreach ($docs as $i => $doc) {
             $arr[$i] = $doc->getHandle();
         }
-        self::checkStatus($ffi->zvec_collection_insert($this->handle, $arr, $count));
+        self::checkStatus($ffi->{"zvec_collection_{$operation}"}($this->handle, $arr, $count));
     }
 
-    public function upsert(ZVecDoc ...$docs): void
-    {
-        $this->checkClosed();
-        $ffi = self::ffi();
-        $count = count($docs);
-        $arr = $ffi->new("zvec_doc_t[$count]");
-        foreach ($docs as $i => $doc) {
-            $arr[$i] = $doc->getHandle();
-        }
-        self::checkStatus($ffi->zvec_collection_upsert($this->handle, $arr, $count));
-    }
+    public function insert(ZVecDoc ...$docs): void { $this->writeDocs('insert', ...$docs); }
 
-    public function update(ZVecDoc ...$docs): void
-    {
-        $this->checkClosed();
-        $ffi = self::ffi();
-        $count = count($docs);
-        $arr = $ffi->new("zvec_doc_t[$count]");
-        foreach ($docs as $i => $doc) {
-            $arr[$i] = $doc->getHandle();
-        }
-        self::checkStatus($ffi->zvec_collection_update($this->handle, $arr, $count));
-    }
+    public function upsert(ZVecDoc ...$docs): void { $this->writeDocs('upsert', ...$docs); }
+
+    public function update(ZVecDoc ...$docs): void { $this->writeDocs('update', ...$docs); }
 
     /**
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
      */
-    public function insertBatch(ZVecDoc ...$docs): array
+    private function writeDocsBatch(string $operation, ZVecDoc ...$docs): array
     {
         $this->checkClosed();
         $ffi = self::ffi();
@@ -765,10 +747,10 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         foreach ($docs as $i => $doc) {
             $arr[$i] = $doc->getHandle();
         }
-        
+
         $result = $ffi->new('zvec_batch_result_t');
-        self::checkStatus($ffi->zvec_collection_insert_batch($this->handle, $arr, $count, FFI::addr($result)));
-        
+        self::checkStatus($ffi->{"zvec_collection_{$operation}_batch"}($this->handle, $arr, $count, FFI::addr($result)));
+
         $results = [];
         for ($i = 0; $i < $result->count; $i++) {
             $results[] = [
@@ -777,7 +759,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
                 'error' => $result->messages[$i] !== null ? FFI::string($result->messages[$i]) : null,
             ];
         }
-        
+
         $ffi->zvec_batch_result_free(FFI::addr($result));
         return $results;
     }
@@ -785,60 +767,17 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     /**
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
      */
-    public function upsertBatch(ZVecDoc ...$docs): array
-    {
-        $this->checkClosed();
-        $ffi = self::ffi();
-        $count = count($docs);
-        $arr = $ffi->new("zvec_doc_t[$count]");
-        foreach ($docs as $i => $doc) {
-            $arr[$i] = $doc->getHandle();
-        }
-        
-        $result = $ffi->new('zvec_batch_result_t');
-        self::checkStatus($ffi->zvec_collection_upsert_batch($this->handle, $arr, $count, FFI::addr($result)));
-        
-        $results = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $results[] = [
-                'pk' => FFI::string($result->doc_pks[$i]),
-                'ok' => $result->codes[$i] === 0,
-                'error' => $result->messages[$i] !== null ? FFI::string($result->messages[$i]) : null,
-            ];
-        }
-        
-        $ffi->zvec_batch_result_free(FFI::addr($result));
-        return $results;
-    }
+    public function insertBatch(ZVecDoc ...$docs): array { return $this->writeDocsBatch('insert', ...$docs); }
 
     /**
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
      */
-    public function updateBatch(ZVecDoc ...$docs): array
-    {
-        $this->checkClosed();
-        $ffi = self::ffi();
-        $count = count($docs);
-        $arr = $ffi->new("zvec_doc_t[$count]");
-        foreach ($docs as $i => $doc) {
-            $arr[$i] = $doc->getHandle();
-        }
-        
-        $result = $ffi->new('zvec_batch_result_t');
-        self::checkStatus($ffi->zvec_collection_update_batch($this->handle, $arr, $count, FFI::addr($result)));
-        
-        $results = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $results[] = [
-                'pk' => FFI::string($result->doc_pks[$i]),
-                'ok' => $result->codes[$i] === 0,
-                'error' => $result->messages[$i] !== null ? FFI::string($result->messages[$i]) : null,
-            ];
-        }
-        
-        $ffi->zvec_batch_result_free(FFI::addr($result));
-        return $results;
-    }
+    public function upsertBatch(ZVecDoc ...$docs): array { return $this->writeDocsBatch('upsert', ...$docs); }
+
+    /**
+     * @return array<int, array{pk: string, ok: bool, error: string|null}>
+     */
+    public function updateBatch(ZVecDoc ...$docs): array { return $this->writeDocsBatch('update', ...$docs); }
 
     public function delete(string ...$pks): void
     {
