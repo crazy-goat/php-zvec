@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **BUG-007: Memory Leak in `ZVecDoc::deserialize()` — Buffer Never Freed** (#54)
+  - Wrapped C buffer allocation/cleanup in `try-finally` to guarantee `FFI::free($buf)` runs even on exception
+  - Previously `$buf` was allocated with `owned=false` and never freed — leaked on every call
+  - Added `tests/bug_0054.phpt` — serialize/deserialize round-trip, fetched doc round-trip, 20-cycle stress test, minimal PK-only deserialization
+
 - **BUG-011: Clone-Safety Double-Free in Handle-Holding Classes** (#58)
   - Added `private function __clone()` to `ZVec`, `ZVecSchema`, `ZVecIndexParams`, `ZVecCollectionStats`, `ZVecFieldSchema`, `ZVecDoc`, and `ZVecVectorQuery`
   - Cloning any of these classes now throws `\Error` instead of creating a shallow copy that causes double-free on destruction
