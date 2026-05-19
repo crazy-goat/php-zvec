@@ -3420,9 +3420,13 @@ class ZVecDoc
         $size = strlen($data);
         $buf = $ffi->new("uint8_t[$size]", false);
         FFI::memcpy($buf, $data, $size);
-        $out = $ffi->new('zvec_doc_t');
-        ZVec::checkStatus($ffi->zvec_doc_deserialize($buf, $size, FFI::addr($out)));
-        return new self($out, true);
+        try {
+            $out = $ffi->new('zvec_doc_t');
+            ZVec::checkStatus($ffi->zvec_doc_deserialize($buf, $size, FFI::addr($out)));
+            return new self($out, true);
+        } finally {
+            FFI::free($buf);
+        }
     }
 
     public function isEmpty(): bool
