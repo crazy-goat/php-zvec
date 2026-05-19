@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **SEC-002: Replace predictable tempnam() with cryptographically random temp directory to prevent symlink race** (#71)
+  - Replaced `tempnam()` + `.tar.gz` suffix with `mkdir()` + `random_bytes(8)` + `bin2hex()` for secure temp directory creation
+  - Temp directory created with 0700 permissions (only current user can access)
+  - 128-bit cryptographic randomness makes path prediction infeasible
+  - `finally` block does `rm -rf` on entire temp directory, eliminating orphaned files
+  - Added `tests/test_installer_tempdir.phpt` — verifies 0700 permissions, file creation inside secure dir, cleanup, and unique name generation
+  - Added `tests/test_installer_tempdir_cleanup.phpt` — verifies cleanup after success and failure, concurrent installation isolation, and missing-temp-file edge case
+  - Added `SECURITY.md` — documents the TOCTOU/symlink mitigation
+
+- **SEC-001: Add SHA-256 integrity verification for downloaded FFI shared library** (#70)
+  - `Installer::install()` now verifies SHA-256 checksum before extracting the downloaded archive
+  - Timing-safe comparison via `hash_equals()`
+  - Added `Installer::verifyChecksum()` public method
+  - Added `tests/test_installer_checksum.phpt` — 5 test scenarios covering valid checksum, mismatch, empty file, binary content, and recomputed hash
+
 ### Changed
 
 - **SMELL-004: Triplicated Insert/Upsert/Update Code** (#85)

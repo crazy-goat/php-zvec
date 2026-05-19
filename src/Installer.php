@@ -11,6 +11,19 @@ class Installer
     private const GITHUB_REPO = 'crazy-goat/php-zvec';
     private const LIB_DIR = __DIR__ . '/../lib';
 
+    /**
+     * Download and install the FFI shared library for the current platform.
+     *
+     * Uses a cryptographically random temp directory (128-bit via random_bytes(8) + bin2hex)
+     * to prevent symlink race attacks (TOCTOU). The temp directory is created with 0700
+     * permissions and is recursively removed in the finally block.
+     *
+     * SHA-256 checksum verification is performed before extraction to ensure integrity
+     * of the downloaded archive (see verifyChecksum()).
+     *
+     * @param string|null $version Release version tag (e.g., "v0.4.10"). Auto-detected from composer if null.
+     * @throws RuntimeException On download failure, checksum mismatch, extraction failure, or missing lib in archive.
+     */
     public static function install(?string $version = null): void
     {
         $assetName = self::resolveAssetName();
