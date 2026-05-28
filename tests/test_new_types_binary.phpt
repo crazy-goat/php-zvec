@@ -10,7 +10,7 @@ $path = __DIR__ . '/../test_dbs/binary_' . uniqid();
 try {
     $schema = new ZVecSchema('test');
     $schema->addVectorFp32('vec', dimension: 4, metricType: ZVecSchema::METRIC_IP);
-    $schema->addFieldBinary('bin');
+    $schema->addBinary('bin');
     $coll = ZVec::create($path, $schema);
 
     $doc = new ZVecDoc('d1');

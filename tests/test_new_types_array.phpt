@@ -10,14 +10,14 @@ $path = __DIR__ . '/../test_dbs/array_' . uniqid();
 try {
     $schema = new ZVecSchema('test');
     $schema->addVectorFp32('vec', dimension: 4, metricType: ZVecSchema::METRIC_IP);
-    $schema->addFieldArrayInt32('i32');
-    $schema->addFieldArrayInt64('i64');
-    $schema->addFieldArrayUint32('u32');
-    $schema->addFieldArrayUint64('u64');
-    $schema->addFieldArrayFloat('f32');
-    $schema->addFieldArrayDouble('f64');
-    $schema->addFieldArrayString('strs');
-    $schema->addFieldArrayBool('bools');
+    $schema->addArrayInt32('i32');
+    $schema->addArrayInt64('i64');
+    $schema->addArrayUint32('u32');
+    $schema->addArrayUint64('u64');
+    $schema->addArrayFloat('f32');
+    $schema->addArrayDouble('f64');
+    $schema->addArrayString('strs');
+    $schema->addArrayBool('bools');
     $coll = ZVec::create($path, $schema);
 
     $doc = new ZVecDoc('d1');

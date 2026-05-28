@@ -208,6 +208,19 @@ PHP 8.1+ required. Always use `declare(strict_types=1);` at the top of every fil
 | Parameters         | camelCase         | `$fieldName`, `$queryVector`        |
 | Private properties | camelCase (no `_` prefix) | `$handle`, `$closed`       |
 
+#### Schema Field Method Conventions
+
+`ZVecSchema` uses four naming patterns for field-adding methods:
+
+| Pattern | Examples | Description |
+|---------|----------|-------------|
+| `add<Type>()` | `addInt64()`, `addString()`, `addBool()`, `addBinary()` | Scalar and primitive types — no prefix |
+| `addArray<Type>()` | `addArrayInt32()`, `addArrayString()`, `addArrayBool()` | Array types — `Array` infix |
+| `addVector<Type>()` | `addVectorFp32()`, `addVectorBinary64()` | Dense vector types — `Vector` prefix |
+| `addSparseVector<Type>()` | `addSparseVectorFp32()`, `addSparseVectorFp16()` | Sparse vector types — `SparseVector` prefix |
+
+The deprecated `addField*()` methods (`addFieldBinary()`, `addFieldArrayString()`, etc.) remain as backward-compatible aliases that emit `E_USER_DEPRECATED` warnings.
+
 ### Type System
 
 - Use full type declarations on all properties, parameters, and return types.
