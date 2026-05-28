@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **SMELL-016: Dropped `Field` prefix from schema field methods** (#107)
+  - New unprefixed methods: `addBinary()`, `addArrayString()`, `addArrayBool()`,
+    `addArrayInt32()`, `addArrayInt64()`, `addArrayUint32()`, `addArrayUint64()`,
+    `addArrayFloat()`, `addArrayDouble()`
+  - All existing `addField*()` methods remain as deprecated aliases
+  - Updated all internal call sites to use new method names
+
+### Deprecated
+
+- `addFieldBinary()` — use `addBinary()` instead
+- `addFieldArrayString()` — use `addArrayString()` instead
+- `addFieldArrayBool()` — use `addArrayBool()` instead
+- `addFieldArrayInt32()` — use `addArrayInt32()` instead
+- `addFieldArrayInt64()` — use `addArrayInt64()` instead
+- `addFieldArrayUint32()` — use `addArrayUint32()` instead
+- `addFieldArrayUint64()` — use `addArrayUint64()` instead
+- `addFieldArrayFloat()` — use `addArrayFloat()` instead
+- `addFieldArrayDouble()` — use `addArrayDouble()` instead
+
 ### Security
 
 - **SEC-002: Replace predictable tempnam() with cryptographically random temp directory to prevent symlink race** (#71)

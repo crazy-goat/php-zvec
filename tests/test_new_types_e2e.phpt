@@ -11,9 +11,9 @@ try {
     $schema = new ZVecSchema('test');
     $schema->addVectorFp32('fp32', dimension: 4, metricType: ZVecSchema::METRIC_IP);
     $schema->addSparseVectorFp16('sv16', metricType: ZVecSchema::METRIC_IP);
-    $schema->addFieldBinary('bin');
-    $schema->addFieldArrayInt32('ids');
-    $schema->addFieldArrayString('tags');
+    $schema->addBinary('bin');
+    $schema->addArrayInt32('ids');
+    $schema->addArrayString('tags');
     $coll = ZVec::create($path, $schema);
 
     $doc = new ZVecDoc('d1');

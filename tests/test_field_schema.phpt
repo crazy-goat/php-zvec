@@ -22,8 +22,8 @@ try {
         ->addVectorFp16('vecf16', dimension: 16, metricType: ZVecSchema::METRIC_L2)
         ->addVectorInt8('veci8', dimension: 32, metricType: ZVecSchema::METRIC_IP)
         ->addSparseVectorFp32('sparse', metricType: ZVecSchema::METRIC_IP)
-        ->addFieldArrayInt32('arr_i32')
-        ->addFieldArrayString('arr_str');
+        ->addArrayInt32('arr_i32')
+        ->addArrayString('arr_str');
     $c = ZVec::create($path, $schema);
 
     // Test 1: Basic scalar field introspection

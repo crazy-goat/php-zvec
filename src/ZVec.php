@@ -2467,55 +2467,118 @@ class ZVecSchema
         return $this;
     }
 
+    /** @deprecated Use addBinary() instead */
     public function addFieldBinary(string $name, bool $nullable = true): self
+    {
+        trigger_error('addFieldBinary() is deprecated, use addBinary() instead', E_USER_DEPRECATED);
+        return $this->addBinary($name, $nullable);
+    }
+
+    public function addBinary(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_binary($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @deprecated Use addArrayString() instead */
     public function addFieldArrayString(string $name, bool $nullable = true): self
+    {
+        trigger_error('addFieldArrayString() is deprecated, use addArrayString() instead', E_USER_DEPRECATED);
+        return $this->addArrayString($name, $nullable);
+    }
+
+    public function addArrayString(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_string($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @deprecated Use addArrayBool() instead */
     public function addFieldArrayBool(string $name, bool $nullable = true): self
+    {
+        trigger_error('addFieldArrayBool() is deprecated, use addArrayBool() instead', E_USER_DEPRECATED);
+        return $this->addArrayBool($name, $nullable);
+    }
+
+    public function addArrayBool(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_bool($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @deprecated Use addArrayInt32() instead */
     public function addFieldArrayInt32(string $name, bool $nullable = true): self
+    {
+        trigger_error('addFieldArrayInt32() is deprecated, use addArrayInt32() instead', E_USER_DEPRECATED);
+        return $this->addArrayInt32($name, $nullable);
+    }
+
+    public function addArrayInt32(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_int32($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @deprecated Use addArrayInt64() instead */
     public function addFieldArrayInt64(string $name, bool $nullable = true): self
+    {
+        trigger_error('addFieldArrayInt64() is deprecated, use addArrayInt64() instead', E_USER_DEPRECATED);
+        return $this->addArrayInt64($name, $nullable);
+    }
+
+    public function addArrayInt64(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_int64($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @deprecated Use addArrayUint32() instead */
     public function addFieldArrayUint32(string $name, bool $nullable = true): self
+    {
+        trigger_error('addFieldArrayUint32() is deprecated, use addArrayUint32() instead', E_USER_DEPRECATED);
+        return $this->addArrayUint32($name, $nullable);
+    }
+
+    public function addArrayUint32(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_uint32($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @deprecated Use addArrayUint64() instead */
     public function addFieldArrayUint64(string $name, bool $nullable = true): self
+    {
+        trigger_error('addFieldArrayUint64() is deprecated, use addArrayUint64() instead', E_USER_DEPRECATED);
+        return $this->addArrayUint64($name, $nullable);
+    }
+
+    public function addArrayUint64(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_uint64($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @deprecated Use addArrayFloat() instead */
     public function addFieldArrayFloat(string $name, bool $nullable = true): self
+    {
+        trigger_error('addFieldArrayFloat() is deprecated, use addArrayFloat() instead', E_USER_DEPRECATED);
+        return $this->addArrayFloat($name, $nullable);
+    }
+
+    public function addArrayFloat(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_float($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @deprecated Use addArrayDouble() instead */
     public function addFieldArrayDouble(string $name, bool $nullable = true): self
+    {
+        trigger_error('addFieldArrayDouble() is deprecated, use addArrayDouble() instead', E_USER_DEPRECATED);
+        return $this->addArrayDouble($name, $nullable);
+    }
+
+    public function addArrayDouble(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_double($this->handle, $name, $nullable ? 1 : 0);
         return $this;
