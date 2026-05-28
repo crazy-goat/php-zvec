@@ -948,10 +948,12 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             $ffi->zvec_config_data_set_memory_limit($configData, $memoryLimitMb * 1048576);
         }
 
-        self::checkStatus($ffi->zvec_ffi_initialize($configData));
-
-        $ffi->zvec_log_config_free($logConfig);
-        $ffi->zvec_config_data_free($configData);
+        try {
+            self::checkStatus($ffi->zvec_ffi_initialize($configData));
+        } finally {
+            $ffi->zvec_log_config_free($logConfig);
+            $ffi->zvec_config_data_free($configData);
+        }
     }
 
     public static function isInitialized(): bool

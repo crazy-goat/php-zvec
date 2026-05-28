@@ -49,6 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `setTopk()`, `setIncludeVector()`, `setFilter()` now store values in properties
   - `query()` extracts `topk`, `includeVector`, `filter` from query object
 
+- **BUG-004: Memory Leak in `ZVec::init()` on Exception** (#51)
+  - Wrapped `checkStatus($ffi->zvec_ffi_initialize($configData))` and the two `free()` calls in `try-finally` to guarantee `zvec_log_config_free()` and `zvec_config_data_free()` run even when `zvec_ffi_initialize()` returns a non-zero status
+  - Previously C-allocated `$logConfig` and `$configData` leaked on every failed initialization attempt
+  - Added `tests/bug_0051_init_memory_leak.phpt` — 5-cycle init/shutdown stress test with memory growth tracking
+
 - **BUG-006: Memory Leak in `query()` and Related Methods on Exception** (#53)
   - Wrapped `query()`, `queryFp64()`, `queryByFilter()`, and `groupByQuery()` FFI calls in `try-finally` to guarantee C string cleanup on exception
   - `checkStatus()` moved inside `try` block before the `finally` cleanup loop
