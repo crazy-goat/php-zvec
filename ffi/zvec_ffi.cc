@@ -313,14 +313,17 @@ zvec_schema_t zvec_schema_create(const char* name) {
 }
 
 void zvec_schema_free(zvec_schema_t schema) {
+    if (!schema) return;
     delete static_cast<CollectionSchema*>(schema);
 }
 
 void zvec_schema_set_max_doc_count_per_segment(zvec_schema_t schema, uint64_t count) {
+    if (!schema) return;
     static_cast<CollectionSchema*>(schema)->set_max_doc_count_per_segment(count);
 }
 
 void zvec_schema_add_field_int64(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     if (with_invert_index) {
         s->add_field(std::make_shared<FieldSchema>(name, DataType::INT64, (bool)nullable, std::make_shared<InvertIndexParams>(true)));
@@ -330,6 +333,7 @@ void zvec_schema_add_field_int64(zvec_schema_t schema, const char* name, int nul
 }
 
 void zvec_schema_add_field_string(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     if (with_invert_index) {
         s->add_field(std::make_shared<FieldSchema>(name, DataType::STRING, (bool)nullable, std::make_shared<InvertIndexParams>(false)));
@@ -339,16 +343,19 @@ void zvec_schema_add_field_string(zvec_schema_t schema, const char* name, int nu
 }
 
 void zvec_schema_add_field_float(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::FLOAT, (bool)nullable));
 }
 
 void zvec_schema_add_field_double(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::DOUBLE, (bool)nullable));
 }
 
 void zvec_schema_add_field_bool(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     if (with_invert_index) {
         s->add_field(std::make_shared<FieldSchema>(name, DataType::BOOL, (bool)nullable, std::make_shared<InvertIndexParams>(true)));
@@ -358,6 +365,7 @@ void zvec_schema_add_field_bool(zvec_schema_t schema, const char* name, int null
 }
 
 void zvec_schema_add_field_int32(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     if (with_invert_index) {
         s->add_field(std::make_shared<FieldSchema>(name, DataType::INT32, (bool)nullable, std::make_shared<InvertIndexParams>(true)));
@@ -367,6 +375,7 @@ void zvec_schema_add_field_int32(zvec_schema_t schema, const char* name, int nul
 }
 
 void zvec_schema_add_field_uint32(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     if (with_invert_index) {
         s->add_field(std::make_shared<FieldSchema>(name, DataType::UINT32, (bool)nullable, std::make_shared<InvertIndexParams>(true)));
@@ -376,6 +385,7 @@ void zvec_schema_add_field_uint32(zvec_schema_t schema, const char* name, int nu
 }
 
 void zvec_schema_add_field_uint64(zvec_schema_t schema, const char* name, int nullable, int with_invert_index) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     if (with_invert_index) {
         s->add_field(std::make_shared<FieldSchema>(name, DataType::UINT64, (bool)nullable, std::make_shared<InvertIndexParams>(true)));
@@ -385,106 +395,125 @@ void zvec_schema_add_field_uint64(zvec_schema_t schema, const char* name, int nu
 }
 
 void zvec_schema_add_field_vector_fp32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_FP32, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_vector_fp64(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_FP64, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_sparse_vector_fp32(zvec_schema_t schema, const char* name, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::SPARSE_VECTOR_FP32, 0, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_vector_int8(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_INT8, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_vector_fp16(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_FP16, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_vector_int4(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_INT4, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_vector_int16(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_INT16, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_vector_binary32(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_BINARY32, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_vector_binary64(zvec_schema_t schema, const char* name, uint32_t dimension, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::VECTOR_BINARY64, dimension, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_sparse_vector_fp16(zvec_schema_t schema, const char* name, uint32_t metric_type) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::SPARSE_VECTOR_FP16, 0, false,
         std::make_shared<HnswIndexParams>(to_metric_type(metric_type))));
 }
 
 void zvec_schema_add_field_binary(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::BINARY, (bool)nullable));
 }
 
 void zvec_schema_add_field_array_string(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_STRING, (bool)nullable));
 }
 
 void zvec_schema_add_field_array_bool(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_BOOL, (bool)nullable));
 }
 
 void zvec_schema_add_field_array_int32(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_INT32, (bool)nullable));
 }
 
 void zvec_schema_add_field_array_int64(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_INT64, (bool)nullable));
 }
 
 void zvec_schema_add_field_array_uint32(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_UINT32, (bool)nullable));
 }
 
 void zvec_schema_add_field_array_uint64(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_UINT64, (bool)nullable));
 }
 
 void zvec_schema_add_field_array_float(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_FLOAT, (bool)nullable));
 }
 
 void zvec_schema_add_field_array_double(zvec_schema_t schema, const char* name, int nullable) {
+    if (!schema) return;
     auto* s = static_cast<CollectionSchema*>(schema);
     s->add_field(std::make_shared<FieldSchema>(name, DataType::ARRAY_DOUBLE, (bool)nullable));
 }
@@ -523,6 +552,7 @@ zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_m
 }
 
 void zvec_collection_free(zvec_collection_t coll) {
+    if (!coll) return;
     auto* raw = static_cast<Collection*>(coll);
     for (auto it = g_collections.begin(); it != g_collections.end(); ++it) {
         if (it->get() == raw) {
@@ -533,11 +563,21 @@ void zvec_collection_free(zvec_collection_t coll) {
 }
 
 zvec_status_t zvec_collection_flush(zvec_collection_t coll) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     return MAKE_STATUS(c->Flush());
 }
 
 zvec_status_t zvec_collection_optimize(zvec_collection_t coll, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     OptimizeOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
@@ -545,6 +585,11 @@ zvec_status_t zvec_collection_optimize(zvec_collection_t coll, uint32_t concurre
 }
 
 zvec_status_t zvec_collection_destroy(zvec_collection_t coll) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* raw = static_cast<Collection*>(coll);
     for (auto it = g_collections.begin(); it != g_collections.end(); ++it) {
         if (it->get() == raw) {
@@ -566,6 +611,11 @@ zvec_status_t zvec_collection_destroy(zvec_collection_t coll) {
 // --- Inspect ---
 
 zvec_status_t zvec_collection_schema(zvec_collection_t coll, char* buf, size_t buf_size) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     auto res = c->Schema();
     if (!res.has_value()) {
@@ -578,6 +628,11 @@ zvec_status_t zvec_collection_schema(zvec_collection_t coll, char* buf, size_t b
 }
 
 zvec_status_t zvec_collection_path(zvec_collection_t coll, char* buf, size_t buf_size) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     auto res = c->Path();
     if (!res.has_value()) {
@@ -589,6 +644,11 @@ zvec_status_t zvec_collection_path(zvec_collection_t coll, char* buf, size_t buf
 }
 
 zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, int* enable_mmap, uint32_t* max_buffer_size) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     auto res = c->Options();
     if (!res.has_value()) {
@@ -606,6 +666,11 @@ zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, in
 // when column DDL triggers internal segment compaction after deletes.
 
 zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::INT64, (bool)nullable);
@@ -615,6 +680,11 @@ zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const cha
 }
 
 zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::FLOAT, (bool)nullable);
@@ -624,6 +694,11 @@ zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const cha
 }
 
 zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::DOUBLE, (bool)nullable);
@@ -633,6 +708,11 @@ zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const ch
 }
 
 zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::STRING, (bool)nullable);
@@ -642,6 +722,11 @@ zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const ch
 }
 
 zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::BOOL, (bool)nullable);
@@ -651,6 +736,11 @@ zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char
 }
 
 zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::INT32, (bool)nullable);
@@ -660,6 +750,11 @@ zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const cha
 }
 
 zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::UINT32, (bool)nullable);
@@ -669,6 +764,11 @@ zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const ch
 }
 
 zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::UINT64, (bool)nullable);
@@ -678,12 +778,22 @@ zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const ch
 }
 
 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     return MAKE_STATUS(c->DropColumn(name));
 }
 
 zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     AlterColumnOptions opts;
@@ -692,6 +802,11 @@ zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* 
 }
 
 zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable, uint32_t concurrency) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     c->Flush();
     
@@ -758,6 +873,11 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 }
 
 zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     return MAKE_STATUS(c->DropIndex(field_name));
 }
@@ -834,10 +954,12 @@ zvec_index_params_t zvec_index_params_create(int index_type, int metric_type) {
 }
 
 void zvec_index_params_free(zvec_index_params_t params) {
+    if (!params) return;
     delete static_cast<IndexParamsHolder*>(params);
 }
 
 void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_construction, int quantize_type, int use_contiguous_memory) {
+    if (!params) return;
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->hnsw_m_ = m;
     h->hnsw_ef_construction_ = ef_construction;
@@ -846,11 +968,13 @@ void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_constr
 }
 
 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type) {
+    if (!params) return;
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->quantize_type_ = to_quantize_type(quantize_type);
 }
 
 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type) {
+    if (!params) return;
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->ivf_n_list_ = n_list;
     h->ivf_n_iters_ = n_iters;
@@ -859,6 +983,7 @@ void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_ite
 }
 
 void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bits, int num_clusters, int m, int ef_construction, int sample_count) {
+    if (!params) return;
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->rabitq_total_bits_ = total_bits;
     h->rabitq_num_clusters_ = num_clusters;
@@ -868,6 +993,7 @@ void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bit
 }
 
 void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, int search_list_size, float alpha, int saturate_graph, int use_contiguous_memory, int use_id_map, int quantize_type) {
+    if (!params) return;
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->vamana_max_degree_ = max_degree;
     h->vamana_search_list_size_ = search_list_size;
@@ -879,17 +1005,20 @@ void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, in
 }
 
 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard) {
+    if (!params) return;
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->invert_enable_range_ = (bool)enable_range;
     h->invert_enable_wildcard_ = (bool)enable_wildcard;
 }
 
 void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantize_type) {
+    if (!params) return;
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->quantize_type_ = to_quantize_type(quantize_type);
 }
 
 void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type) {
+    if (!params) return;
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->metric_type_ = to_metric_type(metric_type);
 }
@@ -915,57 +1044,70 @@ zvec_doc_t zvec_doc_create(const char* pk) {
 }
 
 void zvec_doc_free(zvec_doc_t doc) {
+    if (!doc) return;
     delete static_cast<Doc*>(doc);
 }
 
 void zvec_doc_set_int64(zvec_doc_t doc, const char* field, int64_t value) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set<int64_t>(field, value);
 }
 
 void zvec_doc_set_string(zvec_doc_t doc, const char* field, const char* value) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set<std::string>(field, std::string(value));
 }
 
 void zvec_doc_set_float(zvec_doc_t doc, const char* field, float value) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set<float>(field, value);
 }
 
 void zvec_doc_set_double(zvec_doc_t doc, const char* field, double value) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set<double>(field, value);
 }
 
 void zvec_doc_set_vector_fp32(zvec_doc_t doc, const char* field, const float* data, uint32_t dim) {
+    if (!doc) return;
     std::vector<float> vec(data, data + dim);
     static_cast<Doc*>(doc)->set<std::vector<float>>(field, std::move(vec));
 }
 
 void zvec_doc_set_vector_fp64(zvec_doc_t doc, const char* field, const double* data, uint32_t dim) {
+    if (!doc) return;
     std::vector<double> vec(data, data + dim);
     static_cast<Doc*>(doc)->set<std::vector<double>>(field, std::move(vec));
 }
 
 void zvec_doc_set_bool(zvec_doc_t doc, const char* field, int value) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set<bool>(field, (bool)value);
 }
 
 void zvec_doc_set_int32(zvec_doc_t doc, const char* field, int32_t value) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set<int32_t>(field, value);
 }
 
 void zvec_doc_set_uint32(zvec_doc_t doc, const char* field, uint32_t value) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set<uint32_t>(field, value);
 }
 
 void zvec_doc_set_uint64(zvec_doc_t doc, const char* field, uint64_t value) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set<uint64_t>(field, value);
 }
 
 void zvec_doc_set_vector_int8(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim) {
+    if (!doc) return;
     std::vector<int8_t> vec(data, data + dim);
     static_cast<Doc*>(doc)->set<std::vector<int8_t>>(field, std::move(vec));
 }
 
 void zvec_doc_set_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t* data, uint32_t dim) {
+    if (!doc) return;
     std::vector<ailego::Float16> vec;
     vec.reserve(dim);
     for (uint32_t i = 0; i < dim; i++) {
@@ -975,6 +1117,7 @@ void zvec_doc_set_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t*
 }
 
 void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t* indices, const float* values, uint32_t count) {
+    if (!doc) return;
     if (count == 0) {
         // Empty sparse vector - store empty pair
         static_cast<Doc*>(doc)->set<std::pair<std::vector<uint32_t>, std::vector<float>>>(field, std::make_pair(std::vector<uint32_t>(), std::vector<float>()));
@@ -987,26 +1130,31 @@ void zvec_doc_set_sparse_vector_fp32(zvec_doc_t doc, const char* field, const ui
 }
 
 void zvec_doc_set_vector_int4(zvec_doc_t doc, const char* field, const int8_t* data, uint32_t dim) {
+    if (!doc) return;
     std::vector<int8_t> vec(data, data + dim);
     static_cast<Doc*>(doc)->set<std::vector<int8_t>>(field, std::move(vec));
 }
 
 void zvec_doc_set_vector_int16(zvec_doc_t doc, const char* field, const int16_t* data, uint32_t dim) {
+    if (!doc) return;
     std::vector<int16_t> vec(data, data + dim);
     static_cast<Doc*>(doc)->set<std::vector<int16_t>>(field, std::move(vec));
 }
 
 void zvec_doc_set_vector_binary32(zvec_doc_t doc, const char* field, const uint32_t* data, uint32_t dim) {
+    if (!doc) return;
     std::vector<uint32_t> vec(data, data + dim);
     static_cast<Doc*>(doc)->set<std::vector<uint32_t>>(field, std::move(vec));
 }
 
 void zvec_doc_set_vector_binary64(zvec_doc_t doc, const char* field, const uint64_t* data, uint32_t dim) {
+    if (!doc) return;
     std::vector<uint64_t> vec(data, data + dim);
     static_cast<Doc*>(doc)->set<std::vector<uint64_t>>(field, std::move(vec));
 }
 
 void zvec_doc_set_sparse_vector_fp16(zvec_doc_t doc, const char* field, const uint32_t* indices, const uint16_t* values, uint32_t count) {
+    if (!doc) return;
     if (count == 0) {
         static_cast<Doc*>(doc)->set<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>>(field,
             std::make_pair(std::vector<uint32_t>(), std::vector<ailego::Float16>()));
@@ -1023,40 +1171,48 @@ void zvec_doc_set_sparse_vector_fp16(zvec_doc_t doc, const char* field, const ui
 }
 
 void zvec_doc_set_binary(zvec_doc_t doc, const char* field, const uint8_t* data, uint32_t size) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set<std::string>(field, std::string(reinterpret_cast<const char*>(data), size));
 }
 
 void zvec_doc_set_array_int32(zvec_doc_t doc, const char* field, const int32_t* data, uint32_t count) {
+    if (!doc) return;
     std::vector<int32_t> vec(data, data + count);
     static_cast<Doc*>(doc)->set<std::vector<int32_t>>(field, std::move(vec));
 }
 
 void zvec_doc_set_array_int64(zvec_doc_t doc, const char* field, const int64_t* data, uint32_t count) {
+    if (!doc) return;
     std::vector<int64_t> vec(data, data + count);
     static_cast<Doc*>(doc)->set<std::vector<int64_t>>(field, std::move(vec));
 }
 
 void zvec_doc_set_array_uint32(zvec_doc_t doc, const char* field, const uint32_t* data, uint32_t count) {
+    if (!doc) return;
     std::vector<uint32_t> vec(data, data + count);
     static_cast<Doc*>(doc)->set<std::vector<uint32_t>>(field, std::move(vec));
 }
 
 void zvec_doc_set_array_uint64(zvec_doc_t doc, const char* field, const uint64_t* data, uint32_t count) {
+    if (!doc) return;
     std::vector<uint64_t> vec(data, data + count);
     static_cast<Doc*>(doc)->set<std::vector<uint64_t>>(field, std::move(vec));
 }
 
 void zvec_doc_set_array_float(zvec_doc_t doc, const char* field, const float* data, uint32_t count) {
+    if (!doc) return;
     std::vector<float> vec(data, data + count);
     static_cast<Doc*>(doc)->set<std::vector<float>>(field, std::move(vec));
 }
 
 void zvec_doc_set_array_double(zvec_doc_t doc, const char* field, const double* data, uint32_t count) {
+    if (!doc) return;
     std::vector<double> vec(data, data + count);
     static_cast<Doc*>(doc)->set<std::vector<double>>(field, std::move(vec));
 }
 
 void zvec_doc_set_array_string(zvec_doc_t doc, const char* field, const char** strings, uint32_t count) {
+    if (!doc) return;
     std::vector<std::string> vec;
     vec.reserve(count);
     for (uint32_t i = 0; i < count; i++) {
@@ -1066,6 +1222,7 @@ void zvec_doc_set_array_string(zvec_doc_t doc, const char* field, const char** s
 }
 
 void zvec_doc_set_array_bool(zvec_doc_t doc, const char* field, const uint8_t* data, uint32_t count) {
+    if (!doc) return;
     std::vector<bool> vec;
     vec.reserve(count);
     for (uint32_t i = 0; i < count; i++) {
@@ -1077,22 +1234,31 @@ void zvec_doc_set_array_bool(zvec_doc_t doc, const char* field, const uint8_t* d
 // --- Enhanced Doc API ---
 
 void zvec_doc_set_field_null(zvec_doc_t doc, const char* field) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set_null(field);
 }
 
 int zvec_doc_is_field_null(zvec_doc_t doc, const char* field) {
+    if (!doc) return 0;
     return static_cast<Doc*>(doc)->is_null(field) ? 1 : 0;
 }
 
 void zvec_doc_remove_field(zvec_doc_t doc, const char* field) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->remove(field);
 }
 
 void zvec_doc_merge(zvec_doc_t doc, zvec_doc_t other) {
+    if (!doc || !other) return;
     static_cast<Doc*>(doc)->merge(*static_cast<Doc*>(other));
 }
 
 zvec_status_t zvec_doc_serialize(zvec_doc_t doc, uint8_t** data, size_t* size) {
+    if (!doc) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto serialized = static_cast<Doc*>(doc)->serialize();
     *size = serialized.size();
     *data = static_cast<uint8_t*>(malloc(*size));
@@ -1120,37 +1286,45 @@ zvec_status_t zvec_doc_deserialize(const uint8_t* data, size_t size, zvec_doc_t*
 }
 
 int zvec_doc_is_empty(zvec_doc_t doc) {
+    if (!doc) return 0;
     return static_cast<Doc*>(doc)->is_empty() ? 1 : 0;
 }
 
 void zvec_doc_clear(zvec_doc_t doc) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->clear();
 }
 
 size_t zvec_doc_memory_usage(zvec_doc_t doc) {
+    if (!doc) return 0;
     return static_cast<Doc*>(doc)->memory_usage();
 }
 
 void zvec_doc_set_operator(zvec_doc_t doc, int op) {
+    if (!doc) return;
     static_cast<Doc*>(doc)->set_operator(static_cast<Operator>(op));
 }
 
 int zvec_doc_get_operator(zvec_doc_t doc) {
+    if (!doc) return 0;
     return static_cast<int>(static_cast<Doc*>(doc)->get_operator());
 }
 
 static thread_local std::string g_pk_buf;
 
 const char* zvec_doc_get_pk(zvec_doc_t doc) {
+    if (!doc) return nullptr;
     g_pk_buf = static_cast<Doc*>(doc)->pk();
     return g_pk_buf.c_str();
 }
 
 float zvec_doc_get_score(zvec_doc_t doc) {
+    if (!doc) return 0.0f;
     return static_cast<Doc*>(doc)->score();
 }
 
 int zvec_doc_get_int64(zvec_doc_t doc, const char* field, int64_t* out) {
+    if (!doc) return 0;
     auto val = static_cast<Doc*>(doc)->get<int64_t>(field);
     if (val.has_value()) { *out = val.value(); return 1; }
     return 0;
@@ -1159,6 +1333,7 @@ int zvec_doc_get_int64(zvec_doc_t doc, const char* field, int64_t* out) {
 static thread_local std::string g_string_buf;
 
 int zvec_doc_get_string(zvec_doc_t doc, const char* field, const char** out) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::string>(field);
     if (result.ok()) {
         g_string_buf = result.value();
@@ -1169,12 +1344,14 @@ int zvec_doc_get_string(zvec_doc_t doc, const char* field, const char** out) {
 }
 
 int zvec_doc_get_float(zvec_doc_t doc, const char* field, float* out) {
+    if (!doc) return 0;
     auto val = static_cast<Doc*>(doc)->get<float>(field);
     if (val.has_value()) { *out = val.value(); return 1; }
     return 0;
 }
 
 int zvec_doc_get_double(zvec_doc_t doc, const char* field, double* out) {
+    if (!doc) return 0;
     auto val = static_cast<Doc*>(doc)->get<double>(field);
     if (val.has_value()) { *out = val.value(); return 1; }
     return 0;
@@ -1184,6 +1361,7 @@ static thread_local std::vector<float> g_vector_buf;
 static thread_local std::vector<double> g_vector_fp64_buf;
 
 int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** out, uint32_t* dim) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<float>>(field);
     if (result.ok()) {
         g_vector_buf = result.value();
@@ -1195,6 +1373,7 @@ int zvec_doc_get_vector_fp32(zvec_doc_t doc, const char* field, const float** ou
 }
 
 int zvec_doc_get_vector_fp64(zvec_doc_t doc, const char* field, const double** out, uint32_t* dim) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<double>>(field);
     if (result.ok()) {
         g_vector_fp64_buf = result.value();
@@ -1206,24 +1385,28 @@ int zvec_doc_get_vector_fp64(zvec_doc_t doc, const char* field, const double** o
 }
 
 int zvec_doc_get_bool(zvec_doc_t doc, const char* field, int* out) {
+    if (!doc) return 0;
     auto val = static_cast<Doc*>(doc)->get<bool>(field);
     if (val.has_value()) { *out = val.value() ? 1 : 0; return 1; }
     return 0;
 }
 
 int zvec_doc_get_int32(zvec_doc_t doc, const char* field, int32_t* out) {
+    if (!doc) return 0;
     auto val = static_cast<Doc*>(doc)->get<int32_t>(field);
     if (val.has_value()) { *out = val.value(); return 1; }
     return 0;
 }
 
 int zvec_doc_get_uint32(zvec_doc_t doc, const char* field, uint32_t* out) {
+    if (!doc) return 0;
     auto val = static_cast<Doc*>(doc)->get<uint32_t>(field);
     if (val.has_value()) { *out = val.value(); return 1; }
     return 0;
 }
 
 int zvec_doc_get_uint64(zvec_doc_t doc, const char* field, uint64_t* out) {
+    if (!doc) return 0;
     auto val = static_cast<Doc*>(doc)->get<uint64_t>(field);
     if (val.has_value()) { *out = val.value(); return 1; }
     return 0;
@@ -1232,6 +1415,7 @@ int zvec_doc_get_uint64(zvec_doc_t doc, const char* field, uint64_t* out) {
 static thread_local std::vector<int8_t> g_vector_int8_buf;
 
 int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<int8_t>>(field);
     if (result.ok()) {
         g_vector_int8_buf = result.value();
@@ -1245,6 +1429,7 @@ int zvec_doc_get_vector_int8(zvec_doc_t doc, const char* field, const int8_t** o
 static thread_local std::vector<uint16_t> g_vector_fp16_buf;
 
 int zvec_doc_get_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t** out, uint32_t* dim) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<ailego::Float16>>(field);
     if (result.ok()) {
         const auto& fp16_vec = result.value();
@@ -1265,6 +1450,7 @@ static thread_local std::array<std::pair<std::vector<uint32_t>, std::vector<floa
 static thread_local size_t g_sparse_buffer_idx = 0;
 
 int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const float** values_out, uint32_t* count_out) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::pair<std::vector<uint32_t>, std::vector<float>>>(field);
     if (result.ok()) {
         // Use circular buffer to keep data alive - each call gets a new slot
@@ -1282,6 +1468,7 @@ int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uin
 static thread_local std::vector<int16_t> g_vector_int16_buf;
 
 int zvec_doc_get_vector_int16(zvec_doc_t doc, const char* field, const int16_t** out, uint32_t* dim) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<int16_t>>(field);
     if (result.ok()) {
         g_vector_int16_buf = result.value();
@@ -1295,6 +1482,7 @@ int zvec_doc_get_vector_int16(zvec_doc_t doc, const char* field, const int16_t**
 static thread_local std::vector<uint32_t> g_vector_binary32_buf;
 
 int zvec_doc_get_vector_binary32(zvec_doc_t doc, const char* field, const uint32_t** out, uint32_t* dim) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<uint32_t>>(field);
     if (result.ok()) {
         g_vector_binary32_buf = result.value();
@@ -1308,6 +1496,7 @@ int zvec_doc_get_vector_binary32(zvec_doc_t doc, const char* field, const uint32
 static thread_local std::vector<uint64_t> g_vector_binary64_buf;
 
 int zvec_doc_get_vector_binary64(zvec_doc_t doc, const char* field, const uint64_t** out, uint32_t* dim) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<uint64_t>>(field);
     if (result.ok()) {
         g_vector_binary64_buf = result.value();
@@ -1320,6 +1509,7 @@ int zvec_doc_get_vector_binary64(zvec_doc_t doc, const char* field, const uint64
 
 // For INT4, store in same buffer type (int8_t) since they share the same variant
 int zvec_doc_get_vector_int4(zvec_doc_t doc, const char* field, const int8_t** out, uint32_t* dim) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<int8_t>>(field);
     if (result.ok()) {
         g_vector_int8_buf = result.value();
@@ -1335,6 +1525,7 @@ static thread_local std::array<std::pair<std::vector<uint32_t>, std::vector<aile
 static thread_local size_t g_sparse_fp16_buffer_idx = 0;
 
 int zvec_doc_get_sparse_vector_fp16(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const uint16_t** values_out, uint32_t* count_out) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>>(field);
     if (result.ok()) {
         auto& slot = g_sparse_fp16_buffers[g_sparse_fp16_buffer_idx];
@@ -1358,6 +1549,7 @@ int zvec_doc_get_sparse_vector_fp16(zvec_doc_t doc, const char* field, const uin
 static thread_local std::string g_binary_buf;
 
 int zvec_doc_get_binary(zvec_doc_t doc, const char* field, const uint8_t** out, uint32_t* size) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::string>(field);
     if (result.ok()) {
         g_binary_buf = result.value();
@@ -1371,6 +1563,7 @@ int zvec_doc_get_binary(zvec_doc_t doc, const char* field, const uint8_t** out, 
 static thread_local std::vector<int32_t> g_array_int32_buf;
 
 int zvec_doc_get_array_int32(zvec_doc_t doc, const char* field, const int32_t** out, uint32_t* count) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<int32_t>>(field);
     if (result.ok()) {
         g_array_int32_buf = result.value();
@@ -1384,6 +1577,7 @@ int zvec_doc_get_array_int32(zvec_doc_t doc, const char* field, const int32_t** 
 static thread_local std::vector<int64_t> g_array_int64_buf;
 
 int zvec_doc_get_array_int64(zvec_doc_t doc, const char* field, const int64_t** out, uint32_t* count) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<int64_t>>(field);
     if (result.ok()) {
         g_array_int64_buf = result.value();
@@ -1397,6 +1591,7 @@ int zvec_doc_get_array_int64(zvec_doc_t doc, const char* field, const int64_t** 
 static thread_local std::vector<uint32_t> g_array_uint32_buf;
 
 int zvec_doc_get_array_uint32(zvec_doc_t doc, const char* field, const uint32_t** out, uint32_t* count) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<uint32_t>>(field);
     if (result.ok()) {
         g_array_uint32_buf = result.value();
@@ -1410,6 +1605,7 @@ int zvec_doc_get_array_uint32(zvec_doc_t doc, const char* field, const uint32_t*
 static thread_local std::vector<uint64_t> g_array_uint64_buf;
 
 int zvec_doc_get_array_uint64(zvec_doc_t doc, const char* field, const uint64_t** out, uint32_t* count) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<uint64_t>>(field);
     if (result.ok()) {
         g_array_uint64_buf = result.value();
@@ -1423,6 +1619,7 @@ int zvec_doc_get_array_uint64(zvec_doc_t doc, const char* field, const uint64_t*
 static thread_local std::vector<float> g_array_float_buf;
 
 int zvec_doc_get_array_float(zvec_doc_t doc, const char* field, const float** out, uint32_t* count) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<float>>(field);
     if (result.ok()) {
         g_array_float_buf = result.value();
@@ -1436,6 +1633,7 @@ int zvec_doc_get_array_float(zvec_doc_t doc, const char* field, const float** ou
 static thread_local std::vector<double> g_array_double_buf;
 
 int zvec_doc_get_array_double(zvec_doc_t doc, const char* field, const double** out, uint32_t* count) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<double>>(field);
     if (result.ok()) {
         g_array_double_buf = result.value();
@@ -1447,6 +1645,7 @@ int zvec_doc_get_array_double(zvec_doc_t doc, const char* field, const double** 
 }
 
 int zvec_doc_get_array_string(zvec_doc_t doc, const char* field, char* buf, size_t buf_size, uint32_t* count) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<std::string>>(field);
     if (result.ok()) {
         const auto& strs = result.value();
@@ -1468,6 +1667,7 @@ int zvec_doc_get_array_string(zvec_doc_t doc, const char* field, char* buf, size
 }
 
 int zvec_doc_get_array_bool(zvec_doc_t doc, const char* field, uint8_t* buf, size_t buf_size) {
+    if (!doc) return 0;
     auto result = static_cast<Doc*>(doc)->get_field<std::vector<bool>>(field);
     if (result.ok()) {
         const auto& vec = result.value();
@@ -1486,10 +1686,12 @@ int zvec_doc_get_array_bool(zvec_doc_t doc, const char* field, uint8_t* buf, siz
 // --- Doc Introspection ---
 
 int zvec_doc_has_field(zvec_doc_t doc, const char* field) {
+    if (!doc) return 0;
     return static_cast<Doc*>(doc)->has(field) ? 1 : 0;
 }
 
 int zvec_doc_has_vector(zvec_doc_t doc, const char* field) {
+    if (!doc) return 0;
     auto* d = static_cast<Doc*>(doc);
     if (!d->has(field)) return 0;
     // Check all vector variant types
@@ -1521,6 +1723,7 @@ static bool is_vector_field(Doc* d, const std::string& name) {
 }
 
 int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size) {
+    if (!doc) return 0;
     auto* d = static_cast<Doc*>(doc);
     auto names = d->field_names();
     std::vector<std::string> filtered;
@@ -1548,6 +1751,7 @@ int zvec_doc_field_names(zvec_doc_t doc, char* buf, size_t buf_size) {
 }
 
 int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size) {
+    if (!doc) return 0;
     auto* d = static_cast<Doc*>(doc);
     auto names = d->field_names();
     std::vector<std::string> filtered;
@@ -1577,6 +1781,11 @@ int zvec_doc_vector_names(zvec_doc_t doc, char* buf, size_t buf_size) {
 // --- Insert / Upsert / Delete ---
 
 zvec_status_t zvec_collection_insert(zvec_collection_t coll, zvec_doc_t* docs, int count) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     std::vector<Doc> doc_vec;
     doc_vec.reserve(count);
@@ -1594,6 +1803,11 @@ zvec_status_t zvec_collection_insert(zvec_collection_t coll, zvec_doc_t* docs, i
 }
 
 zvec_status_t zvec_collection_upsert(zvec_collection_t coll, zvec_doc_t* docs, int count) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     std::vector<Doc> doc_vec;
     doc_vec.reserve(count);
@@ -1611,6 +1825,11 @@ zvec_status_t zvec_collection_upsert(zvec_collection_t coll, zvec_doc_t* docs, i
 }
 
 zvec_status_t zvec_collection_update(zvec_collection_t coll, zvec_doc_t* docs, int count) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     std::vector<Doc> doc_vec;
     doc_vec.reserve(count);
@@ -1630,6 +1849,11 @@ zvec_status_t zvec_collection_update(zvec_collection_t coll, zvec_doc_t* docs, i
 // --- Batch operations with per-document status ---
 
 zvec_status_t zvec_collection_insert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     std::vector<Doc> doc_vec;
     doc_vec.reserve(count);
@@ -1673,6 +1897,11 @@ zvec_status_t zvec_collection_insert_batch(zvec_collection_t coll, zvec_doc_t* d
 }
 
 zvec_status_t zvec_collection_upsert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     std::vector<Doc> doc_vec;
     doc_vec.reserve(count);
@@ -1716,6 +1945,11 @@ zvec_status_t zvec_collection_upsert_batch(zvec_collection_t coll, zvec_doc_t* d
 }
 
 zvec_status_t zvec_collection_update_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     std::vector<Doc> doc_vec;
     doc_vec.reserve(count);
@@ -1759,6 +1993,7 @@ zvec_status_t zvec_collection_update_batch(zvec_collection_t coll, zvec_doc_t* d
 }
 
 void zvec_batch_result_free(zvec_batch_result_t* result) {
+    if (!result) return;
     if (result->doc_pks) {
         for (int i = 0; i < result->count; i++) {
             delete[] result->doc_pks[i];
@@ -1781,6 +2016,11 @@ void zvec_batch_result_free(zvec_batch_result_t* result) {
 }
 
 zvec_status_t zvec_collection_delete(zvec_collection_t coll, const char** pks, int count) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     std::vector<std::string> pk_vec;
     pk_vec.reserve(count);
@@ -1795,6 +2035,11 @@ zvec_status_t zvec_collection_delete(zvec_collection_t coll, const char** pks, i
 }
 
 zvec_status_t zvec_collection_delete_by_filter(zvec_collection_t coll, const char* filter) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     return MAKE_STATUS(c->DeleteByFilter(filter));
 }
@@ -1821,28 +2066,34 @@ zvec_vector_query_t zvec_vector_query_create(void) {
 }
 
 void zvec_vector_query_free(zvec_vector_query_t q) {
+    if (!q) return;
     delete static_cast<VectorQueryHolder*>(q);
 }
 
 void zvec_vector_query_set_field_name(zvec_vector_query_t q, const char* field_name) {
+    if (!q) return;
     static_cast<VectorQueryHolder*>(q)->query.field_name_ = field_name ? field_name : "";
 }
 
 void zvec_vector_query_set_topk(zvec_vector_query_t q, int topk) {
+    if (!q) return;
     static_cast<VectorQueryHolder*>(q)->query.topk_ = topk;
 }
 
 void zvec_vector_query_set_include_vector(zvec_vector_query_t q, int include) {
+    if (!q) return;
     static_cast<VectorQueryHolder*>(q)->query.include_vector_ = (bool)include;
 }
 
 void zvec_vector_query_set_filter(zvec_vector_query_t q, const char* filter) {
+    if (!q) return;
     if (filter && filter[0] != '\0') {
         static_cast<VectorQueryHolder*>(q)->query.filter_ = filter;
     }
 }
 
 void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fields, int count) {
+    if (!q) return;
     if (fields && count >= 0) {
         std::vector<std::string> field_vec;
         field_vec.reserve(count);
@@ -1854,21 +2105,25 @@ void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fie
 }
 
 void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef) {
+    if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.query_params_ = std::make_shared<HnswQueryParams>(ef);
 }
 
 void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe) {
+    if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.query_params_ = std::make_shared<IVFQueryParams>(nprobe);
 }
 
 void zvec_vector_query_set_flat_mode(zvec_vector_query_t q) {
+    if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.query_params_ = std::make_shared<FlatQueryParams>();
 }
 
 void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius) {
+    if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->radius_ = radius;
     if (holder->query.query_params_) {
@@ -1877,6 +2132,7 @@ void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius) {
 }
 
 void zvec_vector_query_set_is_linear(zvec_vector_query_t q, int is_linear) {
+    if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->is_linear_ = (bool)is_linear;
     if (holder->query.query_params_) {
@@ -1885,6 +2141,7 @@ void zvec_vector_query_set_is_linear(zvec_vector_query_t q, int is_linear) {
 }
 
 void zvec_vector_query_set_using_refiner(zvec_vector_query_t q, int refiner) {
+    if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->is_using_refiner_ = (bool)refiner;
     if (holder->query.query_params_) {
@@ -1893,11 +2150,13 @@ void zvec_vector_query_set_using_refiner(zvec_vector_query_t q, int refiner) {
 }
 
 void zvec_vector_query_set_vector_fp32(zvec_vector_query_t q, const float* data, uint32_t dim) {
+    if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.query_vector_.assign(reinterpret_cast<const char*>(data), dim * sizeof(float));
 }
 
 void zvec_vector_query_set_vector_fp64(zvec_vector_query_t q, const double* data, uint32_t dim) {
+    if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.query_vector_.assign(reinterpret_cast<const char*>(data), dim * sizeof(double));
 }
@@ -1910,41 +2169,50 @@ zvec_group_by_vector_query_t zvec_group_by_vector_query_create(void) {
 }
 
 void zvec_group_by_vector_query_free(zvec_group_by_vector_query_t q) {
+    if (!q) return;
     delete static_cast<GroupByVectorQueryHolder*>(q);
 }
 
 void zvec_group_by_vector_query_set_field_name(zvec_group_by_vector_query_t q, const char* field_name) {
+    if (!q) return;
     static_cast<GroupByVectorQueryHolder*>(q)->query.field_name_ = field_name ? field_name : "";
 }
 
 void zvec_group_by_vector_query_set_vector_fp32(zvec_group_by_vector_query_t q, const float* data, uint32_t dim) {
+    if (!q) return;
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
     holder->query.query_vector_.assign(reinterpret_cast<const char*>(data), dim * sizeof(float));
 }
 
 void zvec_group_by_vector_query_set_group_by_field(zvec_group_by_vector_query_t q, const char* field) {
+    if (!q) return;
     static_cast<GroupByVectorQueryHolder*>(q)->query.group_by_field_name_ = field ? field : "";
 }
 
 void zvec_group_by_vector_query_set_group_count(zvec_group_by_vector_query_t q, uint32_t count) {
+    if (!q) return;
     static_cast<GroupByVectorQueryHolder*>(q)->query.group_count_ = count;
 }
 
 void zvec_group_by_vector_query_set_group_topk(zvec_group_by_vector_query_t q, uint32_t topk) {
+    if (!q) return;
     static_cast<GroupByVectorQueryHolder*>(q)->query.group_topk_ = topk;
 }
 
 void zvec_group_by_vector_query_set_include_vector(zvec_group_by_vector_query_t q, int include) {
+    if (!q) return;
     static_cast<GroupByVectorQueryHolder*>(q)->query.include_vector_ = (bool)include;
 }
 
 void zvec_group_by_vector_query_set_filter(zvec_group_by_vector_query_t q, const char* filter) {
+    if (!q) return;
     if (filter && filter[0] != '\0') {
         static_cast<GroupByVectorQueryHolder*>(q)->query.filter_ = filter;
     }
 }
 
 void zvec_group_by_vector_query_set_output_fields(zvec_group_by_vector_query_t q, const char** fields, int count) {
+    if (!q) return;
     if (fields && count >= 0) {
         std::vector<std::string> field_vec;
         field_vec.reserve(count);
@@ -1956,6 +2224,7 @@ void zvec_group_by_vector_query_set_output_fields(zvec_group_by_vector_query_t q
 }
 
 void zvec_group_by_vector_query_set_radius(zvec_group_by_vector_query_t q, float radius) {
+    if (!q) return;
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
     holder->radius_ = radius;
     if (holder->query.query_params_) {
@@ -1964,6 +2233,7 @@ void zvec_group_by_vector_query_set_radius(zvec_group_by_vector_query_t q, float
 }
 
 void zvec_group_by_vector_query_set_is_linear(zvec_group_by_vector_query_t q, int is_linear) {
+    if (!q) return;
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
     holder->is_linear_ = (bool)is_linear;
     if (holder->query.query_params_) {
@@ -1972,6 +2242,7 @@ void zvec_group_by_vector_query_set_is_linear(zvec_group_by_vector_query_t q, in
 }
 
 void zvec_group_by_vector_query_set_using_refiner(zvec_group_by_vector_query_t q, int refiner) {
+    if (!q) return;
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
     holder->is_using_refiner_ = (bool)refiner;
     if (holder->query.query_params_) {
@@ -2026,6 +2297,11 @@ static void ensure_query_params_for_field(Collection* c, VectorQuery& query, con
 }
 
 zvec_status_t zvec_collection_query_vector(zvec_collection_t coll, const zvec_vector_query_t q, zvec_query_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     auto* holder = static_cast<VectorQueryHolder*>(q);
 
@@ -2044,6 +2320,11 @@ zvec_status_t zvec_collection_query_vector(zvec_collection_t coll, const zvec_ve
 }
 
 zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, const zvec_group_by_vector_query_t q, zvec_group_results_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
 
@@ -2115,6 +2396,11 @@ zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, cons
 // --- Fetch ---
 
 zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     std::vector<std::string> pk_vec;
     pk_vec.reserve(count);
@@ -2154,6 +2440,11 @@ zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_na
                                      int topk, int include_vector,
                                      const char* filter,
                                      zvec_query_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     VectorQuery query;
     query.topk_ = topk;
@@ -2189,6 +2480,11 @@ zvec_status_t zvec_collection_query_fp16(zvec_collection_t coll, const char* fie
                                           int topk, int include_vector,
                                           const char* filter,
                                           zvec_query_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     
     std::vector<ailego::Float16> fp16_vec;
@@ -2233,6 +2529,11 @@ zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* fie
                                           int topk, int include_vector,
                                           const char* filter,
                                           zvec_query_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
 
     std::vector<double> fp64_vec(query_vector, query_vector + dim);
@@ -2366,6 +2667,11 @@ zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field
                                          int is_linear,
                                          int is_using_refiner,
                                          zvec_query_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     
     // Validate query_param_type against actual index type
@@ -2409,6 +2715,11 @@ zvec_status_t zvec_collection_query_fp64_ex(zvec_collection_t coll, const char* 
                                               int is_linear,
                                               int is_using_refiner,
                                               zvec_query_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
 
     auto validation_status = validate_query_param_type(c, field_name, query_param_type);
@@ -2443,6 +2754,11 @@ zvec_status_t zvec_collection_query_fp64_ex(zvec_collection_t coll, const char* 
 
 zvec_status_t zvec_collection_query_filter(zvec_collection_t coll, const char* filter,
                                              int topk, zvec_query_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     VectorQuery query;
     query.topk_ = topk;
@@ -2462,6 +2778,11 @@ zvec_status_t zvec_collection_query_filter_ex(zvec_collection_t coll, const char
                                                int topk,
                                                const char** output_fields, int output_fields_count,
                                                zvec_query_result_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     VectorQuery query;
     query.topk_ = topk;
@@ -2492,6 +2813,11 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
                                                int is_linear,
                                                int is_using_refiner,
                                                zvec_group_results_t* result) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     
     // Validate query_param_type against actual index type
@@ -2569,6 +2895,7 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
 }
 
 void zvec_group_results_free(zvec_group_results_t* result) {
+    if (!result) return;
     if (result->groups) {
         for (int i = 0; i < result->count; i++) {
             if (result->groups[i].group_by_value) {
@@ -2585,6 +2912,7 @@ void zvec_group_results_free(zvec_group_results_t* result) {
 }
 
 void zvec_query_result_free(zvec_query_result_t* result) {
+    if (!result) return;
     if (result->docs) {
         for (int i = 0; i < result->count; i++) {
             delete static_cast<Doc*>(result->docs[i]);
@@ -2596,6 +2924,7 @@ void zvec_query_result_free(zvec_query_result_t* result) {
 }
 
 void zvec_query_result_free_array(zvec_query_result_t* result) {
+    if (!result) return;
     if (result->docs) {
         delete[] result->docs;
         result->docs = nullptr;
@@ -2626,6 +2955,11 @@ static CollectionStatsHolder* stats_holder_from_coll(Collection* c) {
 }
 
 zvec_status_t zvec_collection_get_stats_struct(zvec_collection_t coll, zvec_collection_stats_t* out) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     auto* holder = stats_holder_from_coll(c);
     if (!holder) {
@@ -2641,26 +2975,31 @@ zvec_status_t zvec_collection_get_stats_struct(zvec_collection_t coll, zvec_coll
 }
 
 void zvec_collection_stats_free(zvec_collection_stats_t stats) {
+    if (!stats) return;
     delete static_cast<CollectionStatsHolder*>(stats);
 }
 
 uint64_t zvec_collection_stats_get_doc_count(zvec_collection_stats_t stats) {
+    if (!stats) return 0ULL;
     auto* holder = static_cast<CollectionStatsHolder*>(stats);
     return holder->stats.doc_count;
 }
 
 uint32_t zvec_collection_stats_get_index_count(zvec_collection_stats_t stats) {
+    if (!stats) return 0U;
     auto* holder = static_cast<CollectionStatsHolder*>(stats);
     return static_cast<uint32_t>(holder->index_names.size());
 }
 
 const char* zvec_collection_stats_get_index_name(zvec_collection_stats_t stats, uint32_t index) {
+    if (!stats) return nullptr;
     auto* holder = static_cast<CollectionStatsHolder*>(stats);
     if (index >= holder->index_names.size()) return nullptr;
     return holder->index_names[index].c_str();
 }
 
 float zvec_collection_stats_get_index_completeness(zvec_collection_stats_t stats, uint32_t index) {
+    if (!stats) return 0.0f;
     auto* holder = static_cast<CollectionStatsHolder*>(stats);
     if (index >= holder->index_names.size()) return 0.0f;
     const auto& name = holder->index_names[index];
@@ -2672,6 +3011,11 @@ float zvec_collection_stats_get_index_completeness(zvec_collection_stats_t stats
 }
 
 zvec_status_t zvec_collection_stats(zvec_collection_t coll, char* buf, size_t buf_size) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     auto res = c->Stats();
     if (!res.has_value()) {
@@ -2695,6 +3039,11 @@ struct FieldSchemaHolder {
 };
 
 zvec_status_t zvec_collection_get_field_schema(zvec_collection_t coll, const char* field_name, zvec_field_schema_t* out) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     auto* c = static_cast<Collection*>(coll);
     auto schema_res = c->Schema();
     if (!schema_res.has_value()) {
@@ -2728,66 +3077,80 @@ zvec_status_t zvec_collection_get_field_schema(zvec_collection_t coll, const cha
 }
 
 void zvec_field_schema_free(zvec_field_schema_t schema) {
+    if (!schema) return;
     delete static_cast<FieldSchemaHolder*>(schema);
 }
 
 const char* zvec_field_schema_get_name(zvec_field_schema_t schema) {
+    if (!schema) return nullptr;
     return static_cast<FieldSchemaHolder*>(schema)->name.c_str();
 }
 
 static thread_local std::string g_elem_data_type_name_buf;
 
 int zvec_field_schema_get_data_type(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     return static_cast<int>(static_cast<FieldSchemaHolder*>(schema)->data_type);
 }
 
 int zvec_field_schema_get_element_data_type(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     auto* h = static_cast<FieldSchemaHolder*>(schema);
     return static_cast<int>(FieldSchema::get_element_data_type(h->data_type));
 }
 
 size_t zvec_field_schema_get_element_data_size(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     auto* h = static_cast<FieldSchemaHolder*>(schema);
     return FieldSchema::get_element_data_size(h->data_type);
 }
 
 uint32_t zvec_field_schema_get_dimension(zvec_field_schema_t schema) {
+    if (!schema) return 0U;
     return static_cast<FieldSchemaHolder*>(schema)->dimension;
 }
 
 int zvec_field_schema_is_vector_field(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     auto* h = static_cast<FieldSchemaHolder*>(schema);
     return FieldSchema::is_vector_field(h->data_type) ? 1 : 0;
 }
 
 int zvec_field_schema_is_dense_vector(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     auto* h = static_cast<FieldSchemaHolder*>(schema);
     return FieldSchema::is_dense_vector_field(h->data_type) ? 1 : 0;
 }
 
 int zvec_field_schema_is_sparse_vector(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     auto* h = static_cast<FieldSchemaHolder*>(schema);
     return FieldSchema::is_sparse_vector_field(h->data_type) ? 1 : 0;
 }
 
 int zvec_field_schema_is_array_type(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     auto* h = static_cast<FieldSchemaHolder*>(schema);
     return h->data_type >= DataType::ARRAY_BINARY && h->data_type <= DataType::ARRAY_DOUBLE ? 1 : 0;
 }
 
 int zvec_field_schema_is_nullable(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     return static_cast<FieldSchemaHolder*>(schema)->nullable ? 1 : 0;
 }
 
 int zvec_field_schema_has_invert_index(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     auto* h = static_cast<FieldSchemaHolder*>(schema);
     return (!FieldSchema::is_vector_field(h->data_type) && h->has_index) ? 1 : 0;
 }
 
 int zvec_field_schema_has_index(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     return static_cast<FieldSchemaHolder*>(schema)->has_index ? 1 : 0;
 }
 
 int zvec_field_schema_get_index_type(zvec_field_schema_t schema) {
+    if (!schema) return 0;
     return static_cast<int>(static_cast<FieldSchemaHolder*>(schema)->index_type);
 }

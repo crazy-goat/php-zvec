@@ -58,6 +58,11 @@ class ZVec
     private FFI\CData $handle;
     private bool $closed = false;
 
+    public static function getFFI(): ?FFI
+    {
+        return self::$ffi;
+    }
+
     private static function ffi(): FFI
     {
         if (self::$ffi === null) {

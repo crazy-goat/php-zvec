@@ -8,6 +8,23 @@
 extern "C" {
 #endif
 
+/**
+ * Pointer lifetime and null-safety guarantees:
+ *
+ * All handle-accepting functions (zvec_collection_t, zvec_doc_t, zvec_schema_t,
+ * zvec_vector_query_t, zvec_group_by_vector_query_t, zvec_index_params_t,
+ * zvec_collection_stats_t, zvec_field_schema_t) are null-safe.
+ *
+ * - Free/destroy functions: null is a no-op (idempotent).
+ * - Accessor functions: null returns a zero/default value/error status.
+ * - Status-returning functions: null returns an error status with code 1.
+ *
+ * String/vector pointer return values are valid only until the next call
+ * to the same function from the same thread. Callers MUST copy data before
+ * calling any other getter function. PHP FFI consumers are safe because
+ * FFI::string() copies immediately.
+ */
+
 typedef void* zvec_collection_t;
 typedef void* zvec_schema_t;
 typedef void* zvec_doc_t;
