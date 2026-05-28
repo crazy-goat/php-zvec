@@ -1137,43 +1137,45 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
         $result = $ffi->new('zvec_query_result_t');
 
-        if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
-            $ofArr = null;
-            $ofCount = -1;
-            $ofCStrings = [];
-            if ($outputFields !== null) {
-                $ofCount = count($outputFields);
-                $ofArr = $ffi->new("char*[$ofCount]");
-                foreach ($outputFields as $i => $f) {
-                    $len = strlen($f) + 1;
-                    $cStr = $ffi->new("char[$len]", false);
-                    FFI::memcpy($cStr, $f, strlen($f));
-                    $cStr[$len - 1] = "\0";
-                    $ofCStrings[] = $cStr;
-                    $ofArr[$i] = $cStr;
+        $ofCStrings = [];
+        try {
+            if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
+                $ofArr = null;
+                $ofCount = -1;
+                if ($outputFields !== null) {
+                    $ofCount = count($outputFields);
+                    $ofArr = $ffi->new("char*[$ofCount]");
+                    foreach ($outputFields as $i => $f) {
+                        $len = strlen($f) + 1;
+                        $cStr = $ffi->new("char[$len]", false);
+                        FFI::memcpy($cStr, $f, strlen($f));
+                        $cStr[$len - 1] = "\0";
+                        $ofCStrings[] = $cStr;
+                        $ofArr[$i] = $cStr;
+                    }
                 }
+
+                $status = $ffi->zvec_collection_query_ex(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                    $ofArr, $ofCount,
+                    $queryParamType, $hnswEf, $ivfNprobe,
+                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                    FFI::addr($result)
+                );
+            } else {
+                $status = $ffi->zvec_collection_query(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                    FFI::addr($result)
+                );
             }
-
-            $status = $ffi->zvec_collection_query_ex(
-                $this->handle, $fieldName, $vecData, $dim,
-                $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
-                $ofArr, $ofCount,
-                $queryParamType, $hnswEf, $ivfNprobe,
-                $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
-                FFI::addr($result)
-            );
-
+            self::checkStatus($status);
+        } finally {
             foreach ($ofCStrings as $cStr) {
                 FFI::free($cStr);
             }
-        } else {
-            $status = $ffi->zvec_collection_query(
-                $this->handle, $fieldName, $vecData, $dim,
-                $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
-                FFI::addr($result)
-            );
         }
-        self::checkStatus($status);
 
         $docs = [];
         for ($i = 0; $i < $result->count; $i++) {
@@ -1260,43 +1262,45 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
         $result = $ffi->new('zvec_query_result_t');
 
-        if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
-            $ofArr = null;
-            $ofCount = -1;
-            $ofCStrings = [];
-            if ($outputFields !== null) {
-                $ofCount = count($outputFields);
-                $ofArr = $ffi->new("char*[$ofCount]");
-                foreach ($outputFields as $i => $f) {
-                    $len = strlen($f) + 1;
-                    $cStr = $ffi->new("char[$len]", false);
-                    FFI::memcpy($cStr, $f, strlen($f));
-                    $cStr[$len - 1] = "\0";
-                    $ofCStrings[] = $cStr;
-                    $ofArr[$i] = $cStr;
+        $ofCStrings = [];
+        try {
+            if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
+                $ofArr = null;
+                $ofCount = -1;
+                if ($outputFields !== null) {
+                    $ofCount = count($outputFields);
+                    $ofArr = $ffi->new("char*[$ofCount]");
+                    foreach ($outputFields as $i => $f) {
+                        $len = strlen($f) + 1;
+                        $cStr = $ffi->new("char[$len]", false);
+                        FFI::memcpy($cStr, $f, strlen($f));
+                        $cStr[$len - 1] = "\0";
+                        $ofCStrings[] = $cStr;
+                        $ofArr[$i] = $cStr;
+                    }
                 }
+
+                $status = $ffi->zvec_collection_query_fp64_ex(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                    $ofArr, $ofCount,
+                    $queryParamType, $hnswEf, $ivfNprobe,
+                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                    FFI::addr($result)
+                );
+            } else {
+                $status = $ffi->zvec_collection_query_fp64(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                    FFI::addr($result)
+                );
             }
-
-            $status = $ffi->zvec_collection_query_fp64_ex(
-                $this->handle, $fieldName, $vecData, $dim,
-                $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
-                $ofArr, $ofCount,
-                $queryParamType, $hnswEf, $ivfNprobe,
-                $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
-                FFI::addr($result)
-            );
-
+            self::checkStatus($status);
+        } finally {
             foreach ($ofCStrings as $cStr) {
                 FFI::free($cStr);
             }
-        } else {
-            $status = $ffi->zvec_collection_query_fp64(
-                $this->handle, $fieldName, $vecData, $dim,
-                $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
-                FFI::addr($result)
-            );
         }
-        self::checkStatus($status);
 
         $docs = [];
         for ($i = 0; $i < $result->count; $i++) {
@@ -1383,32 +1387,34 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $ffi = self::ffi();
         $result = $ffi->new('zvec_query_result_t');
 
-        if ($outputFields !== null) {
-            $ofCount = count($outputFields);
-            $ofArr = $ffi->new("char*[$ofCount]");
-            $ofCStrings = [];
-            foreach ($outputFields as $i => $f) {
-                $len = strlen($f) + 1;
-                $cStr = $ffi->new("char[$len]", false);
-                FFI::memcpy($cStr, $f, strlen($f));
-                $cStr[$len - 1] = "\0";
-                $ofCStrings[] = $cStr;
-                $ofArr[$i] = $cStr;
+        $ofCStrings = [];
+        try {
+            if ($outputFields !== null) {
+                $ofCount = count($outputFields);
+                $ofArr = $ffi->new("char*[$ofCount]");
+                foreach ($outputFields as $i => $f) {
+                    $len = strlen($f) + 1;
+                    $cStr = $ffi->new("char[$len]", false);
+                    FFI::memcpy($cStr, $f, strlen($f));
+                    $cStr[$len - 1] = "\0";
+                    $ofCStrings[] = $cStr;
+                    $ofArr[$i] = $cStr;
+                }
+
+                $status = $ffi->zvec_collection_query_filter_ex(
+                    $this->handle, $filter, $topk,
+                    $ofArr, $ofCount,
+                    FFI::addr($result)
+                );
+            } else {
+                $status = $ffi->zvec_collection_query_filter($this->handle, $filter, $topk, FFI::addr($result));
             }
-
-            $status = $ffi->zvec_collection_query_filter_ex(
-                $this->handle, $filter, $topk,
-                $ofArr, $ofCount,
-                FFI::addr($result)
-            );
-
+            self::checkStatus($status);
+        } finally {
             foreach ($ofCStrings as $cStr) {
                 FFI::free($cStr);
             }
-        } else {
-            $status = $ffi->zvec_collection_query_filter($this->handle, $filter, $topk, FFI::addr($result));
         }
-        self::checkStatus($status);
 
         $docs = [];
         for ($i = 0; $i < $result->count; $i++) {
@@ -1543,34 +1549,35 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $ofArr = null;
         $ofCount = -1;
         $ofCStrings = [];
-        if ($outputFields !== null) {
-            $ofCount = count($outputFields);
-            $ofArr = $ffi->new("char*[$ofCount]");
-            foreach ($outputFields as $i => $f) {
-                $len = strlen($f) + 1;
-                $cStr = $ffi->new("char[$len]", false);
-                FFI::memcpy($cStr, $f, strlen($f));
-                $cStr[$len - 1] = "\0";
-                $ofCStrings[] = $cStr;
-                $ofArr[$i] = $cStr;
+        $result = $ffi->new('zvec_group_results_t');
+        try {
+            if ($outputFields !== null) {
+                $ofCount = count($outputFields);
+                $ofArr = $ffi->new("char*[$ofCount]");
+                foreach ($outputFields as $i => $f) {
+                    $len = strlen($f) + 1;
+                    $cStr = $ffi->new("char[$len]", false);
+                    FFI::memcpy($cStr, $f, strlen($f));
+                    $cStr[$len - 1] = "\0";
+                    $ofCStrings[] = $cStr;
+                    $ofArr[$i] = $cStr;
+                }
+            }
+            $status = $ffi->zvec_collection_group_by_query(
+                $this->handle, $fieldName, $vecData, $dim,
+                $groupByField, $groupCount, $groupTopk,
+                $includeVector ? 1 : 0, $filter ?? '',
+                $ofArr, $ofCount,
+                $queryParamType, $hnswEf, $ivfNprobe,
+                $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                FFI::addr($result)
+            );
+            self::checkStatus($status);
+        } finally {
+            foreach ($ofCStrings as $cStr) {
+                FFI::free($cStr);
             }
         }
-
-        $result = $ffi->new('zvec_group_results_t');
-        $status = $ffi->zvec_collection_group_by_query(
-            $this->handle, $fieldName, $vecData, $dim,
-            $groupByField, $groupCount, $groupTopk,
-            $includeVector ? 1 : 0, $filter ?? '',
-            $ofArr, $ofCount,
-            $queryParamType, $hnswEf, $ivfNprobe,
-            $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
-            FFI::addr($result)
-        );
-
-        foreach ($ofCStrings as $cStr) {
-            FFI::free($cStr);
-        }
-        self::checkStatus($status);
 
         $groups = [];
         for ($i = 0; $i < $result->count; $i++) {
