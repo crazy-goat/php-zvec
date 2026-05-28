@@ -1,7 +1,7 @@
 --TEST--
 Bug 0006: Memory leak in query() and related methods on exception (FIXED)
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
