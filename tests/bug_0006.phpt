@@ -134,14 +134,14 @@ try {
 
 echo "All tests passed!\n";
 ?>
---EXPECT--
+--EXPECTF--
 Insert OK
 Test 1: query() with bad field + outputFields OK (50 iterations)
 Test 2: query() outputFields OK (5 docs)
 Test 3: queryFp64() with bad field + outputFields OK (50 iterations)
 Test 4: queryByFilter() with bad filter + outputFields OK (50 iterations)
 Test 5: groupByQuery() with bad field + outputFields OK (50 iterations)
-Test 6: groupByQuery() outputFields OK (1 groups)
+Test 6: groupByQuery() outputFields OK (%d groups)
 Test 7: queryByFilter() outputFields OK (5 docs)
 Close OK
 All tests passed!

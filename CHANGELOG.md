@@ -48,6 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `topk`, `includeVector`, `filter` public properties to `ZVecVectorQuery`
   - `setTopk()`, `setIncludeVector()`, `setFilter()` now store values in properties
   - `query()` extracts `topk`, `includeVector`, `filter` from query object
+
+- **BUG-006: Memory Leak in `query()` and Related Methods on Exception** (#53)
+  - Wrapped `query()`, `queryFp64()`, `queryByFilter()`, and `groupByQuery()` FFI calls in `try-finally` to guarantee C string cleanup on exception
+  - `checkStatus()` moved inside `try` block before the `finally` cleanup loop
+  - Unified output-fields C string allocation/cleanup across all four query methods
+  - Added `tests/bug_0006.phpt` — 50-iteration stress test per method with bad field name / bad filter to trigger exceptions and verify no memory leak
   - `groupByQuery()` extracts `includeVector` and `filter` from query object (topk not applicable — use `groupTopk`)
   - Method signature parameters act as fallback when query object properties not set
   - Added `tests/bug_0012.phpt` — 5 test scenarios verifying ZVecVectorQuery topk/filter/includeVector
