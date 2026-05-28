@@ -1,5 +1,5 @@
 --TEST--
-Bug 0006: RocksDB lock error when recreating collection after failed insert (FIXED)
+Bug 0006: Memory leak in query() and related methods on exception (FIXED)
 --SKIPIF--
 <?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
@@ -7,60 +7,141 @@ Bug 0006: RocksDB lock error when recreating collection after failed insert (FIX
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
-$path = __DIR__ . '/../test_dbs/rocksdb_lock_' . uniqid();
+$path = __DIR__ . '/../test_dbs/bug_0006_' . uniqid();
 
 try {
-    // Create schema with required field
-    $schema = new ZVecSchema('lock_test');
-    $schema->addInt64('id', nullable: false);
-    $schema->addVectorFp32('vec', dimension: 4);
+    // Create schema and collection
+    $schema = new ZVecSchema('test_bug6');
+    $schema->addInt64('id');
+    $schema->addString('name');
+    $schema->addVectorFp32('vec', dimension: 4, metricType: ZVecSchema::METRIC_IP);
 
-    // First attempt: create and fail insert
-    $c1 = ZVec::create($path, $schema);
-    $doc = new ZVecDoc('doc1');
-    $doc->setVectorFp32('vec', [1.0, 2.0, 3.0, 4.0]);
-    // Missing required 'id' field
+    $c = ZVec::create($path, $schema);
 
-    try {
-        $c1->insert($doc);
-        echo "FAIL: Should have thrown exception\n";
+    // Insert some test docs
+    for ($i = 0; $i < 5; $i++) {
+        $doc = new ZVecDoc("doc_$i");
+        $doc->setInt64('id', $i);
+        $doc->setString('name', "name_$i");
+        $doc->setVectorFp32('vec', [1.0, 2.0, 3.0, 4.0]);
+        $c->insert($doc);
+    }
+    echo "Insert OK\n";
+
+    // =========================================================
+    // Test 1: query() with outputFields and bad field name
+    // =========================================================
+    for ($i = 0; $i < 50; $i++) {
+        try {
+            $c->query('nonexistent_field', [1.0, 2.0, 3.0, 4.0],
+                topk: 5, outputFields: ['id', 'name']);
+            echo "FAIL: query() expected exception (iter $i)\n";
+            exit(1);
+        } catch (ZVecException $e) {
+            // Expected — no leak
+        }
+    }
+    echo "Test 1: query() with bad field + outputFields OK (50 iterations)\n";
+
+    // =========================================================
+    // Test 2: query() with outputFields in normal path
+    // =========================================================
+    $docs = $c->query('vec', [1.0, 2.0, 3.0, 4.0],
+        topk: 5, outputFields: ['id', 'name']);
+    if (count($docs) === 5) {
+        echo "Test 2: query() outputFields OK (" . count($docs) . " docs)\n";
+    } else {
+        echo "FAIL: Expected 5 docs, got " . count($docs) . "\n";
         exit(1);
-    } catch (ZVecException $e) {
-        echo "First insert failed as expected\n";
     }
 
-    // Close and cleanup
-    $c1->close();
-    exec("rm -rf " . escapeshellarg($path));
+    // =========================================================
+    // Test 3: queryFp64() with outputFields and bad field name
+    // =========================================================
+    for ($i = 0; $i < 50; $i++) {
+        try {
+            $c->queryFp64('nonexistent_field', [1.0, 2.0, 3.0, 4.0],
+                topk: 5, outputFields: ['id', 'name']);
+            echo "FAIL: queryFp64() expected exception (iter $i)\n";
+            exit(1);
+        } catch (ZVecException $e) {
+            // Expected — no leak
+        }
+    }
+    echo "Test 3: queryFp64() with bad field + outputFields OK (50 iterations)\n";
 
-    // Second attempt: try to create at same path
-    sleep(1);  // Give OS time to release locks
+    // =========================================================
+    // Test 4: queryByFilter() with outputFields and bad filter
+    // =========================================================
+    for ($i = 0; $i < 50; $i++) {
+        try {
+            $c->queryByFilter('nonexistent_field > 0', topk: 5, outputFields: ['id']);
+            echo "FAIL: queryByFilter() expected exception (iter $i)\n";
+            exit(1);
+        } catch (ZVecException $e) {
+            // Expected — no leak
+        }
+    }
+    echo "Test 4: queryByFilter() with bad filter + outputFields OK (50 iterations)\n";
 
-    $c2 = ZVec::create($path, $schema);
-    echo "Recreated collection at same path\n";
+    // =========================================================
+    // Test 5: groupByQuery() with outputFields and bad field name
+    // =========================================================
+    for ($i = 0; $i < 50; $i++) {
+        try {
+            $c->groupByQuery('nonexistent_field', [1.0, 2.0, 3.0, 4.0],
+                groupByField: 'name', groupCount: 2, groupTopk: 3,
+                outputFields: ['id', 'name']);
+            echo "FAIL: groupByQuery() expected exception (iter $i)\n";
+            exit(1);
+        } catch (ZVecException $e) {
+            // Expected — no leak
+        }
+    }
+    echo "Test 5: groupByQuery() with bad field + outputFields OK (50 iterations)\n";
 
-    // Insert valid doc
-    $doc2 = new ZVecDoc('doc2');
-    $doc2->setInt64('id', 2);
-    $doc2->setVectorFp32('vec', [5.0, 6.0, 7.0, 8.0]);
-    $c2->insert($doc2);
-    echo "Inserted valid doc\n";
+    // =========================================================
+    // Test 6: groupByQuery() with outputFields in normal path
+    // =========================================================
+    $groups = $c->groupByQuery('vec', [1.0, 2.0, 3.0, 4.0],
+        groupByField: 'name', groupCount: 2, groupTopk: 3,
+        outputFields: ['id']);
+    if (count($groups) > 0) {
+        echo "Test 6: groupByQuery() outputFields OK (" . count($groups) . " groups)\n";
+    } else {
+        echo "FAIL: Expected groups but got empty\n";
+        exit(1);
+    }
 
-    $c2->destroy();
-    echo "Destroyed collection\n";
+    // =========================================================
+    // Test 7: queryByFilter() with outputFields in normal path
+    // =========================================================
+    $docs = $c->queryByFilter('id >= 0', topk: 5, outputFields: ['id', 'name']);
+    if (count($docs) === 5) {
+        echo "Test 7: queryByFilter() outputFields OK (" . count($docs) . " docs)\n";
+    } else {
+        echo "FAIL: Expected 5 docs, got " . count($docs) . "\n";
+        exit(1);
+    }
 
-    echo "PASS: bug_0006 - No RocksDB lock issues\n";
-    
-} catch (ZVecException $e) {
-    echo "FAIL: RocksDB lock error: " . $e->getMessage() . "\n";
-    exit(1);
+    // Close
+    $c->close();
+    echo "Close OK\n";
+
 } finally {
-    if (is_dir($path)) exec("rm -rf " . escapeshellarg($path));
+    exec("rm -rf " . escapeshellarg($path));
 }
+
+echo "All tests passed!\n";
 ?>
 --EXPECT--
-First insert failed as expected
-Recreated collection at same path
-Inserted valid doc
-Destroyed collection
-PASS: bug_0006 - No RocksDB lock issues
+Insert OK
+Test 1: query() with bad field + outputFields OK (50 iterations)
+Test 2: query() outputFields OK (5 docs)
+Test 3: queryFp64() with bad field + outputFields OK (50 iterations)
+Test 4: queryByFilter() with bad filter + outputFields OK (50 iterations)
+Test 5: groupByQuery() with bad field + outputFields OK (50 iterations)
+Test 6: groupByQuery() outputFields OK (1 groups)
+Test 7: queryByFilter() outputFields OK (5 docs)
+Close OK
+All tests passed!
