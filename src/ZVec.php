@@ -57,6 +57,8 @@ class ZVec
     private static ?FFI $ffi = null;
     private FFI\CData $handle;
     private bool $closed = false;
+    private bool $destroyed = false;
+    private string $path = '';
 
     public static function getFFI(): ?FFI
     {
@@ -494,7 +496,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $out = $ffi->new('zvec_collection_t');
         $status = $ffi->zvec_collection_create($path, $schema->getHandle(), $readOnly ? 1 : 0, $enableMmap ? 1 : 0, $maxBufferSize, FFI::addr($out));
         self::checkStatus($status);
-        return new self($out);
+        return new self($out, $path);
     }
 
     public static function open(string $path, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
@@ -503,7 +505,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $out = $ffi->new('zvec_collection_t');
         $status = $ffi->zvec_collection_open($path, $readOnly ? 1 : 0, $enableMmap ? 1 : 0, $maxBufferSize, FFI::addr($out));
         self::checkStatus($status);
-        return new self($out);
+        return new self($out, $path);
     }
 
     public static function createWith(string $path, ZVecSchema $schema, ZVecCollectionOptions $options): self
@@ -526,9 +528,10 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         );
     }
 
-    private function __construct(FFI\CData $handle)
+    private function __construct(FFI\CData $handle, string $path)
     {
         $this->handle = $handle;
+        $this->path = $path;
     }
 
     public function __destruct()
@@ -562,11 +565,30 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
     public function destroy(): void
     {
-        if (!$this->closed) {
-            $status = self::ffi()->zvec_collection_destroy($this->handle);
+        if ($this->destroyed) {
+            return;
+        }
+
+        if ($this->closed) {
+            // Re-open via stored path so we can destroy the on-disk data
+            $ffi = self::ffi();
+            $newHandle = $ffi->new('zvec_collection_t');
+            $status = $ffi->zvec_collection_open($this->path, 0, 1, 67108864, FFI::addr($newHandle));
             self::checkStatus($status);
+            try {
+                self::checkStatus($ffi->zvec_collection_destroy($newHandle));
+            } catch (\Throwable $e) {
+                // Free the reopened handle to prevent orphaned C++ object in g_collections
+                $ffi->zvec_collection_free($newHandle);
+                throw $e;
+            }
+        } else {
+            self::checkStatus(self::ffi()->zvec_collection_destroy($this->handle));
+            self::ffi()->zvec_collection_free($this->handle);
             $this->closed = true;
         }
+
+        $this->destroyed = true;
     }
 
     public function schema(): string
