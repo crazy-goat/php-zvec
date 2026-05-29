@@ -4,7 +4,7 @@ SMELL-001: File split — each class loads independently via composer autoloader
 <?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
 --FILE--
 <?php
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../src/ZVec.php';
 
 $classes = [
     'ZVecException',
