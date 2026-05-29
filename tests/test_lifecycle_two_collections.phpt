@@ -35,7 +35,13 @@ try {
     $results1 = $c1->query('v', [0.1, 0.2, 0.3, 0.4], topk: 5);
     $results2 = $c2->query('v', [0.5, 0.6, 0.7, 0.8], topk: 5);
 
-    echo "PASS: two collections open simultaneously (c1=" . count($results1) . ", c2=" . count($results2) . ")\n";
+    $count1 = count($results1);
+    $count2 = count($results2);
+    if ($count1 !== 1 || $count2 !== 1) {
+        echo "FAIL: expected 1 result each, got c1=$count1, c2=$count2\n";
+        exit(1);
+    }
+    echo "PASS: two collections open simultaneously\n";
 
     $c1->close();
     $c2->close();
@@ -44,5 +50,5 @@ try {
     exec("rm -rf " . escapeshellarg($path2));
 }
 ?>
---EXPECTF--
-PASS: two collections open simultaneously (c1=%d, c2=%d)
+--EXPECT--
+PASS: two collections open simultaneously

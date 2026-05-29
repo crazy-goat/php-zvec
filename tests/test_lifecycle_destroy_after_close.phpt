@@ -17,7 +17,7 @@ try {
 
     $c = ZVec::create($path, $schema);
     $c->close();
-    $c->destroy();  // destroy after close should work
+    $c->destroy();
     echo "PASS: close then destroy works\n";
 } finally {
     exec("rm -rf " . escapeshellarg($path));

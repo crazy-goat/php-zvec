@@ -17,7 +17,7 @@ try {
 
     $c = ZVec::create($path, $schema);
     $c->close();
-    $c->close();  // Should be idempotent
+    $c->close();
     echo "PASS: close twice idempotent\n";
 } finally {
     exec("rm -rf " . escapeshellarg($path));

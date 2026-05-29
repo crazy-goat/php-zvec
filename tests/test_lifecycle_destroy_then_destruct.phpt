@@ -24,7 +24,6 @@ try {
     $c->optimize();
 
     $c->destroy();
-    // __destruct() will run here — should not double-free or crash
     echo "PASS: destroy + destruct no crash\n";
 } finally {
     exec("rm -rf " . escapeshellarg($path));
