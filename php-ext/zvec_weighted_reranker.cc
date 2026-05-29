@@ -1,30 +1,28 @@
 #include "zvec_weighted_reranker.h"
+#include "zvec_exception.h"
 #include <cfloat>
 
 zend_class_entry *zvec_weighted_reranker_ce = nullptr;
 
 PHP_METHOD(ZVecWeightedReRanker, __construct) {
+    zval *weights = nullptr;
     zend_long topn = 10;
     zend_long metric_type = 2;
-    zval *weights = nullptr;
-    ZEND_PARSE_PARAMETERS_START(0, 3)
+    ZEND_PARSE_PARAMETERS_START(1, 3)
+        Z_PARAM_ARRAY(weights)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(topn)
         Z_PARAM_LONG(metric_type)
-        Z_PARAM_ARRAY(weights)
     ZEND_PARSE_PARAMETERS_END();
 
+    if (Z_TYPE_P(weights) == IS_ARRAY && zend_hash_num_elements(Z_ARRVAL_P(weights)) == 0) {
+        zend_throw_exception(zvec_exception_ce, "ZVecWeightedReRanker requires at least one field weight", 0);
+        RETURN_THROWS();
+    }
+
+    zend_update_property(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "weights", sizeof("weights") - 1, weights);
     zend_update_property_long(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "topn", sizeof("topn") - 1, topn);
     zend_update_property_long(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "metricType", sizeof("metricType") - 1, metric_type);
-
-    if (weights) {
-        zend_update_property(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "weights", sizeof("weights") - 1, weights);
-    } else {
-        zval empty;
-        array_init(&empty);
-        zend_update_property(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "weights", sizeof("weights") - 1, &empty);
-        zval_ptr_dtor(&empty);
-    }
 }
 
 PHP_METHOD(ZVecWeightedReRanker, rerank) {
@@ -242,10 +240,10 @@ PHP_METHOD(ZVecWeightedReRanker, rerank) {
     zval_ptr_dtor(&reranked);
 }
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_zvec_wr___construct, 0, 0, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zvec_wr___construct, 0, 0, 1)
+    ZEND_ARG_TYPE_INFO(0, weights, IS_ARRAY, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, topn, IS_LONG, 0, "10")
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, metricType, IS_LONG, 0, "2")
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, weights, IS_ARRAY, 0, "[]")
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_wr_rerank, 0, 1, IS_ARRAY, 0)
