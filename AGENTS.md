@@ -6,25 +6,34 @@ PHP FFI bindings for [Alibaba's zvec](https://github.com/alibaba/zvec) vector da
 
 ```
 zvec-php/
-├── src/ZVec.php          # Main library (ZVec, ZVecSchema, ZVecDoc, ZVecException)
-├── src/ZVecReRanker.php  # Base re-ranker class
-├── src/ZVecRerankedDoc.php # Reranked document class
-├── src/ZVecRrfReRanker.php # RRF re-ranker
+├── src/ZVec.php              # Barrel file (requires all classes) + ZVec class
+├── src/ZVecException.php     # Custom exception class
+├── src/ZVecCollectionOptions.php  # Collection open/create options
+├── src/ZVecCollectionStats.php    # Collection statistics
+├── src/ZVecFieldSchema.php        # Schema introspection for a single field
+├── src/ZVecIndexParams.php        # Index creation parameters (HNSW, Flat, IVF, etc.)
+├── src/ZVecVectorQuery.php        # Vector query builder
+├── src/ZVecGroupByVectorQuery.php # Group-by vector query builder
+├── src/ZVecSchema.php             # Schema definition (field types, metrics, vectors)
+├── src/ZVecDoc.php                # Document handle (getters/setters, serialization)
+├── src/ZVecReRanker.php      # Base re-ranker class
+├── src/ZVecRerankedDoc.php   # Reranked document class
+├── src/ZVecRrfReRanker.php   # RRF re-ranker
 ├── src/ZVecWeightedReRanker.php # Weighted re-ranker
-├── src/embeddings/       # Embedding function interfaces and implementations
-├── examples/             # Usage examples
-├── ffi/                  # C++ FFI bridge (zvec_ffi.h, zvec_ffi.cc, CMakeLists.txt)
-├── src/Installer.php     # Composer CLI installer for FFI shared library
-├── bin/zvec-install      # CLI tool entry point for FFI library download
-├── composer.json         # Composer package definition
-├── tests/                # Bug reproduction scripts (plain PHP, no framework)
-├── test_dbs/             # Test database directory (content ignored by git)
-├── tasks/todo/           # Feature planning documents
-├── build_zvec_lib.sh     # Builds only the zvec C++ library (with version caching)
-├── build_ffi.sh          # Builds only the FFI shared library (requires zvec built)
-├── build_zvec.sh         # Orchestrator: builds zvec C++ lib + FFI shared library
-├── zvec/                 # Git-cloned upstream zvec C++ library (not committed)
-└── cmake-3.28.3-*/       # Vendored CMake (not committed)
+├── src/embeddings/           # Embedding function interfaces and implementations
+├── examples/                 # Usage examples
+├── ffi/                      # C++ FFI bridge (zvec_ffi.h, zvec_ffi.cc, CMakeLists.txt)
+├── src/Installer.php         # Composer CLI installer for FFI shared library
+├── bin/zvec-install          # CLI tool entry point for FFI library download
+├── composer.json             # Composer package definition
+├── tests/                    # Test files (.phpt format)
+├── test_dbs/                 # Test database directory (content ignored by git)
+├── tasks/todo/               # Feature planning documents
+├── build_zvec_lib.sh         # Builds only the zvec C++ library (with version caching)
+├── build_ffi.sh              # Builds only the FFI shared library (requires zvec built)
+├── build_zvec.sh             # Orchestrator: builds zvec C++ lib + FFI shared library
+├── zvec/                     # Git-cloned upstream zvec C++ library (not committed)
+└── cmake-3.28.3-*/           # Vendored CMake (not committed)
 ```
 
 ## Build Commands
@@ -189,13 +198,16 @@ PHP 8.1+ required. Always use `declare(strict_types=1);` at the top of every fil
 ### Namespaces & Imports
 
 - Composer PSR-4 autoloading is configured for `CrazyGoat\ZVec\` namespace in `src/`.
-- Global classes (`ZVec`, `ZVecSchema`, `ZVecDoc`, `ZVecException`) are loaded via `autoload.files` — no `require_once` needed when using Composer.
+- Global classes (`ZVec`, `ZVecSchema`, `ZVecDoc`, `ZVecException`) are loaded via
+  Composer classmap autoloading — no `require_once` needed when using Composer.
 - No `use` import statements for global classes — reference them by their unqualified names.
 
 ### File Organization
 
-- All library classes (`ZVec`, `ZVecSchema`, `ZVecDoc`, `ZVecException`) live in
-  a single file: `src/ZVec.php`.
+- Each library class has its own file under `src/` (e.g., `src/ZVecException.php`,
+  `src/ZVecSchema.php`, `src/ZVecDoc.php`).
+- `src/ZVec.php` is a barrel file that requires all individual class files, providing
+  backward compatibility for `require_once __DIR__ . '/../src/ZVec.php';`.
 - Test/example files use `require_once __DIR__ . '/../src/ZVec.php';`.
 
 ### Naming Conventions
