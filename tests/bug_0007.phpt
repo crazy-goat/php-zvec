@@ -74,7 +74,7 @@ echo "\nAll Bug 0007 tests passed\n";
 ?>
 --EXPECTF--
 Test 1: Normal destroy() marks closed
-OK: stats after destroy throws: Collection is closed or destroyed
+OK: stats after destroy throws: Collection has been destroyed and cannot be reused
 OK: directory removed
 
 Test 2: Double destroy() is idempotent

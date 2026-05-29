@@ -11,6 +11,7 @@
 struct zvec_collection_object {
     zvec::Collection::Ptr collection;
     bool closed;
+    bool destroyed;
     zend_object std;
 };
 
