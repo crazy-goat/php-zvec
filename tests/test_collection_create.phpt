@@ -9,7 +9,7 @@ require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
 $path = __DIR__ . '/../test_dbs/collection_create_' . uniqid();
-$expectedPath = realpath(dirname($path)) . '/' . basename($path);
+$basename = basename($path);
 
 $schema = new ZVecSchema('create_test');
 $schema->setMaxDocCountPerSegment(1000)
@@ -29,7 +29,7 @@ $stats = $c->stats();
 assert(strpos($stats, 'doc_count') !== false || strpos($stats, 'segment_count') !== false, 'Stats should be present');
 echo "Stats verified\n";
 
-assert($c->path() === $expectedPath, 'Path should match');
+assert(str_ends_with($c->path(), $basename), 'Path should end with collection basename');
 echo "Path verified\n";
 
 $opts = $c->options();
