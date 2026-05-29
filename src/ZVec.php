@@ -352,18 +352,38 @@ class ZVec
     {
         $this->checkClosed();
         $ffi = self::ffi();
-        $buf = $ffi->new('char[8192]');
-        self::checkStatus($ffi->zvec_collection_schema($this->handle, $buf, 8192));
-        return FFI::string($buf);
+        $bufSize = 8192;
+        while (true) {
+            $buf = $ffi->new("char[$bufSize]");
+            self::checkStatus($ffi->zvec_collection_schema($this->handle, $buf, $bufSize));
+            $str = FFI::string($buf);
+            if (strlen($str) < $bufSize - 1) {
+                return $str;
+            }
+            $bufSize *= 2;
+            if ($bufSize > 1048576) {
+                throw new ZVecException('Schema string exceeds maximum buffer size of 1 MB');
+            }
+        }
     }
 
     public function path(): string
     {
         $this->checkClosed();
         $ffi = self::ffi();
-        $buf = $ffi->new('char[4096]');
-        self::checkStatus($ffi->zvec_collection_path($this->handle, $buf, 4096));
-        return FFI::string($buf);
+        $bufSize = 4096;
+        while (true) {
+            $buf = $ffi->new("char[$bufSize]");
+            self::checkStatus($ffi->zvec_collection_path($this->handle, $buf, $bufSize));
+            $str = FFI::string($buf);
+            if (strlen($str) < $bufSize - 1) {
+                return $str;
+            }
+            $bufSize *= 2;
+            if ($bufSize > 1048576) {
+                throw new ZVecException('Path string exceeds maximum buffer size of 1 MB');
+            }
+        }
     }
 
     /**
@@ -1317,9 +1337,19 @@ class ZVec
     {
         $this->checkClosed();
         $ffi = self::ffi();
-        $buf = $ffi->new('char[4096]');
-        self::checkStatus($ffi->zvec_collection_stats($this->handle, $buf, 4096));
-        return FFI::string($buf);
+        $bufSize = 4096;
+        while (true) {
+            $buf = $ffi->new("char[$bufSize]");
+            self::checkStatus($ffi->zvec_collection_stats($this->handle, $buf, $bufSize));
+            $str = FFI::string($buf);
+            if (strlen($str) < $bufSize - 1) {
+                return $str;
+            }
+            $bufSize *= 2;
+            if ($bufSize > 1048576) {
+                throw new ZVecException('Stats string exceeds maximum buffer size of 1 MB');
+            }
+        }
     }
 
     /**
