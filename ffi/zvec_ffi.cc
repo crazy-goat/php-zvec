@@ -3,7 +3,9 @@
 #include <array>
 #include <cstring>
 #include <string>
+#include <unordered_map>
 #include <vector>
+#include <shared_mutex>
 #include <zvec/db/collection.h>
 #include <zvec/db/doc.h>
 #include <zvec/db/index_params.h>
@@ -520,7 +522,11 @@ void zvec_schema_add_field_array_double(zvec_schema_t schema, const char* name, 
 
 // --- Collection ---
 
-static std::vector<Collection::Ptr> g_collections;
+// Thread-safe collection registry using shared_mutex for concurrent reads
+// and exclusive writes. Uses unordered_map for O(1) lookups instead of
+// O(n) vector scans.
+static std::shared_mutex g_collections_mutex;
+static std::unordered_map<Collection*, std::shared_ptr<Collection>> g_collections;
 
 zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out) {
     auto* s = static_cast<CollectionSchema*>(schema);
@@ -532,7 +538,10 @@ zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int
     }
     auto ptr = std::move(result).value();
     auto* raw = ptr.get();
-    g_collections.push_back(std::move(ptr));
+    {
+        std::unique_lock lock(g_collections_mutex);
+        g_collections[raw] = std::move(ptr);
+    }
     *out = static_cast<zvec_collection_t>(raw);
     return ok_status();
 }
@@ -546,7 +555,10 @@ zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_m
     }
     auto ptr = std::move(result).value();
     auto* raw = ptr.get();
-    g_collections.push_back(std::move(ptr));
+    {
+        std::unique_lock lock(g_collections_mutex);
+        g_collections[raw] = std::move(ptr);
+    }
     *out = static_cast<zvec_collection_t>(raw);
     return ok_status();
 }
@@ -554,12 +566,8 @@ zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_m
 void zvec_collection_free(zvec_collection_t coll) {
     if (!coll) return;
     auto* raw = static_cast<Collection*>(coll);
-    for (auto it = g_collections.begin(); it != g_collections.end(); ++it) {
-        if (it->get() == raw) {
-            g_collections.erase(it);
-            return;
-        }
-    }
+    std::unique_lock lock(g_collections_mutex);
+    g_collections.erase(raw);
 }
 
 zvec_status_t zvec_collection_flush(zvec_collection_t coll) {
@@ -591,21 +599,12 @@ zvec_status_t zvec_collection_destroy(zvec_collection_t coll) {
         return st;
     }
     auto* raw = static_cast<Collection*>(coll);
-    for (auto it = g_collections.begin(); it != g_collections.end(); ++it) {
-        if (it->get() == raw) {
-            auto status = raw->Destroy();
-            if (status.ok()) {
-                g_collections.erase(it);
-            }
-            return MAKE_STATUS(status);
-        }
+    auto status = raw->Destroy();
+    {
+        std::unique_lock lock(g_collections_mutex);
+        g_collections.erase(raw);
     }
-    zvec_status_t st;
-    st.code = 1;
-    strncpy(st.message, "collection not found", sizeof(st.message) - 1);
-    st.message[sizeof(st.message) - 1] = '\0';
-    SET_FFI_ERROR(st);
-    return st;
+    return MAKE_STATUS(status);
 }
 
 // --- Inspect ---
