@@ -18,6 +18,7 @@ class ZVec
 {
     private static ?FFI $ffi = null;
     private static ?string $allowedBasePath = null;
+    private static bool $verboseErrors = false;
     private FFI\CData $handle;
     private bool $closed = false;
     private bool $destroyed = false;
@@ -73,10 +74,15 @@ class ZVec
             $details = $ffi->new('zvec_error_details_t');
             $ffi->zvec_get_last_error_details(FFI::addr($details));
             $msg = $details->message !== null ? FFI::string($details->message) : FFI::string($status->message);
-            $file = $details->file !== null ? FFI::string($details->file) : null;
-            $line = $details->line;
-            $function = $details->function !== null ? FFI::string($details->function) : null;
-            throw new ZVecException($msg, $status->code, null, $file, $line, $function);
+
+            if (self::$verboseErrors) {
+                $file = $details->file !== null ? FFI::string($details->file) : null;
+                $line = $details->line;
+                $function = $details->function !== null ? FFI::string($details->function) : null;
+                throw new ZVecException($msg, $status->code, null, $file, $line, $function);
+            }
+
+            throw new ZVecException($msg, $status->code);
         }
     }
 
@@ -700,8 +706,11 @@ class ZVec
         float $invertToForwardScanRatio = 0.0,
         float $bruteForceByKeysRatio = 0.0,
         int $memoryLimitMb = 0,
-        ?string $allowedBasePath = null
+        ?string $allowedBasePath = null,
+        bool $verboseErrors = false,
     ): void {
+        self::$verboseErrors = $verboseErrors;
+
         if ($allowedBasePath !== null && !is_dir($allowedBasePath)) {
             throw new ZVecException("Allowed base path does not exist: {$allowedBasePath}");
         }
@@ -758,13 +767,21 @@ class ZVec
         $ffi = self::ffi();
         $details = $ffi->new('zvec_error_details_t');
         $ffi->zvec_get_last_error_details(FFI::addr($details));
-        return [
+        $result = [
             'code' => $details->code,
             'message' => $details->message !== null ? FFI::string($details->message) : null,
             'file' => $details->file !== null ? FFI::string($details->file) : null,
             'line' => $details->line,
             'function' => $details->function !== null ? FFI::string($details->function) : null,
         ];
+
+        if (!self::$verboseErrors) {
+            $result['file'] = null;
+            $result['line'] = 0;
+            $result['function'] = null;
+        }
+
+        return $result;
     }
 
     public static function clearError(): void

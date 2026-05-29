@@ -5,7 +5,7 @@ Error details: source location in exceptions, error code strings
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
-ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
+ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN, verboseErrors: true);
 
 // Test with nonexistent path - should get file/line/function
 try {
