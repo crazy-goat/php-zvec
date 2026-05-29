@@ -455,6 +455,45 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         }
     }
 
+    /**
+     * Parse FFI query result into ZVecDoc array and free the result.
+     *
+     * @return ZVecDoc[]
+     */
+    private static function parseQueryResult(FFI\CData $result): array
+    {
+        $ffi = self::ffi();
+        $docs = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $docs[] = new ZVecDoc($result->docs[$i], true);
+        }
+        $ffi->zvec_query_result_free_array(FFI::addr($result));
+        return $docs;
+    }
+
+    /**
+     * Parse FFI group query result into indexed array and free the result.
+     *
+     * @return array<int, array{group_value: string, docs: ZVecDoc[]}>
+     */
+    private static function parseGroupResult(FFI\CData $result): array
+    {
+        $ffi = self::ffi();
+        $groups = [];
+        for ($i = 0; $i < $result->count; $i++) {
+            $group = $result->groups[$i];
+            $gv = $group->group_by_value;
+            $groupValue = is_string($gv) ? $gv : FFI::string($gv);
+            $docs = [];
+            for ($j = 0; $j < $group->count; $j++) {
+                $docs[] = new ZVecDoc($group->docs[$j], true);
+            }
+            $groups[] = ['group_value' => $groupValue, 'docs' => $docs];
+        }
+        $ffi->zvec_group_results_free(FFI::addr($result));
+        return $groups;
+    }
+
     public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
     {
         if ($path === '') {
@@ -840,13 +879,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         }
         self::checkStatus($status);
 
-        $docs = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $docs[] = new ZVecDoc($result->docs[$i], true);
-        }
-        $ffi->zvec_query_result_free_array(FFI::addr($result));
-
-        return $docs;
+        return self::parseQueryResult($result);
     }
 
     // Index types for unified IndexParams API
@@ -1027,13 +1060,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $status = $ffi->zvec_collection_query_vector($this->handle, $query->getHandle(), FFI::addr($result));
         self::checkStatus($status);
 
-        $docs = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $docs[] = new ZVecDoc($result->docs[$i], true);
-        }
-        $ffi->zvec_query_result_free_array(FFI::addr($result));
-
-        return $docs;
+        return self::parseQueryResult($result);
     }
 
     /**
@@ -1050,20 +1077,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $status = $ffi->zvec_collection_group_by_query_vector($this->handle, $query->getHandle(), FFI::addr($result));
         self::checkStatus($status);
 
-        $groups = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $group = $result->groups[$i];
-            $gv = $group->group_by_value;
-            $groupValue = is_string($gv) ? $gv : FFI::string($gv);
-            $docs = [];
-            for ($j = 0; $j < $group->count; $j++) {
-                $docs[] = new ZVecDoc($group->docs[$j], true);
-            }
-            $groups[] = ['group_value' => $groupValue, 'docs' => $docs];
-        }
-        $ffi->zvec_group_results_free(FFI::addr($result));
-
-        return $groups;
+        return self::parseGroupResult($result);
     }
 
     /**
@@ -1186,11 +1200,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             }
         }
 
-        $docs = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $docs[] = new ZVecDoc($result->docs[$i], true);
-        }
-        $ffi->zvec_query_result_free_array(FFI::addr($result));
+        $docs = self::parseQueryResult($result);
 
         // Apply reranker if provided
         if ($reranker !== null) {
@@ -1234,13 +1244,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         );
         self::checkStatus($status);
 
-        $docs = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $docs[] = new ZVecDoc($result->docs[$i], true);
-        }
-        $ffi->zvec_query_result_free_array(FFI::addr($result));
-
-        return $docs;
+        return self::parseQueryResult($result);
     }
 
     /**
@@ -1323,11 +1327,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             }
         }
 
-        $docs = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $docs[] = new ZVecDoc($result->docs[$i], true);
-        }
-        $ffi->zvec_query_result_free_array(FFI::addr($result));
+        $docs = self::parseQueryResult($result);
 
         // Apply reranker if provided
         if ($reranker !== null) {
@@ -1440,11 +1440,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             }
         }
 
-        $docs = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $docs[] = new ZVecDoc($result->docs[$i], true);
-        }
-        $ffi->zvec_query_result_free_array(FFI::addr($result));
+        $docs = self::parseQueryResult($result);
 
         return $docs;
     }
@@ -1625,18 +1621,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             }
         }
 
-        $groups = [];
-        for ($i = 0; $i < $result->count; $i++) {
-            $group = $result->groups[$i];
-            $gv = $group->group_by_value;
-            $groupValue = is_string($gv) ? $gv : FFI::string($gv);
-            $docs = [];
-            for ($j = 0; $j < $group->count; $j++) {
-                $docs[] = new ZVecDoc($group->docs[$j], true);
-            }
-            $groups[] = ['group_value' => $groupValue, 'docs' => $docs];
-        }
-        $ffi->zvec_group_results_free(FFI::addr($result));
+        $groups = self::parseGroupResult($result);
 
         return $groups;
     }
