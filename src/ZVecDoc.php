@@ -850,14 +850,27 @@ class ZVecDoc
         if (!$ffi->zvec_doc_has_field($this->handle, $field)) {
             return null;
         }
-        $buf = $ffi->new('char[8192]');
-        $count = $ffi->new('uint32_t');
-        $len = $ffi->zvec_doc_get_array_string($this->handle, $field, $buf, 8192, FFI::addr($count));
-        if ($len <= 0) {
+        $bufSize = 8192;
+        while (true) {
+            $buf = $ffi->new("char[$bufSize]");
+            $count = $ffi->new('uint32_t');
+            $len = $ffi->zvec_doc_get_array_string($this->handle, $field, $buf, $bufSize, FFI::addr($count));
+            if ($len > 0) {
+                $str = FFI::string($buf, $len);
+                return explode("\0", $str);
+            }
+            if ($len === 0) {
+                return [];
+            }
+            if ($len === -1) {
+                $bufSize *= 2;
+                if ($bufSize > 1048576) {
+                    throw new ZVecException("Array string field '$field' exceeds maximum buffer size of 1 MB");
+                }
+                continue;
+            }
             return [];
         }
-        $str = FFI::string($buf, $len);
-        return explode("\0", $str);
     }
 
     /**
@@ -869,16 +882,26 @@ class ZVecDoc
         if (!$ffi->zvec_doc_has_field($this->handle, $field)) {
             return null;
         }
-        $buf = $ffi->new('uint8_t[4096]');
-        $count = $ffi->zvec_doc_get_array_bool($this->handle, $field, $buf, 4096);
-        if ($count <= 0) {
+        $bufSize = 4096;
+        while (true) {
+            $buf = $ffi->new("uint8_t[$bufSize]");
+            $count = $ffi->zvec_doc_get_array_bool($this->handle, $field, $buf, $bufSize);
+            if ($count >= 0) {
+                $result = [];
+                for ($i = 0; $i < $count; $i++) {
+                    $result[] = $buf[$i] !== 0;
+                }
+                return $result;
+            }
+            if ($count === -1) {
+                $bufSize *= 2;
+                if ($bufSize > 1048576) {
+                    throw new ZVecException("Array bool field '$field' exceeds maximum buffer size of 1 MB");
+                }
+                continue;
+            }
             return [];
         }
-        $result = [];
-        for ($i = 0; $i < $count; $i++) {
-            $result[] = $buf[$i] !== 0;
-        }
-        return $result;
     }
 
     public function hasField(string $field): bool
@@ -897,13 +920,23 @@ class ZVecDoc
     public function fieldNames(): array
     {
         $ffi = self::ffi();
-        $buf = $ffi->new('char[8192]');
-        $len = $ffi->zvec_doc_field_names($this->handle, $buf, 8192);
-        if ($len < 0) {
+        $bufSize = 8192;
+        while (true) {
+            $buf = $ffi->new("char[$bufSize]");
+            $len = $ffi->zvec_doc_field_names($this->handle, $buf, $bufSize);
+            if ($len >= 0) {
+                $str = FFI::string($buf);
+                return $str === '' ? [] : explode("\n", $str);
+            }
+            if ($len === -1) {
+                $bufSize *= 2;
+                if ($bufSize > 1048576) {
+                    throw new ZVecException('Field names exceed maximum buffer size of 1 MB');
+                }
+                continue;
+            }
             return [];
         }
-        $str = FFI::string($buf);
-        return $str === '' ? [] : explode("\n", $str);
     }
 
     /**
@@ -912,13 +945,23 @@ class ZVecDoc
     public function vectorNames(): array
     {
         $ffi = self::ffi();
-        $buf = $ffi->new('char[8192]');
-        $len = $ffi->zvec_doc_vector_names($this->handle, $buf, 8192);
-        if ($len < 0) {
+        $bufSize = 8192;
+        while (true) {
+            $buf = $ffi->new("char[$bufSize]");
+            $len = $ffi->zvec_doc_vector_names($this->handle, $buf, $bufSize);
+            if ($len >= 0) {
+                $str = FFI::string($buf);
+                return $str === '' ? [] : explode("\n", $str);
+            }
+            if ($len === -1) {
+                $bufSize *= 2;
+                if ($bufSize > 1048576) {
+                    throw new ZVecException('Vector names exceed maximum buffer size of 1 MB');
+                }
+                continue;
+            }
             return [];
         }
-        $str = FFI::string($buf);
-        return $str === '' ? [] : explode("\n", $str);
     }
 
     // --- Enhanced Doc API ---
