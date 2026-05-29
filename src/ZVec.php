@@ -446,6 +446,35 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         }
     }
 
+    /**
+     * @internal
+     * @param string[] $strings
+     * @return array{FFI\CData, int, FFI\CData[]}
+     */
+    public static function toCStringArray(FFI $ffi, array $strings): array
+    {
+        $cStrings = [];
+        $count = count($strings);
+        $arr = $ffi->new("char*[$count]", false);
+        foreach ($strings as $i => $s) {
+            $len = strlen($s) + 1;
+            $cStr = $ffi->new("char[$len]", false);
+            FFI::memcpy($cStr, $s, strlen($s));
+            $cStr[$len - 1] = "\0";
+            $cStrings[] = $cStr;
+            $arr[$i] = $cStr;
+        }
+        return [$arr, $count, $cStrings];
+    }
+
+    /** @internal */
+    public static function freeCStringArray(array $cStrings): void
+    {
+        foreach ($cStrings as $cStr) {
+            FFI::free($cStr);
+        }
+    }
+
     private function checkClosed(): void
     {
         if ($this->destroyed) {
@@ -825,23 +854,11 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             throw new ZVecException('At least one PK is required');
         }
         $ffi = self::ffi();
-        $count = count($pks);
-        $cStrings = [];
-        $arr = $ffi->new("char*[$count]");
-        foreach ($pks as $i => $pk) {
-            $len = strlen($pk) + 1;
-            $cStr = $ffi->new("char[$len]", false);
-            FFI::memcpy($cStr, $pk, strlen($pk));
-            $cStr[$len - 1] = "\0";
-            $cStrings[] = $cStr;
-            $arr[$i] = $cStr;
-        }
+        [$arr, $count, $cStrings] = self::toCStringArray($ffi, $pks);
         try {
             self::checkStatus($ffi->zvec_collection_delete($this->handle, $arr, $count));
         } finally {
-            foreach ($cStrings as $cStr) {
-                FFI::free($cStr);
-            }
+            self::freeCStringArray($cStrings);
         }
     }
 
@@ -861,24 +878,15 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             throw new ZVecException('At least one PK is required');
         }
         $ffi = self::ffi();
-        $count = count($pks);
-        $cStrings = [];
-        $arr = $ffi->new("char*[$count]");
-        foreach ($pks as $i => $pk) {
-            $len = strlen($pk) + 1;
-            $cStr = $ffi->new("char[$len]", false);
-            FFI::memcpy($cStr, $pk, strlen($pk));
-            $cStr[$len - 1] = "\0";
-            $cStrings[] = $cStr;
-            $arr[$i] = $cStr;
-        }
+        [$arr, $count, $cStrings] = self::toCStringArray($ffi, $pks);
 
         $result = $ffi->new('zvec_query_result_t');
-        $status = $ffi->zvec_collection_fetch($this->handle, $arr, $count, FFI::addr($result));
-        foreach ($cStrings as $cStr) {
-            FFI::free($cStr);
+        try {
+            $status = $ffi->zvec_collection_fetch($this->handle, $arr, $count, FFI::addr($result));
+            self::checkStatus($status);
+        } finally {
+            self::freeCStringArray($cStrings);
         }
-        self::checkStatus($status);
 
         return self::parseQueryResult($result);
     }
@@ -1163,20 +1171,11 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
         $ofCStrings = [];
         try {
+            $ofArr = null;
+            $ofCount = -1;
             if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
-                $ofArr = null;
-                $ofCount = -1;
                 if ($outputFields !== null) {
-                    $ofCount = count($outputFields);
-                    $ofArr = $ffi->new("char*[$ofCount]");
-                    foreach ($outputFields as $i => $f) {
-                        $len = strlen($f) + 1;
-                        $cStr = $ffi->new("char[$len]", false);
-                        FFI::memcpy($cStr, $f, strlen($f));
-                        $cStr[$len - 1] = "\0";
-                        $ofCStrings[] = $cStr;
-                        $ofArr[$i] = $cStr;
-                    }
+                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
                 }
 
                 $status = $ffi->zvec_collection_query_ex(
@@ -1196,9 +1195,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             }
             self::checkStatus($status);
         } finally {
-            foreach ($ofCStrings as $cStr) {
-                FFI::free($cStr);
-            }
+            self::freeCStringArray($ofCStrings);
         }
 
         $docs = self::parseQueryResult($result);
@@ -1290,20 +1287,11 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
         $ofCStrings = [];
         try {
+            $ofArr = null;
+            $ofCount = -1;
             if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
-                $ofArr = null;
-                $ofCount = -1;
                 if ($outputFields !== null) {
-                    $ofCount = count($outputFields);
-                    $ofArr = $ffi->new("char*[$ofCount]");
-                    foreach ($outputFields as $i => $f) {
-                        $len = strlen($f) + 1;
-                        $cStr = $ffi->new("char[$len]", false);
-                        FFI::memcpy($cStr, $f, strlen($f));
-                        $cStr[$len - 1] = "\0";
-                        $ofCStrings[] = $cStr;
-                        $ofArr[$i] = $cStr;
-                    }
+                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
                 }
 
                 $status = $ffi->zvec_collection_query_fp64_ex(
@@ -1323,9 +1311,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             }
             self::checkStatus($status);
         } finally {
-            foreach ($ofCStrings as $cStr) {
-                FFI::free($cStr);
-            }
+            self::freeCStringArray($ofCStrings);
         }
 
         $docs = self::parseQueryResult($result);
@@ -1415,16 +1401,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $ofCStrings = [];
         try {
             if ($outputFields !== null) {
-                $ofCount = count($outputFields);
-                $ofArr = $ffi->new("char*[$ofCount]");
-                foreach ($outputFields as $i => $f) {
-                    $len = strlen($f) + 1;
-                    $cStr = $ffi->new("char[$len]", false);
-                    FFI::memcpy($cStr, $f, strlen($f));
-                    $cStr[$len - 1] = "\0";
-                    $ofCStrings[] = $cStr;
-                    $ofArr[$i] = $cStr;
-                }
+                [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
 
                 $status = $ffi->zvec_collection_query_filter_ex(
                     $this->handle, $filter, $topk,
@@ -1436,9 +1413,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             }
             self::checkStatus($status);
         } finally {
-            foreach ($ofCStrings as $cStr) {
-                FFI::free($cStr);
-            }
+            self::freeCStringArray($ofCStrings);
         }
 
         $docs = self::parseQueryResult($result);
@@ -1595,16 +1570,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         $result = $ffi->new('zvec_group_results_t');
         try {
             if ($outputFields !== null) {
-                $ofCount = count($outputFields);
-                $ofArr = $ffi->new("char*[$ofCount]");
-                foreach ($outputFields as $i => $f) {
-                    $len = strlen($f) + 1;
-                    $cStr = $ffi->new("char[$len]", false);
-                    FFI::memcpy($cStr, $f, strlen($f));
-                    $cStr[$len - 1] = "\0";
-                    $ofCStrings[] = $cStr;
-                    $ofArr[$i] = $cStr;
-                }
+                [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
             }
             $status = $ffi->zvec_collection_group_by_query(
                 $this->handle, $fieldName, $vecData, $dim,
@@ -1617,9 +1583,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             );
             self::checkStatus($status);
         } finally {
-            foreach ($ofCStrings as $cStr) {
-                FFI::free($cStr);
-            }
+            self::freeCStringArray($ofCStrings);
         }
 
         $groups = self::parseGroupResult($result);
