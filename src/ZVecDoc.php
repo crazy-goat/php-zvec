@@ -405,19 +405,11 @@ class ZVecDoc
         if ($count === 0) {
             $ffi->zvec_doc_set_array_string($this->handle, $field, null, 0);
         } else {
-            $cStrings = [];
-            $arr = $ffi->new("char*[$count]");
-            foreach ($strings as $i => $s) {
-                $len = strlen($s) + 1;
-                $cStr = $ffi->new("char[$len]", false);
-                FFI::memcpy($cStr, $s, strlen($s));
-                $cStr[$len - 1] = "\0";
-                $cStrings[] = $cStr;
-                $arr[$i] = $cStr;
-            }
-            $ffi->zvec_doc_set_array_string($this->handle, $field, $arr, $count);
-            foreach ($cStrings as $cStr) {
-                FFI::free($cStr);
+            [$arr, $count, $cStrings] = ZVec::toCStringArray($ffi, $strings);
+            try {
+                $ffi->zvec_doc_set_array_string($this->handle, $field, $arr, $count);
+            } finally {
+                ZVec::freeCStringArray($cStrings);
             }
         }
         return $this;

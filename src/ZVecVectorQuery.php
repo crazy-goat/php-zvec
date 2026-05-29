@@ -190,19 +190,11 @@ class ZVecVectorQuery
         $ffi = self::ffi();
         $count = count($fields);
         if ($count > 0) {
-            $cStrings = [];
-            $arr = $ffi->new("char*[$count]");
-            foreach ($fields as $i => $f) {
-                $len = strlen($f) + 1;
-                $cStr = $ffi->new("char[$len]", false);
-                FFI::memcpy($cStr, $f, strlen($f));
-                $cStr[$len - 1] = "\0";
-                $cStrings[] = $cStr;
-                $arr[$i] = $cStr;
-            }
-            $ffi->zvec_vector_query_set_output_fields($this->handle, $arr, $count);
-            foreach ($cStrings as $cStr) {
-                FFI::free($cStr);
+            [$arr, $count, $cStrings] = ZVec::toCStringArray($ffi, $fields);
+            try {
+                $ffi->zvec_vector_query_set_output_fields($this->handle, $arr, $count);
+            } finally {
+                ZVec::freeCStringArray($cStrings);
             }
         }
         return $this;
