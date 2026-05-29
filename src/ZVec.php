@@ -27,7 +27,8 @@ class ZVec
         return self::$ffi;
     }
 
-    private static function ffi(): FFI
+    /** @internal */
+    public static function ffi(): FFI
     {
         if (self::$ffi === null) {
             $ext = PHP_OS_FAMILY === 'Darwin' ? 'dylib' : 'so';

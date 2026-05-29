@@ -210,6 +210,6 @@ class ZVecVectorQuery
 
     private static function ffi(): FFI
     {
-        return (new ReflectionClass(ZVec::class))->getMethod('ffi')->invoke(null);
+        return ZVec::ffi();
     }
 }
