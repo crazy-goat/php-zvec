@@ -139,7 +139,7 @@ class ZVec
         if (self::$allowedBasePath === null) {
             $base = $hasDriveLetter ? $parts[0] . '/' : '/';
             $resolved = $base;
-            foreach ($parts as $i => $part) {
+            foreach ($parts as $part) {
                 if ($part === '' || $part === '.') {
                     continue;
                 }
