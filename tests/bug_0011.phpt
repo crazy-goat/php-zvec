@@ -142,14 +142,14 @@ try {
     exec("rm -rf " . escapeshellarg($path));
 }
 ?>
---EXPECT--
-OK 1: ZVecSchema clone blocked - Call to private ZVecSchema::__clone() from global scope
-OK 2: ZVecIndexParams clone blocked - Call to private ZVecIndexParams::__clone() from global scope
-OK 3: ZVecVectorQuery clone blocked - Call to private ZVecVectorQuery::__clone() from global scope
-OK 4: ZVecCollectionStats clone blocked - Call to private ZVecCollectionStats::__clone() from global scope
-OK 5: ZVecFieldSchema clone blocked - Call to private ZVecFieldSchema::__clone() from global scope
-OK 6: ZVecDoc clone blocked - Call to private ZVecDoc::__clone() from global scope
-OK 7: ZVec clone blocked - Call to private ZVec::__clone() from global scope
+--EXPECTF--
+OK 1: ZVecSchema clone blocked - Call to private%sZVecSchema::__clone() from global scope
+OK 2: ZVecIndexParams clone blocked - Call to private%sZVecIndexParams::__clone() from global scope
+OK 3: ZVecVectorQuery clone blocked - Call to private%sZVecVectorQuery::__clone() from global scope
+OK 4: ZVecCollectionStats clone blocked - Call to private%sZVecCollectionStats::__clone() from global scope
+OK 5: ZVecFieldSchema clone blocked - Call to private%sZVecFieldSchema::__clone() from global scope
+OK 6: ZVecDoc clone blocked - Call to private%sZVecDoc::__clone() from global scope
+OK 7: ZVec clone blocked - Call to private%sZVec::__clone() from global scope
 OK 8: ZVecSchema normal use works
 OK 9: ZVecIndexParams normal use works
 OK 10: ZVecVectorQuery normal use works
