@@ -41,8 +41,14 @@ class ZVecWeightedReRanker implements ZVecReRanker
      */
     public array $weights;
 
-    public function __construct(int $topn = 10, int $metricType = 2, array $weights = [])
+    /**
+     * @param array<string, float> $weights Field name → weight mapping (required, must not be empty)
+     */
+    public function __construct(array $weights, int $topn = 10, int $metricType = ZVecSchema::METRIC_IP)
     {
+        if (empty($weights)) {
+            throw new ZVecException('ZVecWeightedReRanker requires at least one field weight');
+        }
         $this->topn = $topn;
         $this->metricType = $metricType;
         $this->weights = $weights;
