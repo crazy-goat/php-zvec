@@ -17,6 +17,7 @@ require_once __DIR__ . '/ZVecDoc.php';
 class ZVec
 {
     private static ?FFI $ffi = null;
+    private static ?string $allowedBasePath = null;
     private FFI\CData $handle;
     private bool $closed = false;
     private bool $destroyed = false;
@@ -119,6 +120,92 @@ class ZVec
     }
 
     /**
+     * Validate and resolve a collection path, preventing directory traversal attacks.
+     *
+     * When $allowedBasePath is set, the resolved path must fall within that directory.
+     * When $allowedBasePath is null (default), the path must be an absolute path or
+     * resolve to an absolute path without ".." components that escape the parent directory.
+     */
+    private static function validateCollectionPath(string $path): string
+    {
+        if ($path === '') {
+            throw new ZVecException('Path must not be empty');
+        }
+
+        $normalized = str_replace('\\', '/', $path);
+        $parts = explode('/', $normalized);
+        $hasDriveLetter = PHP_OS_FAMILY === 'Windows' && preg_match('/^[A-Za-z]:/', $normalized);
+
+        if (self::$allowedBasePath === null) {
+            $base = $hasDriveLetter ? $parts[0] . '/' : '/';
+            $resolved = $base;
+            foreach ($parts as $i => $part) {
+                if ($part === '' || $part === '.') {
+                    continue;
+                }
+                if ($part === '..') {
+                    $resolved = rtrim($resolved, '/');
+                    $resolved = dirname($resolved);
+                    if ($resolved === '.') {
+                        $resolved = '/';
+                    }
+                    $resolved = rtrim($resolved, '/') . '/';
+                    continue;
+                }
+                $resolved = rtrim($resolved, '/') . '/' . $part;
+            }
+
+            $resolved = rtrim($resolved, '/');
+            if ($resolved === '') {
+                throw new ZVecException("Invalid collection path: {$path}");
+            }
+
+            return $resolved;
+        }
+
+        $allowed = realpath(self::$allowedBasePath);
+        if ($allowed === false) {
+            throw new ZVecException("Allowed base path does not exist: " . self::$allowedBasePath);
+        }
+
+        $resolvedDir = realpath(dirname($path));
+        $basename = basename($path);
+
+        if ($basename === '' || $basename === '.' || $basename === '..') {
+            throw new ZVecException("Invalid collection path: {$path}");
+        }
+
+        if ($resolvedDir !== false) {
+            $candidate = rtrim($resolvedDir, '/') . '/' . $basename;
+            if (!str_starts_with($candidate, rtrim($allowed, '/') . '/') && $candidate !== $allowed) {
+                throw new ZVecException(
+                    "Collection path not allowed: {$path} (must be within {$allowed})"
+                );
+            }
+            return $candidate;
+        }
+
+        $parent = dirname($path);
+        if ($parent === '' || $parent === '.') {
+            throw new ZVecException("Invalid collection path: {$path}");
+        }
+
+        $resolvedParent = realpath($parent);
+        if ($resolvedParent === false) {
+            throw new ZVecException("Parent directory does not exist: {$parent}");
+        }
+
+        $candidate = $resolvedParent . '/' . $basename;
+        if (!str_starts_with($candidate, rtrim($allowed, '/') . '/') && $candidate !== $allowed) {
+            throw new ZVecException(
+                "Collection path not allowed: {$path} (must be within {$allowed})"
+            );
+        }
+
+        return $candidate;
+    }
+
+    /**
      * Parse FFI query result into ZVecDoc array and free the result.
      *
      * @return ZVecDoc[]
@@ -159,9 +246,7 @@ class ZVec
 
     public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
     {
-        if ($path === '') {
-            throw new ZVecException('Path must not be empty');
-        }
+        $path = self::validateCollectionPath($path);
         $ffi = self::ffi();
         $out = $ffi->new('zvec_collection_t');
         $status = $ffi->zvec_collection_create($path, $schema->getHandle(), $readOnly ? 1 : 0, $enableMmap ? 1 : 0, $maxBufferSize, FFI::addr($out));
@@ -171,9 +256,7 @@ class ZVec
 
     public static function open(string $path, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
     {
-        if ($path === '') {
-            throw new ZVecException('Path must not be empty');
-        }
+        $path = self::validateCollectionPath($path);
         $ffi = self::ffi();
         $out = $ffi->new('zvec_collection_t');
         $status = $ffi->zvec_collection_open($path, $readOnly ? 1 : 0, $enableMmap ? 1 : 0, $maxBufferSize, FFI::addr($out));
@@ -596,8 +679,14 @@ class ZVec
         int $optimizeThreads = 0,
         float $invertToForwardScanRatio = 0.0,
         float $bruteForceByKeysRatio = 0.0,
-        int $memoryLimitMb = 0
+        int $memoryLimitMb = 0,
+        ?string $allowedBasePath = null
     ): void {
+        if ($allowedBasePath !== null && !is_dir($allowedBasePath)) {
+            throw new ZVecException("Allowed base path does not exist: {$allowedBasePath}");
+        }
+        self::$allowedBasePath = $allowedBasePath;
+
         $ffi = self::ffi();
 
         $logConfig = $logType === self::LOG_FILE
