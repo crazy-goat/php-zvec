@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **SMELL-017: Extracted `collection_batch_op()` template in `ffi/zvec_ffi.cc`** (#97)
+  - Replaced ~130 lines of duplicated code across `zvec_collection_insert_batch`,
+    `zvec_collection_upsert_batch`, and `zvec_collection_update_batch` with a shared
+    `collection_batch_op()` helper that takes a callable
+  - Each batch wrapper reduced to a 5-line lambda, making the operation difference
+    immediately visible
+  - Bug fixes to batch logic now need to be applied in only one place
+
 - **SMELL-010: Added `$destroyed` boolean to distinguish closed vs destroyed collection state** (#91)
   - `checkClosed()` now throws distinct error messages for each state:
     - Closed: "Collection is closed. Open with ZVec::open() to continue."
