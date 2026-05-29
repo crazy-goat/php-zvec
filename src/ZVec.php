@@ -492,6 +492,9 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
     public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
     {
+        if ($path === '') {
+            throw new ZVecException('Path must not be empty');
+        }
         $ffi = self::ffi();
         $out = $ffi->new('zvec_collection_t');
         $status = $ffi->zvec_collection_create($path, $schema->getHandle(), $readOnly ? 1 : 0, $enableMmap ? 1 : 0, $maxBufferSize, FFI::addr($out));
@@ -501,6 +504,9 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
     public static function open(string $path, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
     {
+        if ($path === '') {
+            throw new ZVecException('Path must not be empty');
+        }
         $ffi = self::ffi();
         $out = $ffi->new('zvec_collection_t');
         $status = $ffi->zvec_collection_open($path, $readOnly ? 1 : 0, $enableMmap ? 1 : 0, $maxBufferSize, FFI::addr($out));
@@ -809,6 +815,9 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public function delete(string ...$pks): void
     {
         $this->checkClosed();
+        if (empty($pks)) {
+            throw new ZVecException('At least one PK is required');
+        }
         $ffi = self::ffi();
         $count = count($pks);
         $cStrings = [];
@@ -842,6 +851,9 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public function fetch(string ...$pks): array
     {
         $this->checkClosed();
+        if (empty($pks)) {
+            throw new ZVecException('At least one PK is required');
+        }
         $ffi = self::ffi();
         $count = count($pks);
         $cStrings = [];
@@ -1149,6 +1161,13 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             }
         }
 
+        if ($topk <= 0) {
+            throw new ZVecException("topk must be a positive integer, got: {$topk}");
+        }
+        if (is_string($fieldName) && $fieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
+
         // If reranker is provided, fetch more results for two-stage retrieval
         $fetchTopk = $reranker !== null ? max($topk * 2, 100) : $topk;
 
@@ -1227,6 +1246,12 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         ?string $filter = null
     ): array {
         $this->checkClosed();
+        if ($topk <= 0) {
+            throw new ZVecException("topk must be a positive integer, got: {$topk}");
+        }
+        if ($fieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
 
         $ffi = self::ffi();
         $dim = count($queryVector);
@@ -1273,6 +1298,12 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         ?ZVecReRanker $reranker = null
     ): array {
         $this->checkClosed();
+        if ($topk <= 0) {
+            throw new ZVecException("topk must be a positive integer, got: {$topk}");
+        }
+        if ($fieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
 
         $ffi = self::ffi();
         $dim = count($queryVector);
@@ -1408,6 +1439,9 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     public function queryByFilter(string $filter, int $topk = 100, ?array $outputFields = null): array
     {
         $this->checkClosed();
+        if ($topk <= 0) {
+            throw new ZVecException("topk must be a positive integer, got: {$topk}");
+        }
         $ffi = self::ffi();
         $result = $ffi->new('zvec_query_result_t');
 
@@ -1481,6 +1515,15 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
         bool $isUsingRefiner = false
     ): array {
         $this->checkClosed();
+        if ($topk <= 0) {
+            throw new ZVecException("topk must be a positive integer, got: {$topk}");
+        }
+        if ($fieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
+        if ($docId === '') {
+            throw new ZVecException('Document ID must not be empty');
+        }
 
         $docs = $this->fetch($docId);
         if (empty($docs)) {
@@ -1561,6 +1604,19 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
             if ($vq->docId !== null) {
                 throw new ZVecException("groupByQuery() with docId not yet implemented. Use queryById() or fetch the vector first.");
             }
+        }
+
+        if ($groupCount <= 0) {
+            throw new ZVecException("groupCount must be a positive integer, got: {$groupCount}");
+        }
+        if ($groupTopk <= 0) {
+            throw new ZVecException("groupTopk must be a positive integer, got: {$groupTopk}");
+        }
+        if (is_string($fieldName) && $fieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
+        if ($groupByField === '') {
+            throw new ZVecException('Group by field must not be empty');
         }
 
         $ffi = self::ffi();
@@ -1903,6 +1959,12 @@ class ZVecIndexParams
 
     public static function forHnsw(int $metricType, int $m = 50, int $efConstruction = 500, int $quantizeType = ZVec::QUANTIZE_UNDEFINED, bool $useContiguousMemory = false): self
     {
+        if ($m <= 0) {
+            throw new ZVecException("m must be a positive integer, got: {$m}");
+        }
+        if ($efConstruction <= 0) {
+            throw new ZVecException("efConstruction must be a positive integer, got: {$efConstruction}");
+        }
         $ffi = self::ffi();
         $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_HNSW, $metricType);
         $ffi->zvec_index_params_set_hnsw($handle, $m, $efConstruction, $quantizeType, $useContiguousMemory ? 1 : 0);
@@ -1911,6 +1973,12 @@ class ZVecIndexParams
 
     public static function forHnswRabitq(int $metricType, int $totalBits = 7, int $numClusters = 16, int $m = 50, int $efConstruction = 500, int $sampleCount = 0): self
     {
+        if ($m <= 0) {
+            throw new ZVecException("m must be a positive integer, got: {$m}");
+        }
+        if ($efConstruction <= 0) {
+            throw new ZVecException("efConstruction must be a positive integer, got: {$efConstruction}");
+        }
         $ffi = self::ffi();
         $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_HNSW_RABITQ, $metricType);
         $ffi->zvec_index_params_set_hnsw_rabitq($handle, $totalBits, $numClusters, $m, $efConstruction, $sampleCount);
@@ -1927,6 +1995,12 @@ class ZVecIndexParams
 
     public static function forIvf(int $metricType, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
     {
+        if ($nList <= 0) {
+            throw new ZVecException("nList must be a positive integer, got: {$nList}");
+        }
+        if ($nIters <= 0) {
+            throw new ZVecException("nIters must be a positive integer, got: {$nIters}");
+        }
         $ffi = self::ffi();
         $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_IVF, $metricType);
         $ffi->zvec_index_params_set_ivf($handle, $nList, $nIters, $useSoar ? 1 : 0, $quantizeType);
@@ -1935,6 +2009,12 @@ class ZVecIndexParams
 
     public static function forVamana(int $metricType, int $maxDegree = 64, int $searchListSize = 100, float $alpha = 1.2, bool $saturateGraph = false, bool $useContiguousMemory = false, bool $useIdMap = false, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
     {
+        if ($maxDegree <= 0) {
+            throw new ZVecException("maxDegree must be a positive integer, got: {$maxDegree}");
+        }
+        if ($searchListSize <= 0) {
+            throw new ZVecException("searchListSize must be a positive integer, got: {$searchListSize}");
+        }
         $ffi = self::ffi();
         $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_VAMANA, $metricType);
         $ffi->zvec_index_params_set_vamana($handle, $maxDegree, $searchListSize, $alpha, $saturateGraph ? 1 : 0, $useContiguousMemory ? 1 : 0, $useIdMap ? 1 : 0, $quantizeType);
@@ -1988,6 +2068,9 @@ class ZVecVectorQuery
      */
     public function __construct(string $fieldName, array $vector)
     {
+        if ($fieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
         $ffi = self::ffi();
         $this->handle = $ffi->zvec_vector_query_create();
         $this->handleType = 'vector_query';
@@ -2169,6 +2252,18 @@ class ZVecGroupByVectorQuery extends ZVecVectorQuery
      */
     public function __construct(string $fieldName, array $vector, string $groupByField, int $groupCount = 2, int $groupTopk = 3)
     {
+        if ($fieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
+        if ($groupByField === '') {
+            throw new ZVecException('Group by field must not be empty');
+        }
+        if ($groupCount <= 0) {
+            throw new ZVecException("groupCount must be a positive integer, got: {$groupCount}");
+        }
+        if ($groupTopk <= 0) {
+            throw new ZVecException("groupTopk must be a positive integer, got: {$groupTopk}");
+        }
         $ffi = self::ffi();
         $this->handle = $ffi->zvec_group_by_vector_query_create();
         $this->handleType = 'group_by_query';
@@ -2331,6 +2426,9 @@ class ZVecSchema
 
     public function __construct(string $name)
     {
+        if ($name === '') {
+            throw new ZVecException('Schema name must not be empty');
+        }
         $this->handle = self::ffi()->zvec_schema_create($name);
     }
 
@@ -2409,12 +2507,18 @@ class ZVecSchema
 
     public function addVectorFp32(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
+        if ($dimension <= 0) {
+            throw new ZVecException("Dimension must be a positive integer, got: {$dimension}");
+        }
         self::ffi()->zvec_schema_add_field_vector_fp32($this->handle, $name, $dimension, $metricType);
         return $this;
     }
 
     public function addVectorFp64(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
+        if ($dimension <= 0) {
+            throw new ZVecException("Dimension must be a positive integer, got: {$dimension}");
+        }
         self::ffi()->zvec_schema_add_field_vector_fp64($this->handle, $name, $dimension, $metricType);
         return $this;
     }
@@ -2427,36 +2531,54 @@ class ZVecSchema
 
     public function addVectorInt8(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
+        if ($dimension <= 0) {
+            throw new ZVecException("Dimension must be a positive integer, got: {$dimension}");
+        }
         self::ffi()->zvec_schema_add_field_vector_int8($this->handle, $name, $dimension, $metricType);
         return $this;
     }
 
     public function addVectorFp16(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
+        if ($dimension <= 0) {
+            throw new ZVecException("Dimension must be a positive integer, got: {$dimension}");
+        }
         self::ffi()->zvec_schema_add_field_vector_fp16($this->handle, $name, $dimension, $metricType);
         return $this;
     }
 
     public function addVectorInt4(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
+        if ($dimension <= 0) {
+            throw new ZVecException("Dimension must be a positive integer, got: {$dimension}");
+        }
         self::ffi()->zvec_schema_add_field_vector_int4($this->handle, $name, $dimension, $metricType);
         return $this;
     }
 
     public function addVectorInt16(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
+        if ($dimension <= 0) {
+            throw new ZVecException("Dimension must be a positive integer, got: {$dimension}");
+        }
         self::ffi()->zvec_schema_add_field_vector_int16($this->handle, $name, $dimension, $metricType);
         return $this;
     }
 
     public function addVectorBinary32(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
+        if ($dimension <= 0) {
+            throw new ZVecException("Dimension must be a positive integer, got: {$dimension}");
+        }
         self::ffi()->zvec_schema_add_field_vector_binary32($this->handle, $name, $dimension, $metricType);
         return $this;
     }
 
     public function addVectorBinary64(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
+        if ($dimension <= 0) {
+            throw new ZVecException("Dimension must be a positive integer, got: {$dimension}");
+        }
         self::ffi()->zvec_schema_add_field_vector_binary64($this->handle, $name, $dimension, $metricType);
         return $this;
     }
