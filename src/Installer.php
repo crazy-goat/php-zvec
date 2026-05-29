@@ -172,11 +172,15 @@ class Installer
                 'header' => "User-Agent: crazy-goat/zvec-installer\r\n",
                 'verify_peer' => true,
                 'verify_peer_name' => true,
+                'verify_depth' => 5,
             ],
         ]);
         $data = file_get_contents($url, false, $ctx);
         if ($data === false) {
-            throw new RuntimeException("Failed to download: {$url}");
+            $error = error_get_last();
+            throw new RuntimeException(
+                'Failed to download ' . $url . ': ' . ($error['message'] ?? 'unknown error')
+            );
         }
         file_put_contents($dest, $data);
     }
@@ -189,11 +193,15 @@ class Installer
                 'header' => "User-Agent: crazy-goat/zvec-installer\r\n",
                 'verify_peer' => true,
                 'verify_peer_name' => true,
+                'verify_depth' => 5,
             ],
         ]);
-        $sumsContent = @file_get_contents($sumsUrl, false, $ctx);
+        $sumsContent = file_get_contents($sumsUrl, false, $ctx);
         if ($sumsContent === false) {
-            throw new RuntimeException("Cannot fetch checksums for {$version}");
+            $error = error_get_last();
+            throw new RuntimeException(
+                'Failed to fetch checksums for ' . $version . ': ' . ($error['message'] ?? 'unknown error')
+            );
         }
         foreach (explode("\n", $sumsContent) as $line) {
             $parts = preg_split('/\s+/', trim($line));
