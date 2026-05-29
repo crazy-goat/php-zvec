@@ -2,17 +2,16 @@
 #define ZVEC_FFI_PHP_H
 
 /*
- * PHP FFI scope header for zvec.
+ * PHP FFI header for zvec.
  *
  * This file MUST stay in sync with ffi/zvec_ffi.h.
- * It contains the same C declarations used by PHP FFI::load().
+ * It contains the same C declarations used by PHP FFI at runtime.
  *
  * To regenerate after C++ header changes:
  *   cp ffi/zvec_ffi.h ffi/zvec_ffi_php.h
- *   # Then remove #ifdef __cplusplus, comments, and add FFI_SCOPE define
+ *   # Then remove #ifdef __cplusplus and comments
  */
 
-#define FFI_SCOPE "zvec_ffi"
 /* FFI_LIB is set dynamically at runtime via FFI::cdef() second argument */
 
 #include <stdint.h>

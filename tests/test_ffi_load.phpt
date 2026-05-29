@@ -1,5 +1,5 @@
 --TEST--
-FFI::load() header loads all C function symbols
+FFI header file loads all C function symbols
 --SKIPIF--
 <?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
 --FILE--
