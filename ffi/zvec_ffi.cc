@@ -1445,8 +1445,8 @@ int zvec_doc_get_vector_fp16(zvec_doc_t doc, const char* field, const uint16_t**
 }
 
 // Separate buffers for each sparse vector get call to avoid data mixing
-// Use a circular buffer approach with 16 slots to handle multiple concurrent calls
-static thread_local std::array<std::pair<std::vector<uint32_t>, std::vector<float>>, 16> g_sparse_buffers;
+// Use a circular buffer approach with 256 slots to handle multiple concurrent calls
+static thread_local std::array<std::pair<std::vector<uint32_t>, std::vector<float>>, 256> g_sparse_buffers;
 static thread_local size_t g_sparse_buffer_idx = 0;
 
 int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const float** values_out, uint32_t* count_out) {
@@ -1459,7 +1459,7 @@ int zvec_doc_get_sparse_vector_fp32(zvec_doc_t doc, const char* field, const uin
         *indices_out = slot.first.data();
         *values_out = slot.second.data();
         *count_out = static_cast<uint32_t>(slot.first.size());
-        g_sparse_buffer_idx = (g_sparse_buffer_idx + 1) % 16;
+        g_sparse_buffer_idx = (g_sparse_buffer_idx + 1) % 256;
         return 1;
     }
     return 0;
@@ -1521,7 +1521,7 @@ int zvec_doc_get_vector_int4(zvec_doc_t doc, const char* field, const int8_t** o
 }
 
 // Sparse FP16 - circular buffer
-static thread_local std::array<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>, 16> g_sparse_fp16_buffers;
+static thread_local std::array<std::pair<std::vector<uint32_t>, std::vector<ailego::Float16>>, 256> g_sparse_fp16_buffers;
 static thread_local size_t g_sparse_fp16_buffer_idx = 0;
 
 int zvec_doc_get_sparse_vector_fp16(zvec_doc_t doc, const char* field, const uint32_t** indices_out, const uint16_t** values_out, uint32_t* count_out) {
@@ -1540,7 +1540,7 @@ int zvec_doc_get_sparse_vector_fp16(zvec_doc_t doc, const char* field, const uin
         }
         *values_out = g_tmp_fp16_vals.data();
         *count_out = static_cast<uint32_t>(slot.first.size());
-        g_sparse_fp16_buffer_idx = (g_sparse_fp16_buffer_idx + 1) % 16;
+        g_sparse_fp16_buffer_idx = (g_sparse_fp16_buffer_idx + 1) % 256;
         return 1;
     }
     return 0;

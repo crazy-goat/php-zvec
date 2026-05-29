@@ -19,10 +19,14 @@ extern "C" {
  * - Accessor functions: null returns a zero/default value/error status.
  * - Status-returning functions: null returns an error status with code 1.
  *
- * String/vector pointer return values are valid only until the next call
- * to the same function from the same thread. Callers MUST copy data before
- * calling any other getter function. PHP FFI consumers are safe because
- * FFI::string() copies immediately.
+ * Thread-local buffer rules:
+ * - String/vector pointer return values are valid only until the next call
+ *   to the same function from the same thread. Callers MUST copy data before
+ *   calling any other getter function. PHP FFI consumers are safe because
+ *   FFI::string() copies immediately.
+ * - Sparse vector getters use a circular buffer of 256 slots. Calling
+ *   getSparseVector* on more than 256 fields without copying results will
+ *   overwrite earlier data. This is sufficient for practical use cases.
  */
 
 typedef void* zvec_collection_t;
