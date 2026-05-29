@@ -447,8 +447,11 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
     private function checkClosed(): void
     {
+        if ($this->destroyed) {
+            throw new ZVecException("Collection has been destroyed and cannot be reused");
+        }
         if ($this->closed) {
-            throw new ZVecException("Collection is closed or destroyed");
+            throw new ZVecException("Collection is closed. Open with ZVec::open() to continue.");
         }
     }
 
@@ -513,10 +516,11 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
 
     public function close(): void
     {
-        if (!$this->closed) {
-            self::ffi()->zvec_collection_free($this->handle);
-            $this->closed = true;
+        if ($this->closed || $this->destroyed) {
+            return;
         }
+        self::ffi()->zvec_collection_free($this->handle);
+        $this->closed = true;
     }
 
     public function flush(): void

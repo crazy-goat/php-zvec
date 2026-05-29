@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **SMELL-010: Added `$destroyed` boolean to distinguish closed vs destroyed collection state** (#91)
+  - `checkClosed()` now throws distinct error messages for each state:
+    - Closed: "Collection is closed. Open with ZVec::open() to continue."
+    - Destroyed: "Collection has been destroyed and cannot be reused"
+  - `close()` now checks `$this->destroyed` to prevent closing a destroyed collection
+  - Updated `tests/test_closed_collection_protection.phpt` with new error messages
+  - Added `tests/test_close_vs_destroy.phpt` — verifies three-state tracking
+
 - **SMELL-016: Dropped `Field` prefix from schema field methods** (#107)
   - New unprefixed methods: `addBinary()`, `addArrayString()`, `addArrayBool()`,
     `addArrayInt32()`, `addArrayInt64()`, `addArrayUint32()`, `addArrayUint64()`,

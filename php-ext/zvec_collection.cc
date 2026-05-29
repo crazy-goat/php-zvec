@@ -34,6 +34,7 @@ static zend_object *zvec_collection_create_object_handler(zend_class_entry *ce) 
         ecalloc(1, sizeof(zvec_collection_object) + zend_object_properties_size(ce)));
     new (&intern->collection) Collection::Ptr(nullptr);
     intern->closed = true;
+    intern->destroyed = false;
     zend_object_std_init(&intern->std, ce);
     object_properties_init(&intern->std, ce);
     intern->std.handlers = &zvec_collection_handlers;
@@ -48,8 +49,10 @@ static void zvec_collection_free_object(zend_object *obj) {
 }
 
 static inline void check_closed(zvec_collection_object *intern) {
-    if (intern->closed) {
-        zvec_throw_exception(0, "Collection is closed or destroyed");
+    if (intern->destroyed) {
+        zvec_throw_exception(0, "Collection has been destroyed and cannot be reused");
+    } else if (intern->closed) {
+        zvec_throw_exception(0, "Collection is closed. Open with ZVec::open() to continue.");
     }
 }
 
@@ -294,7 +297,7 @@ PHP_METHOD(ZVec, getOptions) {
 PHP_METHOD(ZVec, close) {
     ZEND_PARSE_PARAMETERS_NONE();
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
-    if (!intern->closed) {
+    if (!intern->closed && !intern->destroyed) {
         intern->collection.reset();
         intern->closed = true;
     }
@@ -303,7 +306,7 @@ PHP_METHOD(ZVec, close) {
 PHP_METHOD(ZVec, __destruct) {
     ZEND_PARSE_PARAMETERS_NONE();
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
-    if (!intern->closed) {
+    if (!intern->closed && !intern->destroyed) {
         intern->collection.reset();
         intern->closed = true;
     }
@@ -334,12 +337,18 @@ PHP_METHOD(ZVec, optimize) {
 PHP_METHOD(ZVec, destroy) {
     ZEND_PARSE_PARAMETERS_NONE();
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
-    if (!intern->closed) {
-        auto status = intern->collection->Destroy();
-        intern->collection.reset();
-        intern->closed = true;
-        check_status(status);
+    if (intern->destroyed) {
+        RETURN_NULL();
     }
+    if (intern->closed) {
+        intern->destroyed = true;
+        RETURN_NULL();
+    }
+    auto status = intern->collection->Destroy();
+    intern->collection.reset();
+    intern->closed = true;
+    intern->destroyed = true;
+    check_status(status);
 }
 
 PHP_METHOD(ZVec, schema) {

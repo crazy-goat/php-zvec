@@ -70,11 +70,11 @@ echo "All closed collection operations handled correctly\n";
 ?>
 --EXPECT--
 Testing insert on closed collection...
-OK: insert - Collection is closed or destroyed
+OK: insert - Collection is closed. Open with ZVec::open() to continue.
 Testing query on closed collection...
-OK: query - Collection is closed or destroyed
+OK: query - Collection is closed. Open with ZVec::open() to continue.
 Testing stats on closed collection...
-OK: stats - Collection is closed or destroyed
+OK: stats - Collection is closed. Open with ZVec::open() to continue.
 Testing double close...
 OK: double close is safe
 All closed collection operations handled correctly
