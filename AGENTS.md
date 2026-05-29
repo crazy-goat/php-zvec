@@ -405,6 +405,7 @@ $c->destroy();   // Data deleted forever, $c is now invalid!
 - One `ZVec::init()` per process (call before any operations)
 - Multiple collections can be open simultaneously
 - Each collection handle is NOT thread-safe (use one handle per thread)
+- The global collections registry is thread-safe (std::shared_mutex + std::unordered_map)
 
 **Temp Directory Pattern:**
 ```php
