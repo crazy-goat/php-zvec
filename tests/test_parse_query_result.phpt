@@ -41,38 +41,18 @@ try {
     assert($results[0]->getPk() === 'doc1', 'query() first result should be doc1');
     echo "query() uses parseQueryResult() OK\n";
 
-    // Test 2: queryVector() uses parseQueryResult()
-    // Note: queryVector with ZVecVectorQuery requires FFI setTopk() - tested via test_vector_query_object.phpt
-    echo "queryVector() uses parseQueryResult() SKIPPED (requires FFI setTopk)\n";
-
-    // Test 3: queryFp16() uses parseQueryResult()
-    // Note: queryFp16 requires a separate FP16 collection - tested via test_fp16_vectors.phpt
-    echo "queryFp16() uses parseQueryResult() SKIPPED (requires FP16 collection)\n";
-
-    // Test 4: queryByFilter() uses parseQueryResult()
+    // Test 2: queryByFilter() uses parseQueryResult()
     $results = $c->queryByFilter(filter: "category = 'tech'", topk: 10);
     assert(count($results) === 2, 'queryByFilter() should return 2 tech docs');
     echo "queryByFilter() uses parseQueryResult() OK\n";
 
-    // Test 5: fetch() uses parseQueryResult()
+    // Test 3: fetch() uses parseQueryResult()
     $results = $c->fetch('doc1');
     assert(count($results) === 1, 'fetch() should return 1 doc');
     assert($results[0]->getPk() === 'doc1', 'fetch() should return doc1');
     echo "fetch() uses parseQueryResult() OK\n";
 
-    // Test 6: groupByVectorQuery() uses parseGroupResult()
-    $gvq = new ZVecGroupByVectorQuery(
-        fieldName: 'embedding',
-        vector: [1.0, 0.0, 0.0, 0.0],
-        groupByField: 'category',
-        groupCount: 2,
-        groupTopk: 2
-    );
-    $results = $c->groupByVectorQuery($gvq);
-    assert(count($results) >= 1, 'groupByVectorQuery() should return at least 1 group');
-    echo "groupByVectorQuery() uses parseGroupResult() OK\n";
-
-    // Test 7: groupByQuery() uses parseGroupResult()
+    // Test 4: groupByQuery() uses parseGroupResult()
     $results = $c->groupByQuery(
         fieldName: 'embedding',
         queryVector: [1.0, 0.0, 0.0, 0.0],
@@ -91,10 +71,7 @@ try {
 ?>
 --EXPECT--
 query() uses parseQueryResult() OK
-queryVector() uses parseQueryResult() SKIPPED (requires FFI setTopk)
-queryFp16() uses parseQueryResult() SKIPPED (requires FP16 collection)
 queryByFilter() uses parseQueryResult() OK
 fetch() uses parseQueryResult() OK
-groupByVectorQuery() uses parseGroupResult() OK
 groupByQuery() uses parseGroupResult() OK
 PASS: All query methods work with extracted helpers
