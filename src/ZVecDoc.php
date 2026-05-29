@@ -288,11 +288,15 @@ class ZVecDoc
     {
         $ffi = self::ffi();
         $count = count($data);
-        $arr = $ffi->new("int32_t[$count]");
-        foreach ($data as $i => $v) {
-            $arr[$i] = $v;
+        if ($count === 0) {
+            $ffi->zvec_doc_set_array_int32($this->handle, $field, null, 0);
+        } else {
+            $arr = $ffi->new("int32_t[$count]");
+            foreach ($data as $i => $v) {
+                $arr[$i] = $v;
+            }
+            $ffi->zvec_doc_set_array_int32($this->handle, $field, $arr, $count);
         }
-        $ffi->zvec_doc_set_array_int32($this->handle, $field, $arr, $count);
         return $this;
     }
 
@@ -303,11 +307,15 @@ class ZVecDoc
     {
         $ffi = self::ffi();
         $count = count($data);
-        $arr = $ffi->new("int64_t[$count]");
-        foreach ($data as $i => $v) {
-            $arr[$i] = $v;
+        if ($count === 0) {
+            $ffi->zvec_doc_set_array_int64($this->handle, $field, null, 0);
+        } else {
+            $arr = $ffi->new("int64_t[$count]");
+            foreach ($data as $i => $v) {
+                $arr[$i] = $v;
+            }
+            $ffi->zvec_doc_set_array_int64($this->handle, $field, $arr, $count);
         }
-        $ffi->zvec_doc_set_array_int64($this->handle, $field, $arr, $count);
         return $this;
     }
 
@@ -318,11 +326,15 @@ class ZVecDoc
     {
         $ffi = self::ffi();
         $count = count($data);
-        $arr = $ffi->new("uint32_t[$count]");
-        foreach ($data as $i => $v) {
-            $arr[$i] = $v;
+        if ($count === 0) {
+            $ffi->zvec_doc_set_array_uint32($this->handle, $field, null, 0);
+        } else {
+            $arr = $ffi->new("uint32_t[$count]");
+            foreach ($data as $i => $v) {
+                $arr[$i] = $v;
+            }
+            $ffi->zvec_doc_set_array_uint32($this->handle, $field, $arr, $count);
         }
-        $ffi->zvec_doc_set_array_uint32($this->handle, $field, $arr, $count);
         return $this;
     }
 
@@ -333,11 +345,15 @@ class ZVecDoc
     {
         $ffi = self::ffi();
         $count = count($data);
-        $arr = $ffi->new("uint64_t[$count]");
-        foreach ($data as $i => $v) {
-            $arr[$i] = $v;
+        if ($count === 0) {
+            $ffi->zvec_doc_set_array_uint64($this->handle, $field, null, 0);
+        } else {
+            $arr = $ffi->new("uint64_t[$count]");
+            foreach ($data as $i => $v) {
+                $arr[$i] = $v;
+            }
+            $ffi->zvec_doc_set_array_uint64($this->handle, $field, $arr, $count);
         }
-        $ffi->zvec_doc_set_array_uint64($this->handle, $field, $arr, $count);
         return $this;
     }
 
@@ -348,11 +364,15 @@ class ZVecDoc
     {
         $ffi = self::ffi();
         $count = count($data);
-        $arr = $ffi->new("float[$count]");
-        foreach ($data as $i => $v) {
-            $arr[$i] = $v;
+        if ($count === 0) {
+            $ffi->zvec_doc_set_array_float($this->handle, $field, null, 0);
+        } else {
+            $arr = $ffi->new("float[$count]");
+            foreach ($data as $i => $v) {
+                $arr[$i] = $v;
+            }
+            $ffi->zvec_doc_set_array_float($this->handle, $field, $arr, $count);
         }
-        $ffi->zvec_doc_set_array_float($this->handle, $field, $arr, $count);
         return $this;
     }
 
@@ -363,11 +383,15 @@ class ZVecDoc
     {
         $ffi = self::ffi();
         $count = count($data);
-        $arr = $ffi->new("double[$count]");
-        foreach ($data as $i => $v) {
-            $arr[$i] = $v;
+        if ($count === 0) {
+            $ffi->zvec_doc_set_array_double($this->handle, $field, null, 0);
+        } else {
+            $arr = $ffi->new("double[$count]");
+            foreach ($data as $i => $v) {
+                $arr[$i] = $v;
+            }
+            $ffi->zvec_doc_set_array_double($this->handle, $field, $arr, $count);
         }
-        $ffi->zvec_doc_set_array_double($this->handle, $field, $arr, $count);
         return $this;
     }
 
@@ -378,19 +402,23 @@ class ZVecDoc
     {
         $ffi = self::ffi();
         $count = count($strings);
-        $cStrings = [];
-        $arr = $ffi->new("char*[$count]");
-        foreach ($strings as $i => $s) {
-            $len = strlen($s) + 1;
-            $cStr = $ffi->new("char[$len]", false);
-            FFI::memcpy($cStr, $s, strlen($s));
-            $cStr[$len - 1] = "\0";
-            $cStrings[] = $cStr;
-            $arr[$i] = $cStr;
-        }
-        $ffi->zvec_doc_set_array_string($this->handle, $field, $arr, $count);
-        foreach ($cStrings as $cStr) {
-            FFI::free($cStr);
+        if ($count === 0) {
+            $ffi->zvec_doc_set_array_string($this->handle, $field, null, 0);
+        } else {
+            $cStrings = [];
+            $arr = $ffi->new("char*[$count]");
+            foreach ($strings as $i => $s) {
+                $len = strlen($s) + 1;
+                $cStr = $ffi->new("char[$len]", false);
+                FFI::memcpy($cStr, $s, strlen($s));
+                $cStr[$len - 1] = "\0";
+                $cStrings[] = $cStr;
+                $arr[$i] = $cStr;
+            }
+            $ffi->zvec_doc_set_array_string($this->handle, $field, $arr, $count);
+            foreach ($cStrings as $cStr) {
+                FFI::free($cStr);
+            }
         }
         return $this;
     }
@@ -402,11 +430,15 @@ class ZVecDoc
     {
         $ffi = self::ffi();
         $count = count($data);
-        $arr = $ffi->new("uint8_t[$count]");
-        foreach ($data as $i => $v) {
-            $arr[$i] = $v ? 1 : 0;
+        if ($count === 0) {
+            $ffi->zvec_doc_set_array_bool($this->handle, $field, null, 0);
+        } else {
+            $arr = $ffi->new("uint8_t[$count]");
+            foreach ($data as $i => $v) {
+                $arr[$i] = $v ? 1 : 0;
+            }
+            $ffi->zvec_doc_set_array_bool($this->handle, $field, $arr, $count);
         }
-        $ffi->zvec_doc_set_array_bool($this->handle, $field, $arr, $count);
         return $this;
     }
 
@@ -823,14 +855,17 @@ class ZVecDoc
     public function getArrayString(string $field): ?array
     {
         $ffi = self::ffi();
+        if (!$ffi->zvec_doc_has_field($this->handle, $field)) {
+            return null;
+        }
         $buf = $ffi->new('char[8192]');
         $count = $ffi->new('uint32_t');
         $len = $ffi->zvec_doc_get_array_string($this->handle, $field, $buf, 8192, FFI::addr($count));
         if ($len <= 0) {
-            return null;
+            return [];
         }
         $str = FFI::string($buf, $len);
-        return $str === '' ? [] : explode("\0", $str);
+        return explode("\0", $str);
     }
 
     /**
@@ -839,10 +874,13 @@ class ZVecDoc
     public function getArrayBool(string $field): ?array
     {
         $ffi = self::ffi();
+        if (!$ffi->zvec_doc_has_field($this->handle, $field)) {
+            return null;
+        }
         $buf = $ffi->new('uint8_t[4096]');
         $count = $ffi->zvec_doc_get_array_bool($this->handle, $field, $buf, 4096);
         if ($count <= 0) {
-            return null;
+            return [];
         }
         $result = [];
         for ($i = 0; $i < $count; $i++) {
