@@ -22,6 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **SMELL-014: Decomposed `query()` (116 lines, 4+ responsibilities) into focused helpers** (#95)
+  - Extracted `resolveQueryParams()` — resolves parameters from explicit args or `ZVecVectorQuery` object, validates inputs
+  - Extracted `executeQuery()` — performs FFI call with FP32 float vectors
+  - Extracted `executeQueryFp64()` — performs FFI call with FP64 double vectors
+  - `query()` body reduced to ~15 lines calling the three helpers
+  - Refactored `queryFp64()`, `queryWithReranker()`, and `queryWithRerankerFp64()` to reuse helpers
+  - Eliminated duplicated FFI parameter setup and output field handling code
+  - Added `tests/test_query_decomposition.phpt` — 14 test cases covering all query paths
+
 - **SMELL-017: Extracted `collection_batch_op()` template in `ffi/zvec_ffi.cc`** (#97)
   - Replaced ~130 lines of duplicated code across `zvec_collection_insert_batch`,
     `zvec_collection_upsert_batch`, and `zvec_collection_update_batch` with a shared
