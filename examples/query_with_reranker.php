@@ -7,9 +7,9 @@ require_once __DIR__ . '/../src/ZVecRrfReRanker.php';
 require_once __DIR__ . '/../src/ZVecWeightedReRanker.php';
 
 /**
- * Query with Reranker Parameter - Two-Stage Retrieval Demo
+ * Query with Reranker - Two-Stage Retrieval Demo
  * 
- * This example demonstrates using the reranker parameter in query()
+ * This example demonstrates the queryWithReranker() method
  * for two-stage retrieval: fetch many candidates, then rerank to top results.
  */
 
@@ -85,9 +85,9 @@ try {
     echo "   - Reranks to top 3 using RRF algorithm\n";
     
     $rrfReranker = new ZVecRrfReRanker(topn: 3, rankConstant: 60);
-    $results = $collection->query(
-        'embedding',
-        $queryVector,
+    $results = $collection->queryWithReranker(
+        fieldName: 'embedding',
+        queryVector: $queryVector,
         topk: 3,
         reranker: $rrfReranker
     );
@@ -110,9 +110,9 @@ try {
         weights: ['embedding' => 1.0]
     );
     
-    $results = $collection->query(
-        'embedding',
-        $queryVector,
+    $results = $collection->queryWithReranker(
+        fieldName: 'embedding',
+        queryVector: $queryVector,
         topk: 3,
         reranker: $weightedReranker
     );
@@ -130,7 +130,11 @@ try {
     $vq = new ZVecVectorQuery('embedding', $queryVector);
     $vq->setHnswParams(ef: 100);
     
-    $results = $collection->query($vq, topk: 3, reranker: $rrfReranker);
+    $results = $collection->queryWithReranker(
+        fieldName: $vq,
+        topk: 3,
+        reranker: $rrfReranker
+    );
     echo "   Returned " . count($results) . " results using VectorQuery + RRF\n";
     foreach ($results as $i => $doc) {
         echo "   " . ($i + 1) . ". {$doc->getPk()}: " . $doc->doc->getString('title') . "\n";
