@@ -282,6 +282,7 @@ $collection->alterColumn('value', newDataType: ZVec::TYPE_FLOAT, nullable: true)
 ```
 
 **Important limitations:**
+- `nullable` must be explicitly specified when `newDataType` is provided — otherwise throws `ZVecException`
 - Cannot rename AND change type in one call — requires two separate calls
 - Cannot change nullable: true → false (only false → true or keep same)
 - Only scalar numeric types: INT32, INT64, UINT32, UINT64, FLOAT, DOUBLE
