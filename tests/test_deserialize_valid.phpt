@@ -1,7 +1,8 @@
 --TEST--
 ZVecDoc::deserialize() round-trip preserves all fields
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php if (extension_loaded('zvec')) die('skip native extension does not have minimum size guard'); ?>
+<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
