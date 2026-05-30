@@ -15,12 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Use `CrazyGoat\ZVec\ZVec` with `use` statement or keep using global `ZVec` — both work
   - Added `tests/test_namespace_bc.phpt` to verify both namespace styles
   - Removed `classmap` from `composer.json` — PSR-4 autoloading now handles everything
+- **SMELL-009: Added `queryWithReranker()` method for type-safe reranked queries** (#90)
+  - New `queryWithReranker()` method on `ZVec` returns `ZVecRerankedDoc[]` — static analysis tools can infer the correct return type
+  - Supports `string|ZVecVectorQuery` as field name, with all existing query parameters
+  - Routes FP64 queries via internal `queryWithRerankerFp64()` helper
 
 ### Deprecated
 
 - **SMELL-013: Global namespace class names are deprecated** (#94)
   - Use `use CrazyGoat\ZVec\ZVec;` instead of global `ZVec`
   - Global aliases remain for backward compatibility but may be removed in a future major version
+- **SMELL-009: The `$reranker` parameter on `query()` and `queryFp64()` is deprecated** (#90)
+  - Passing `$reranker` to `query()` now triggers `E_USER_DEPRECATED` and delegates to `queryWithReranker()`
+  - Existing code continues to work (backward compatible) but should migrate to `queryWithReranker()`
 
 ### Changed
 
