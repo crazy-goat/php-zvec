@@ -57,7 +57,7 @@ try {
     assert(count($results) === 3, "Expected 3 results");
     assert($results[0] instanceof ZVecRerankedDoc, "queryWithReranker() must return ZVecRerankedDoc[]");
     assert($results[0]->getPk() === 'doc1', "First result should be doc1");
-    assert($results[0]->combinedScore > 0, "combinedScore must be positive");
+    assert($results[0]->getCombinedScore() > 0, "combinedScore must be positive");
     echo "  PASS: " . count($results) . " ZVecRerankedDoc results\n";
 
     // Test 3: queryWithReranker() with ZVecVectorQuery

@@ -94,9 +94,9 @@ try {
     
     echo "   Returned " . count($results) . " ZVecRerankedDoc objects:\n";
     foreach ($results as $i => $doc) {
-        echo "   " . ($i + 1) . ". {$doc->getPk()}: " . $doc->doc->getString('title') . "\n";
-        echo "      Combined score: " . round($doc->combinedScore, 4) . "\n";
-        echo "      Source rank: " . ($doc->sourceRanks['embedding'] ?? 'N/A') . "\n";
+        echo "   " . ($i + 1) . ". {$doc->getPk()}: " . $doc->getDoc()->getString('title') . "\n";
+        echo "      Combined score: " . round($doc->getCombinedScore(), 4) . "\n";
+        echo "      Source rank: " . ($doc->getSourceRanks()['embedding'] ?? 'N/A') . "\n";
     }
     echo "\n";
     
@@ -119,9 +119,9 @@ try {
     
     echo "   Returned " . count($results) . " ZVecRerankedDoc objects:\n";
     foreach ($results as $i => $doc) {
-        echo "   " . ($i + 1) . ". {$doc->getPk()}: " . $doc->doc->getString('title') . "\n";
-        echo "      Combined score: " . round($doc->combinedScore, 4) . "\n";
-        echo "      Original score: " . round($doc->sourceScores['embedding'], 4) . "\n";
+        echo "   " . ($i + 1) . ". {$doc->getPk()}: " . $doc->getDoc()->getString('title') . "\n";
+        echo "      Combined score: " . round($doc->getCombinedScore(), 4) . "\n";
+        echo "      Original score: " . round($doc->getSourceScores()['embedding'], 4) . "\n";
     }
     echo "\n";
     
@@ -137,7 +137,7 @@ try {
     );
     echo "   Returned " . count($results) . " results using VectorQuery + RRF\n";
     foreach ($results as $i => $doc) {
-        echo "   " . ($i + 1) . ". {$doc->getPk()}: " . $doc->doc->getString('title') . "\n";
+        echo "   " . ($i + 1) . ". {$doc->getPk()}: " . $doc->getDoc()->getString('title') . "\n";
     }
     echo "\n";
     

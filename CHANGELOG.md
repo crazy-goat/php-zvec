@@ -31,6 +31,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **SMELL-008: Made properties private with getters/setters on reranker data classes** (#89)
+  - `ZVecRerankedDoc`: all properties (`$doc`, `$combinedScore`, `$sourceRanks`, `$sourceScores`) are now `private`
+  - Added getters: `getDoc()`, `getCombinedScore()`, `getSourceRanks()`, `getSourceScores()`
+  - `ZVecRrfReRanker`: `$topn` and `$rankConstant` are now `private` with `getTopn()`/`setTopn()` and `getRankConstant()`/`setRankConstant()`
+  - `ZVecWeightedReRanker`: `$topn`, `$metricType`, `$weights` are now `private` with getters/setters
+  - Setters return `self` for fluent interface: `$reranker->setTopn(5)->setRankConstant(30)`
+  - `setWeights([])` throws `ZVecException` (same validation as constructor)
+  - Updated all call sites in tests and examples to use getter methods
+  - Added `tests/test_encapsulation.phpt` — verifies private properties and getter/setter functionality
+  - Direct property access is no longer possible — use `getCombinedScore()`, `getSourceRanks()`, etc.
+
 - **SMELL-014: Decomposed `query()` (116 lines, 4+ responsibilities) into focused helpers** (#95)
   - Extracted `resolveQueryParams()` — resolves parameters from explicit args or `ZVecVectorQuery` object, validates inputs
   - Extracted `executeQuery()` — performs FFI call with FP32 float vectors

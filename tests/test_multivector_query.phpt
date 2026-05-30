@@ -68,7 +68,7 @@ try {
     }
 
     echo "queryMulti works: " . count($results) . " results\n";
-    echo "First result: {$results[0]->getPk()} score=" . round($results[0]->combinedScore, 4) . "\n";
+    echo "First result: {$results[0]->getPk()} score=" . round($results[0]->getCombinedScore(), 4) . "\n";
 
     // Test with filter
     $filteredResults = $collection->queryMulti(
@@ -80,7 +80,7 @@ try {
 
     // All filtered results should contain 'PHP' in title
     foreach ($filteredResults as $result) {
-        $title = $result->doc->getString('title');
+        $title = $result->getDoc()->getString('title');
         assert(strpos($title, 'PHP') !== false, "Filtered result should contain 'PHP': $title");
     }
 

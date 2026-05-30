@@ -97,10 +97,10 @@ try {
     
     echo "   Combined results (top 3):\n";
     foreach ($rrfResults as $i => $result) {
-        $title = $result->doc->getString('title');
-        $ranks = $result->sourceRanks;
+        $title = $result->getDoc()->getString('title');
+        $ranks = $result->getSourceRanks();
         echo "   " . ($i + 1) . ". {$result->getPk()}: {$title}\n";
-        echo "      Combined score: " . round($result->combinedScore, 4) . "\n";
+        echo "      Combined score: " . round($result->getCombinedScore(), 4) . "\n";
         echo "      Source ranks: semantic=" . ($ranks['semantic_embedding'] ?? 'N/A') . 
              ", keyword=" . ($ranks['keyword_embedding'] ?? 'N/A') . "\n\n";
     }
@@ -120,10 +120,10 @@ try {
     
     echo "   Combined results (top 3):\n";
     foreach ($weightedResults as $i => $result) {
-        $title = $result->doc->getString('title');
-        $scores = $result->sourceScores;
+        $title = $result->getDoc()->getString('title');
+        $scores = $result->getSourceScores();
         echo "   " . ($i + 1) . ". {$result->getPk()}: {$title}\n";
-        echo "      Combined score: " . round($result->combinedScore, 4) . "\n";
+        echo "      Combined score: " . round($result->getCombinedScore(), 4) . "\n";
         echo "      Source scores: semantic=" . round($scores['semantic_embedding'] ?? 0, 4) . 
              ", keyword=" . round($scores['keyword_embedding'] ?? 0, 4) . "\n\n";
     }
@@ -135,7 +135,7 @@ try {
     echo "   RRF on single field returns top 2:\n";
     foreach ($singleResults as $i => $result) {
         echo "   " . ($i + 1) . ". {$result->getPk()}: score=" . 
-             round($result->combinedScore, 4) . "\n";
+             round($result->getCombinedScore(), 4) . "\n";
     }
     echo "\n";
     
