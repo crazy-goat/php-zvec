@@ -25,6 +25,71 @@ PHP_METHOD(ZVecWeightedReRanker, __construct) {
     zend_update_property_long(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "metricType", sizeof("metricType") - 1, metric_type);
 }
 
+PHP_METHOD(ZVecWeightedReRanker, getTopn) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    zval *val = zend_read_property(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "topn", sizeof("topn") - 1, 1, nullptr);
+    if (val && Z_TYPE_P(val) == IS_LONG) {
+        RETURN_LONG(Z_LVAL_P(val));
+    } else {
+        RETURN_LONG(10);
+    }
+}
+
+PHP_METHOD(ZVecWeightedReRanker, setTopn) {
+    zend_long topn;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_LONG(topn)
+    ZEND_PARSE_PARAMETERS_END();
+
+    zend_update_property_long(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "topn", sizeof("topn") - 1, topn);
+    RETURN_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
+}
+
+PHP_METHOD(ZVecWeightedReRanker, getMetricType) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    zval *val = zend_read_property(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "metricType", sizeof("metricType") - 1, 1, nullptr);
+    if (val && Z_TYPE_P(val) == IS_LONG) {
+        RETURN_LONG(Z_LVAL_P(val));
+    } else {
+        RETURN_LONG(2);
+    }
+}
+
+PHP_METHOD(ZVecWeightedReRanker, setMetricType) {
+    zend_long metric_type;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_LONG(metric_type)
+    ZEND_PARSE_PARAMETERS_END();
+
+    zend_update_property_long(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "metricType", sizeof("metricType") - 1, metric_type);
+    RETURN_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
+}
+
+PHP_METHOD(ZVecWeightedReRanker, getWeights) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    zval *val = zend_read_property(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "weights", sizeof("weights") - 1, 1, nullptr);
+    if (val && Z_TYPE_P(val) == IS_ARRAY) {
+        ZVAL_COPY(return_value, val);
+    } else {
+        array_init(return_value);
+    }
+}
+
+PHP_METHOD(ZVecWeightedReRanker, setWeights) {
+    zval *weights;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_ARRAY(weights)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (Z_TYPE_P(weights) == IS_ARRAY && zend_hash_num_elements(Z_ARRVAL_P(weights)) == 0) {
+        zend_throw_exception(zvec_exception_ce, "ZVecWeightedReRanker requires at least one field weight", 0);
+        RETURN_THROWS();
+    }
+
+    zend_update_property(zvec_weighted_reranker_ce, Z_OBJ_P(ZEND_THIS), "weights", sizeof("weights") - 1, weights);
+    RETURN_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
+}
+
 PHP_METHOD(ZVecWeightedReRanker, rerank) {
     zval *query_results;
     ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -250,8 +315,35 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_wr_rerank, 0, 1, IS_ARRAY, 
     ZEND_ARG_TYPE_INFO(0, queryResults, IS_ARRAY, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_wr_get_topn, 0, 0, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_wr_set_topn, 0, 1, IS_OBJECT, 0)
+    ZEND_ARG_TYPE_INFO(0, topn, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_wr_get_metric_type, 0, 0, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_wr_set_metric_type, 0, 1, IS_OBJECT, 0)
+    ZEND_ARG_TYPE_INFO(0, metricType, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_wr_get_weights, 0, 0, IS_ARRAY, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_wr_set_weights, 0, 1, IS_OBJECT, 0)
+    ZEND_ARG_TYPE_INFO(0, weights, IS_ARRAY, 0)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry zvec_weighted_reranker_methods[] = {
     PHP_ME(ZVecWeightedReRanker, __construct, arginfo_zvec_wr___construct, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecWeightedReRanker, getTopn, arginfo_zvec_wr_get_topn, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecWeightedReRanker, setTopn, arginfo_zvec_wr_set_topn, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecWeightedReRanker, getMetricType, arginfo_zvec_wr_get_metric_type, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecWeightedReRanker, setMetricType, arginfo_zvec_wr_set_metric_type, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecWeightedReRanker, getWeights, arginfo_zvec_wr_get_weights, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecWeightedReRanker, setWeights, arginfo_zvec_wr_set_weights, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecWeightedReRanker, rerank, arginfo_zvec_wr_rerank, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
