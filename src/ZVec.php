@@ -861,6 +861,209 @@ class ZVec
     }
 
     /**
+     * Resolve query parameters from explicit arguments or ZVecVectorQuery object.
+     *
+     * @return array{
+     *     fieldName: string,
+     *     queryVector: float[],
+     *     topk: int,
+     *     includeVector: bool,
+     *     filter: ?string,
+     *     outputFields: ?string[],
+     *     queryParamType: int,
+     *     hnswEf: int,
+     *     ivfNprobe: int,
+     *     radius: float,
+     *     isLinear: bool,
+     *     isUsingRefiner: bool,
+     *     useFp64: bool
+     * }
+     */
+    private function resolveQueryParams(
+        string|ZVecVectorQuery $fieldName,
+        array $queryVector = [],
+        int $topk = 10,
+        bool $includeVector = false,
+        ?string $filter = null,
+        ?array $outputFields = null,
+        int $queryParamType = self::QUERY_PARAM_NONE,
+        int $hnswEf = 200,
+        int $ivfNprobe = 10,
+        float $radius = 0.0,
+        bool $isLinear = false,
+        bool $isUsingRefiner = false,
+    ): array {
+        $useFp64 = false;
+
+        if ($fieldName instanceof ZVecVectorQuery) {
+            $vq = $fieldName;
+            $fieldName = $vq->fieldName;
+            $queryVector = $vq->vector;
+            $queryParamType = $vq->queryParamType;
+            $hnswEf = $vq->hnswEf;
+            $ivfNprobe = $vq->ivfNprobe;
+            $radius = $vq->radius;
+            $isLinear = $vq->isLinear;
+            $isUsingRefiner = $vq->isUsingRefiner;
+            $topk = $vq->topk ?? $topk;
+            $includeVector = $vq->includeVector ?? $includeVector;
+            $filter = $vq->filter ?? $filter;
+            $useFp64 = $vq->useFp64;
+
+            if ($vq->docId !== null) {
+                throw new ZVecException("query() with docId not yet implemented. Use queryById() or fetch the vector first.");
+            }
+        }
+
+        if ($topk <= 0) {
+            throw new ZVecException("topk must be a positive integer, got: {$topk}");
+        }
+        if (is_string($fieldName) && $fieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
+
+        return [
+            'fieldName' => $fieldName,
+            'queryVector' => $queryVector,
+            'topk' => $topk,
+            'includeVector' => $includeVector,
+            'filter' => $filter,
+            'outputFields' => $outputFields,
+            'queryParamType' => $queryParamType,
+            'hnswEf' => $hnswEf,
+            'ivfNprobe' => $ivfNprobe,
+            'radius' => $radius,
+            'isLinear' => $isLinear,
+            'isUsingRefiner' => $isUsingRefiner,
+            'useFp64' => $useFp64,
+        ];
+    }
+
+    /**
+     * Execute FP32 vector query via FFI.
+     *
+     * @param float[] $queryVector
+     * @param string[]|null $outputFields
+     * @return ZVecDoc[]
+     */
+    private function executeQuery(
+        string $fieldName,
+        array $queryVector,
+        int $topk,
+        bool $includeVector,
+        ?string $filter,
+        ?array $outputFields,
+        int $queryParamType,
+        int $hnswEf,
+        int $ivfNprobe,
+        float $radius,
+        bool $isLinear,
+        bool $isUsingRefiner,
+    ): array {
+        $ffi = self::ffi();
+        $dim = count($queryVector);
+        $vecData = $ffi->new("float[$dim]");
+        foreach ($queryVector as $i => $v) {
+            $vecData[$i] = $v;
+        }
+
+        $result = $ffi->new('zvec_query_result_t');
+
+        $ofCStrings = [];
+        try {
+            $ofArr = null;
+            $ofCount = -1;
+            if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
+                if ($outputFields !== null) {
+                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
+                }
+
+                $status = $ffi->zvec_collection_query_ex(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $topk, $includeVector ? 1 : 0, $filter ?? '',
+                    $ofArr, $ofCount,
+                    $queryParamType, $hnswEf, $ivfNprobe,
+                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                    FFI::addr($result)
+                );
+            } else {
+                $status = $ffi->zvec_collection_query(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $topk, $includeVector ? 1 : 0, $filter ?? '',
+                    FFI::addr($result)
+                );
+            }
+            self::checkStatus($status);
+        } finally {
+            self::freeCStringArray($ofCStrings);
+        }
+
+        return self::parseQueryResult($result);
+    }
+
+    /**
+     * Execute FP64 vector query via FFI.
+     *
+     * @param float[] $queryVector
+     * @param string[]|null $outputFields
+     * @return ZVecDoc[]
+     */
+    private function executeQueryFp64(
+        string $fieldName,
+        array $queryVector,
+        int $topk,
+        bool $includeVector,
+        ?string $filter,
+        ?array $outputFields,
+        int $queryParamType,
+        int $hnswEf,
+        int $ivfNprobe,
+        float $radius,
+        bool $isLinear,
+        bool $isUsingRefiner,
+    ): array {
+        $ffi = self::ffi();
+        $dim = count($queryVector);
+        $vecData = $ffi->new("double[$dim]");
+        foreach ($queryVector as $i => $v) {
+            $vecData[$i] = $v;
+        }
+
+        $result = $ffi->new('zvec_query_result_t');
+
+        $ofCStrings = [];
+        try {
+            $ofArr = null;
+            $ofCount = -1;
+            if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
+                if ($outputFields !== null) {
+                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
+                }
+
+                $status = $ffi->zvec_collection_query_fp64_ex(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $topk, $includeVector ? 1 : 0, $filter ?? '',
+                    $ofArr, $ofCount,
+                    $queryParamType, $hnswEf, $ivfNprobe,
+                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                    FFI::addr($result)
+                );
+            } else {
+                $status = $ffi->zvec_collection_query_fp64(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $topk, $includeVector ? 1 : 0, $filter ?? '',
+                    FFI::addr($result)
+                );
+            }
+            self::checkStatus($status);
+        } finally {
+            self::freeCStringArray($ofCStrings);
+        }
+
+        return self::parseQueryResult($result);
+    }
+
+    /**
      * @param float[] $queryVector
      * @param string[]|null $outputFields
      * @return ZVecDoc[]
@@ -902,93 +1105,30 @@ class ZVec
                 reranker: $reranker
             );
         }
+
         $this->checkClosed();
 
-        // Handle ZVecVectorQuery object
-        if ($fieldName instanceof ZVecVectorQuery) {
-            $vq = $fieldName;
-            $fieldName = $vq->fieldName;
-            $queryVector = $vq->vector;
-            $queryParamType = $vq->queryParamType;
-            $hnswEf = $vq->hnswEf;
-            $ivfNprobe = $vq->ivfNprobe;
-            $radius = $vq->radius;
-            $isLinear = $vq->isLinear;
-            $isUsingRefiner = $vq->isUsingRefiner;
-            $topk = $vq->topk ?? $topk;
-            $includeVector = $vq->includeVector ?? $includeVector;
-            $filter = $vq->filter ?? $filter;
+        $params = $this->resolveQueryParams(
+            $fieldName, $queryVector, $topk, $includeVector, $filter,
+            $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
+            $radius, $isLinear, $isUsingRefiner
+        );
 
-            if ($vq->docId !== null) {
-                throw new ZVecException("query() with docId not yet implemented. Use queryById() or fetch the vector first.");
-            }
-
-            // Route to FP64 query path if flagged
-            if ($vq->useFp64) {
-                return $this->queryFp64(
-                    fieldName: $fieldName,
-                    queryVector: $queryVector,
-                    topk: $topk,
-                    includeVector: $includeVector,
-                    filter: $filter,
-                    outputFields: $outputFields,
-                    queryParamType: $queryParamType,
-                    hnswEf: $hnswEf,
-                    ivfNprobe: $ivfNprobe,
-                    radius: $radius,
-                    isLinear: $isLinear,
-                    isUsingRefiner: $isUsingRefiner,
-                    reranker: $reranker
-                );
-            }
+        if ($params['useFp64']) {
+            return $this->executeQueryFp64(
+                $params['fieldName'], $params['queryVector'], $params['topk'],
+                $params['includeVector'], $params['filter'], $params['outputFields'],
+                $params['queryParamType'], $params['hnswEf'], $params['ivfNprobe'],
+                $params['radius'], $params['isLinear'], $params['isUsingRefiner']
+            );
         }
 
-        if ($topk <= 0) {
-            throw new ZVecException("topk must be a positive integer, got: {$topk}");
-        }
-        if (is_string($fieldName) && $fieldName === '') {
-            throw new ZVecException('Field name must not be empty');
-        }
-
-        $ffi = self::ffi();
-        $dim = count($queryVector);
-        $vecData = $ffi->new("float[$dim]");
-        foreach ($queryVector as $i => $v) {
-            $vecData[$i] = $v;
-        }
-
-        $result = $ffi->new('zvec_query_result_t');
-
-        $ofCStrings = [];
-        try {
-            $ofArr = null;
-            $ofCount = -1;
-            if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
-                if ($outputFields !== null) {
-                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
-                }
-
-                $status = $ffi->zvec_collection_query_ex(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $topk, $includeVector ? 1 : 0, $filter ?? '',
-                    $ofArr, $ofCount,
-                    $queryParamType, $hnswEf, $ivfNprobe,
-                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
-                    FFI::addr($result)
-                );
-            } else {
-                $status = $ffi->zvec_collection_query(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $topk, $includeVector ? 1 : 0, $filter ?? '',
-                    FFI::addr($result)
-                );
-            }
-            self::checkStatus($status);
-        } finally {
-            self::freeCStringArray($ofCStrings);
-        }
-
-        return self::parseQueryResult($result);
+        return $this->executeQuery(
+            $params['fieldName'], $params['queryVector'], $params['topk'],
+            $params['includeVector'], $params['filter'], $params['outputFields'],
+            $params['queryParamType'], $params['hnswEf'], $params['ivfNprobe'],
+            $params['radius'], $params['isLinear'], $params['isUsingRefiner']
+        );
     }
 
     /**
@@ -1048,7 +1188,6 @@ class ZVec
         bool $isUsingRefiner = false,
         ?ZVecReRanker $reranker = null
     ): array {
-        $this->checkClosed();
         if ($reranker !== null) {
             trigger_error(
                 'queryFp64(): Passing $reranker is deprecated. Use queryWithReranker() instead.',
@@ -1070,6 +1209,9 @@ class ZVec
                 reranker: $reranker
             );
         }
+
+        $this->checkClosed();
+
         if ($topk <= 0) {
             throw new ZVecException("topk must be a positive integer, got: {$topk}");
         }
@@ -1077,45 +1219,11 @@ class ZVec
             throw new ZVecException('Field name must not be empty');
         }
 
-        $ffi = self::ffi();
-        $dim = count($queryVector);
-        $vecData = $ffi->new("double[$dim]");
-        foreach ($queryVector as $i => $v) {
-            $vecData[$i] = $v;
-        }
-
-        $result = $ffi->new('zvec_query_result_t');
-
-        $ofCStrings = [];
-        try {
-            $ofArr = null;
-            $ofCount = -1;
-            if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
-                if ($outputFields !== null) {
-                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
-                }
-
-                $status = $ffi->zvec_collection_query_fp64_ex(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $topk, $includeVector ? 1 : 0, $filter ?? '',
-                    $ofArr, $ofCount,
-                    $queryParamType, $hnswEf, $ivfNprobe,
-                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
-                    FFI::addr($result)
-                );
-            } else {
-                $status = $ffi->zvec_collection_query_fp64(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $topk, $includeVector ? 1 : 0, $filter ?? '',
-                    FFI::addr($result)
-                );
-            }
-            self::checkStatus($status);
-        } finally {
-            self::freeCStringArray($ofCStrings);
-        }
-
-        return self::parseQueryResult($result);
+        return $this->executeQueryFp64(
+            $fieldName, $queryVector, $topk, $includeVector, $filter,
+            $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
+            $radius, $isLinear, $isUsingRefiner
+        );
     }
 
     /**
@@ -1145,103 +1253,32 @@ class ZVec
             throw new ZVecException('queryWithReranker() requires a $reranker argument');
         }
 
+        $params = $this->resolveQueryParams(
+            $fieldName, $queryVector, $topk, $includeVector, $filter,
+            $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
+            $radius, $isLinear, $isUsingRefiner
+        );
+
         // Fetch more results for two-stage retrieval
-        $fetchTopk = max($topk * 2, 100);
+        $fetchTopk = max($params['topk'] * 2, 100);
 
-        // Resolve ZVecVectorQuery to individual params
-        $resolvedFieldName = $fieldName;
-        $resolvedQueryVector = $queryVector;
-        $resolvedQueryParamType = $queryParamType;
-        $resolvedHnswEf = $hnswEf;
-        $resolvedIvfNprobe = $ivfNprobe;
-        $resolvedRadius = $radius;
-        $resolvedIsLinear = $isLinear;
-        $resolvedIsUsingRefiner = $isUsingRefiner;
-
-        if ($fieldName instanceof ZVecVectorQuery) {
-            $vq = $fieldName;
-            $resolvedFieldName = $vq->fieldName;
-            $resolvedQueryVector = $vq->vector;
-            $resolvedQueryParamType = $vq->queryParamType;
-            $resolvedHnswEf = $vq->hnswEf;
-            $resolvedIvfNprobe = $vq->ivfNprobe;
-            $resolvedRadius = $vq->radius;
-            $resolvedIsLinear = $vq->isLinear;
-            $resolvedIsUsingRefiner = $vq->isUsingRefiner;
-            $fetchTopk = $vq->topk !== null ? max($vq->topk * 2, 100) : $fetchTopk;
-            $includeVector = $vq->includeVector ?? $includeVector;
-            $filter = $vq->filter ?? $filter;
-
-            if ($vq->docId !== null) {
-                throw new ZVecException("queryWithReranker() with docId not yet implemented.");
-            }
-
-            if ($vq->useFp64) {
-                return $this->queryWithRerankerFp64(
-                    fieldName: $resolvedFieldName,
-                    queryVector: $resolvedQueryVector,
-                    topk: $topk,
-                    includeVector: $includeVector,
-                    filter: $filter,
-                    outputFields: $outputFields,
-                    queryParamType: $resolvedQueryParamType,
-                    hnswEf: $resolvedHnswEf,
-                    ivfNprobe: $resolvedIvfNprobe,
-                    radius: $resolvedRadius,
-                    isLinear: $resolvedIsLinear,
-                    isUsingRefiner: $resolvedIsUsingRefiner,
-                    reranker: $reranker
-                );
-            }
+        if ($params['useFp64']) {
+            $docs = $this->executeQueryFp64(
+                $params['fieldName'], $params['queryVector'], $fetchTopk,
+                $params['includeVector'], $params['filter'], $params['outputFields'],
+                $params['queryParamType'], $params['hnswEf'], $params['ivfNprobe'],
+                $params['radius'], $params['isLinear'], $params['isUsingRefiner']
+            );
+        } else {
+            $docs = $this->executeQuery(
+                $params['fieldName'], $params['queryVector'], $fetchTopk,
+                $params['includeVector'], $params['filter'], $params['outputFields'],
+                $params['queryParamType'], $params['hnswEf'], $params['ivfNprobe'],
+                $params['radius'], $params['isLinear'], $params['isUsingRefiner']
+            );
         }
 
-        if ($topk <= 0) {
-            throw new ZVecException("topk must be a positive integer, got: {$topk}");
-        }
-        if (is_string($resolvedFieldName) && $resolvedFieldName === '') {
-            throw new ZVecException('Field name must not be empty');
-        }
-
-        $ffi = self::ffi();
-        $dim = count($resolvedQueryVector);
-        $vecData = $ffi->new("float[$dim]");
-        foreach ($resolvedQueryVector as $i => $v) {
-            $vecData[$i] = $v;
-        }
-
-        $result = $ffi->new('zvec_query_result_t');
-
-        $ofCStrings = [];
-        try {
-            $ofArr = null;
-            $ofCount = -1;
-            if ($outputFields !== null || $resolvedQueryParamType !== self::QUERY_PARAM_NONE) {
-                if ($outputFields !== null) {
-                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
-                }
-
-                $status = $ffi->zvec_collection_query_ex(
-                    $this->handle, $resolvedFieldName, $vecData, $dim,
-                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
-                    $ofArr, $ofCount,
-                    $resolvedQueryParamType, $resolvedHnswEf, $resolvedIvfNprobe,
-                    $resolvedRadius, $resolvedIsLinear ? 1 : 0, $resolvedIsUsingRefiner ? 1 : 0,
-                    FFI::addr($result)
-                );
-            } else {
-                $status = $ffi->zvec_collection_query(
-                    $this->handle, $resolvedFieldName, $vecData, $dim,
-                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
-                    FFI::addr($result)
-                );
-            }
-            self::checkStatus($status);
-        } finally {
-            self::freeCStringArray($ofCStrings);
-        }
-
-        $docs = self::parseQueryResult($result);
-        $queryResults = [$resolvedFieldName => $docs];
+        $queryResults = [$params['fieldName'] => $docs];
         return $reranker->rerank($queryResults);
     }
 
@@ -1280,45 +1317,12 @@ class ZVec
 
         $fetchTopk = max($topk * 2, 100);
 
-        $ffi = self::ffi();
-        $dim = count($queryVector);
-        $vecData = $ffi->new("double[$dim]");
-        foreach ($queryVector as $i => $v) {
-            $vecData[$i] = $v;
-        }
+        $docs = $this->executeQueryFp64(
+            $fieldName, $queryVector, $fetchTopk, $includeVector, $filter,
+            $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
+            $radius, $isLinear, $isUsingRefiner
+        );
 
-        $result = $ffi->new('zvec_query_result_t');
-
-        $ofCStrings = [];
-        try {
-            $ofArr = null;
-            $ofCount = -1;
-            if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
-                if ($outputFields !== null) {
-                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
-                }
-
-                $status = $ffi->zvec_collection_query_fp64_ex(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
-                    $ofArr, $ofCount,
-                    $queryParamType, $hnswEf, $ivfNprobe,
-                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
-                    FFI::addr($result)
-                );
-            } else {
-                $status = $ffi->zvec_collection_query_fp64(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
-                    FFI::addr($result)
-                );
-            }
-            self::checkStatus($status);
-        } finally {
-            self::freeCStringArray($ofCStrings);
-        }
-
-        $docs = self::parseQueryResult($result);
         $queryResults = [$fieldName => $docs];
         return $reranker->rerank($queryResults);
     }
