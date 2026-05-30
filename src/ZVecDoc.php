@@ -1007,10 +1007,21 @@ class ZVecDoc
         return $result;
     }
 
+    /**
+     * Deserialize binary data into a ZVecDoc.
+     *
+     * @security DO NOT deserialize data from untrusted sources. This method
+     *           uses an internal serialization format with no integrity checking
+     *           or authentication. Deserializing malicious data may cause
+     *           undefined behavior or crashes in the C++ layer.
+     */
     public static function deserialize(string $data): self
     {
-        $ffi = self::ffi();
         $size = strlen($data);
+        if ($size < 8) {
+            throw new ZVecException('Invalid serialized data: too short (minimum 8 bytes)');
+        }
+        $ffi = self::ffi();
         $buf = $ffi->new("uint8_t[$size]", false);
         FFI::memcpy($buf, $data, $size);
         try {
