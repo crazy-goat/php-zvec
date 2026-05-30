@@ -39,7 +39,7 @@ echo "[1] Collection lifecycle memory test\n";
 $path1 = __DIR__ . '/../test_dbs/example_07_a_' . uniqid();
 
 $schema = new ZVecSchema('mem_demo');
-$schema->setMaxDocCountPerSegment(100)
+$schema->setMaxDocCountPerSegment(1000)
     ->addInt64('id', nullable: false)
     ->addVectorFp32('vec', dimension: 4, metricType: ZVecSchema::METRIC_IP);
 
@@ -101,7 +101,7 @@ echo "\n[3] C string cleanup pattern (try-finally)\n";
 $path3 = __DIR__ . '/../test_dbs/example_07_b_' . uniqid();
 
 $schema3 = new ZVecSchema('cstr_demo');
-$schema3->setMaxDocCountPerSegment(100)
+$schema3->setMaxDocCountPerSegment(1000)
     ->addInt64('id', nullable: false)
     ->addString('name', nullable: true)
     ->addVectorFp32('vec', dimension: 4, metricType: ZVecSchema::METRIC_IP);
@@ -152,5 +152,5 @@ echo "  3. Collection destructors auto-call close() — but explicit close() is 
 echo "  4. VmRSS monitoring catches native leaks that memory_get_usage() misses\n";
 echo "  5. Never store FFI\\CData in long-lived PHP variables\n";
 
-exec("rm -rf " . escapeshellarg(__DIR__ . '/../test_dbs/example_07_a_' . glob(__DIR__ . '/../test_dbs/example_07_a_*')[0]));
+exec("rm -rf " . escapeshellarg($path1));
 echo "\nDone!\n";
