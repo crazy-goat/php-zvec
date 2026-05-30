@@ -9,6 +9,7 @@ require_once __DIR__ . '/ZVecCollectionOptions.php';
 require_once __DIR__ . '/ZVecCollectionStats.php';
 require_once __DIR__ . '/ZVecFieldSchema.php';
 require_once __DIR__ . '/ZVecIndexParams.php';
+require_once __DIR__ . '/ZVecQueryInterface.php';
 require_once __DIR__ . '/ZVecVectorQuery.php';
 require_once __DIR__ . '/ZVecGroupByVectorQuery.php';
 require_once __DIR__ . '/ZVecSchema.php';

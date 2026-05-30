@@ -4,8 +4,28 @@ declare(strict_types=1);
 
 if (extension_loaded('zvec')) return;
 
-class ZVecGroupByVectorQuery extends ZVecVectorQuery
+class ZVecGroupByVectorQuery implements ZVecQueryInterface
 {
+    private FFI\CData $handle;
+    private bool $closed = false;
+
+    public string $fieldName;
+
+    /**
+     * @var float[]|int[]
+     */
+    public array $vector;
+
+    public int $queryParamType;
+    public int $hnswEf;
+    public int $ivfNprobe;
+    public float $radius;
+    public bool $isLinear;
+    public bool $isUsingRefiner;
+    public ?int $topk = null;
+    public ?bool $includeVector = null;
+    public ?string $filter = null;
+
     /**
      * @param float[] $vector
      */
@@ -25,7 +45,6 @@ class ZVecGroupByVectorQuery extends ZVecVectorQuery
         }
         $ffi = self::ffi();
         $this->handle = $ffi->zvec_group_by_vector_query_create();
-        $this->handleType = 'group_by_query';
         $this->fieldName = $fieldName;
         $this->vector = $vector;
         $this->queryParamType = ZVec::QUERY_PARAM_NONE;
@@ -50,6 +69,34 @@ class ZVecGroupByVectorQuery extends ZVecVectorQuery
         }
     }
 
+    public function __destruct()
+    {
+        if (!$this->closed) {
+            $this->free();
+        }
+    }
+
+    private function __clone()
+    {
+    }
+
+    public function getHandle(): FFI\CData
+    {
+        return $this->handle;
+    }
+
+    public function free(): void
+    {
+        if ($this->closed) {
+            return;
+        }
+        $this->closed = true;
+        try {
+            self::ffi()->zvec_group_by_vector_query_free($this->handle);
+        } catch (\Throwable) {
+        }
+    }
+
     public function setGroupByField(string $field): self
     {
         self::ffi()->zvec_group_by_vector_query_set_group_by_field($this->handle, $field);
@@ -69,7 +116,6 @@ class ZVecGroupByVectorQuery extends ZVecVectorQuery
     }
 
     /**
-     * Override: use group_by_vector_query FFI functions to prevent UB.
      * GroupByVectorQuery does not support general topk; use setGroupTopk() instead.
      */
     public function setTopk(int $topk): self

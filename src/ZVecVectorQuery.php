@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 if (extension_loaded('zvec')) return;
 
-class ZVecVectorQuery
+class ZVecVectorQuery implements ZVecQueryInterface
 {
-    protected FFI\CData $handle;
-    protected ?string $handleType = null;
+    private FFI\CData $handle;
+    private bool $closed = false;
 
     public string $fieldName;
 
@@ -42,7 +42,6 @@ class ZVecVectorQuery
         }
         $ffi = self::ffi();
         $this->handle = $ffi->zvec_vector_query_create();
-        $this->handleType = 'vector_query';
         $this->fieldName = $fieldName;
         $this->vector = $vector;
         $this->queryParamType = ZVec::QUERY_PARAM_NONE;
@@ -65,14 +64,8 @@ class ZVecVectorQuery
 
     public function __destruct()
     {
-        try {
-            $ffi = self::ffi();
-            if ($this->handleType === 'vector_query') {
-                $ffi->zvec_vector_query_free($this->handle);
-            } elseif ($this->handleType === 'group_by_query') {
-                $ffi->zvec_group_by_vector_query_free($this->handle);
-            }
-        } catch (\Throwable) {
+        if (!$this->closed) {
+            $this->free();
         }
     }
 
@@ -83,6 +76,18 @@ class ZVecVectorQuery
     public function getHandle(): FFI\CData
     {
         return $this->handle;
+    }
+
+    public function free(): void
+    {
+        if ($this->closed) {
+            return;
+        }
+        $this->closed = true;
+        try {
+            self::ffi()->zvec_vector_query_free($this->handle);
+        } catch (\Throwable) {
+        }
     }
 
     public function setFp64(bool $fp64 = true): self
