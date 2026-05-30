@@ -1,5 +1,5 @@
 --TEST--
-ZVecDoc::deserialize() rejects data shorter than 4 bytes
+ZVecDoc::deserialize() rejects data shorter than 8 bytes
 --SKIPIF--
 <?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--
