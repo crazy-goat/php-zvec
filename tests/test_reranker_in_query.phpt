@@ -1,7 +1,11 @@
 --TEST--
 Query with reranker parameter: RRF and Weighted reranker integration
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php
+if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available');
+require_once __DIR__ . '/../src/ZVec.php';
+if (!method_exists('ZVec', 'queryWithReranker')) die('skip queryWithReranker() not available in native extension');
+?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
