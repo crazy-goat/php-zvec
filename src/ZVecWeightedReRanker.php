@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace CrazyGoat\ZVec;
+
 if (extension_loaded('zvec')) return;
 
 require_once __DIR__ . '/ZVec.php';

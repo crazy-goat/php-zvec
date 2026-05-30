@@ -15,10 +15,7 @@
     "autoload": {
         "psr-4": {
             "CrazyGoat\\ZVec\\": "src/"
-        },
-        "classmap": [
-            "src/"
-        ]
+        }
     },
     "bin": [
         "bin/zvec-install"

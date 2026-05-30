@@ -8,17 +8,23 @@ require_once __DIR__ . '/../src/embeddings/EmbeddingInterfaces.php';
 require_once __DIR__ . '/../src/embeddings/OpenAIDenseEmbedding.php';
 require_once __DIR__ . '/../src/embeddings/QwenDenseEmbedding.php';
 
+use CrazyGoat\ZVec\DenseEmbeddingFunction;
+use CrazyGoat\ZVec\SparseEmbeddingFunction;
+use CrazyGoat\ZVec\ApiEmbeddingFunction;
+use CrazyGoat\ZVec\OpenAIDenseEmbedding;
+use CrazyGoat\ZVec\QwenDenseEmbedding;
+
 // Test 1: Verify interfaces exist
 echo "Interface validation:\n";
 
-if (interface_exists('DenseEmbeddingFunction')) {
+if (interface_exists(DenseEmbeddingFunction::class)) {
     echo "PASS: DenseEmbeddingFunction interface exists\n";
 } else {
     echo "FAIL: DenseEmbeddingFunction interface not found\n";
     exit(1);
 }
 
-if (interface_exists('SparseEmbeddingFunction')) {
+if (interface_exists(SparseEmbeddingFunction::class)) {
     echo "PASS: SparseEmbeddingFunction interface exists\n";
 } else {
     echo "FAIL: SparseEmbeddingFunction interface not found\n";
@@ -26,18 +32,18 @@ if (interface_exists('SparseEmbeddingFunction')) {
 }
 
 // Test 2: Verify OpenAIDenseEmbedding class exists and implements interface
-if (class_exists('OpenAIDenseEmbedding')) {
+if (class_exists(OpenAIDenseEmbedding::class)) {
     echo "PASS: OpenAIDenseEmbedding class exists\n";
     
-    $reflection = new ReflectionClass('OpenAIDenseEmbedding');
-    if ($reflection->implementsInterface('DenseEmbeddingFunction')) {
+    $reflection = new ReflectionClass(OpenAIDenseEmbedding::class);
+    if ($reflection->implementsInterface(DenseEmbeddingFunction::class)) {
         echo "PASS: OpenAIDenseEmbedding implements DenseEmbeddingFunction\n";
     } else {
         echo "FAIL: OpenAIDenseEmbedding does not implement DenseEmbeddingFunction\n";
         exit(1);
     }
     
-    if ($reflection->isSubclassOf('ApiEmbeddingFunction')) {
+    if ($reflection->isSubclassOf(ApiEmbeddingFunction::class)) {
         echo "PASS: OpenAIDenseEmbedding extends ApiEmbeddingFunction\n";
     } else {
         echo "FAIL: OpenAIDenseEmbedding does not extend ApiEmbeddingFunction\n";
@@ -49,18 +55,18 @@ if (class_exists('OpenAIDenseEmbedding')) {
 }
 
 // Test 3: Verify QwenDenseEmbedding class exists and implements interface
-if (class_exists('QwenDenseEmbedding')) {
+if (class_exists(QwenDenseEmbedding::class)) {
     echo "PASS: QwenDenseEmbedding class exists\n";
     
-    $reflection = new ReflectionClass('QwenDenseEmbedding');
-    if ($reflection->implementsInterface('DenseEmbeddingFunction')) {
+    $reflection = new ReflectionClass(QwenDenseEmbedding::class);
+    if ($reflection->implementsInterface(DenseEmbeddingFunction::class)) {
         echo "PASS: QwenDenseEmbedding implements DenseEmbeddingFunction\n";
     } else {
         echo "FAIL: QwenDenseEmbedding does not implement DenseEmbeddingFunction\n";
         exit(1);
     }
     
-    if ($reflection->isSubclassOf('ApiEmbeddingFunction')) {
+    if ($reflection->isSubclassOf(ApiEmbeddingFunction::class)) {
         echo "PASS: QwenDenseEmbedding extends ApiEmbeddingFunction\n";
     } else {
         echo "FAIL: QwenDenseEmbedding does not extend ApiEmbeddingFunction\n";
@@ -72,7 +78,7 @@ if (class_exists('QwenDenseEmbedding')) {
 }
 
 // Test 4: Verify constants
-$openaiReflection = new ReflectionClass('OpenAIDenseEmbedding');
+$openaiReflection = new ReflectionClass(OpenAIDenseEmbedding::class);
 $constants = $openaiReflection->getConstants();
 
 $expectedConstants = ['MODEL_SMALL', 'MODEL_LARGE', 'MODEL_ADA'];
@@ -85,7 +91,7 @@ foreach ($expectedConstants as $const) {
     }
 }
 
-$qwenReflection = new ReflectionClass('QwenDenseEmbedding');
+$qwenReflection = new ReflectionClass(QwenDenseEmbedding::class);
 $constants = $qwenReflection->getConstants();
 
 $expectedConstants = ['MODEL_V4', 'MODEL_V3', 'MODEL_V2', 'MODEL_V1'];

@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+namespace CrazyGoat\ZVec;
+
+use FFI;
+
 if (extension_loaded('zvec')) return;
 
 class ZVecGroupByVectorQuery implements ZVecQueryInterface

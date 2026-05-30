@@ -6,6 +6,10 @@ Extensions: Embedding Functions - Integration with ZVec
 <?php
 require_once __DIR__ . '/../src/embeddings/EmbeddingInterfaces.php';
 
+use CrazyGoat\ZVec\ApiEmbeddingFunction;
+use CrazyGoat\ZVec\DenseEmbeddingFunction;
+use CrazyGoat\ZVec\ZVecException;
+
 /**
  * Mock embedding function for testing (simulates API without making HTTP calls)
  */
