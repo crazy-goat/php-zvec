@@ -1054,7 +1054,7 @@ class ZVec
                 'queryFp64(): Passing $reranker is deprecated. Use queryWithReranker() instead.',
                 E_USER_DEPRECATED
             );
-            return $this->queryWithReranker(
+            return $this->queryWithRerankerFp64(
                 fieldName: $fieldName,
                 queryVector: $queryVector,
                 topk: $topk,
