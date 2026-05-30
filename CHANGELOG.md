@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **TEST-007: Memory leak regression tests for FFI memory safety** (#105)
+  - Added 5 `.phpt` test files for memory leak regression testing:
+    - `test_memory_collection_lifecycle.phpt` — 50x create/open/close/destroy cycle with memory growth tracking
+    - `test_memory_deserialize_buffer.phpt` — 100x serialize/deserialize cycle with buffer leak detection
+    - `test_memory_query_output_fields.phpt` — 100x query with/without output fields for C string leak detection
+    - `test_memory_init_error_path.phpt` — 20x init error/recovery cycles for C allocation leak detection
+    - `test_memory_delete_cstrings.phpt` — 30x insert/delete/fetch cycles for C string array leak detection
+  - Added `examples/07_memory_management.php` — FFI memory cleanup patterns (C string free, try-finally guards, VmRSS monitoring)
+  - Each test uses `try-finally` with `uniqid()` temp directory under `test_dbs/` and `exec("rm -rf ...")` cleanup
+  - Tests verify both PHP heap (`memory_get_usage()`) and native memory (VmRSS) stability
+  - 500KB threshold for memory growth detection across all test scenarios
+
 - **SMELL-013: Migrated all classes to `CrazyGoat\ZVec\` namespace with PSR-4 autoloading** (#94)
   - All library classes now live under `CrazyGoat\ZVec\` namespace
   - Global class names preserved via `class_alias()` for backward compatibility

@@ -380,6 +380,43 @@ require_once __DIR__ . '/../src/ZVec.php';
 - `__destruct()` calls `close()` automatically if not already closed
 - After `destroy()`, any method call causes **segfault** (handle invalidated)
 
+### Memory Leak Regression Tests
+
+The project includes regression tests to detect FFI memory leaks:
+
+**Test files:**
+- `tests/test_memory_collection_lifecycle.phpt` — 50x create/open/close/destroy cycle
+- `tests/test_memory_deserialize_buffer.phpt` — 100x serialize/deserialize cycle
+- `tests/test_memory_query_output_fields.phpt` — 100x query with/without output fields
+- `tests/test_memory_init_error_path.phpt` — 20x init error/recovery cycles
+- `tests/test_memory_delete_cstrings.phpt` — 30x insert/delete/fetch cycles
+
+**Methodology:**
+- PHP heap monitoring: `memory_get_usage()` delta between start and end
+- Native memory monitoring: VmRSS from `/proc/self/status` (Linux only)
+- Threshold: 500KB maximum growth per test scenario
+- Each test uses `try-finally` with `uniqid()` temp directory cleanup
+
+**Adding new memory tests:**
+1. Create `tests/test_memory_<scenario>.phpt`
+2. Record `memory_get_usage()` before the loop
+3. Run the scenario N times (typically 20-100 iterations)
+4. Record `memory_get_usage()` after the loop
+5. Assert delta is within 500KB threshold
+6. Use `try-finally` for cleanup
+
+**VmRSS monitoring (optional, Linux only):**
+```php
+function getVmRSS(): int {
+    $status = @file_get_contents('/proc/self/status');
+    if ($status === false) return 0;
+    if (preg_match('/^VmRSS:\s+(\d+)\s+kB$/m', $status, $m)) {
+        return (int)$m[1];
+    }
+    return 0;
+}
+```
+
 ### Debug & Logging
 
 ```php
