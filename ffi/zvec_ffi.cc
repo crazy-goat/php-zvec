@@ -50,12 +50,18 @@ static void set_last_error(int code, const char* msg, const char* file, int line
     g_last_error.function = func;
 }
 
+// Helper to strip __FILE__ to basename only (reduces information disclosure)
+static const char* strip_path(const char* path) {
+    const char* slash = strrchr(path, '/');
+    return slash ? slash + 1 : path;
+}
+
 // MAKE_STATUS wraps make_status and captures source location on error
 #define MAKE_STATUS(s) \
     ([&]() -> zvec_status_t { \
         auto _st = make_status(s); \
         if (_st.code != 0) { \
-            set_last_error(_st.code, _st.message, __FILE__, __LINE__, __func__); \
+            set_last_error(_st.code, _st.message, strip_path(__FILE__), __LINE__, __func__); \
         } \
         return _st; \
     })()
@@ -64,7 +70,7 @@ static void set_last_error(int code, const char* msg, const char* file, int line
 #define SET_FFI_ERROR(st) \
     do { \
         if ((st).code != 0) { \
-            set_last_error((st).code, (st).message, __FILE__, __LINE__, __func__); \
+            set_last_error((st).code, (st).message, strip_path(__FILE__), __LINE__, __func__); \
         } \
     } while(0)
 
