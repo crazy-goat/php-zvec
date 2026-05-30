@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+namespace CrazyGoat\ZVec;
+
+use FFI;
+
 if (extension_loaded('zvec')) return;
 
 require_once __DIR__ . '/ZVecException.php';
@@ -14,6 +18,10 @@ require_once __DIR__ . '/ZVecVectorQuery.php';
 require_once __DIR__ . '/ZVecGroupByVectorQuery.php';
 require_once __DIR__ . '/ZVecSchema.php';
 require_once __DIR__ . '/ZVecDoc.php';
+require_once __DIR__ . '/ZVecReRanker.php';
+require_once __DIR__ . '/ZVecRerankedDoc.php';
+require_once __DIR__ . '/ZVecRrfReRanker.php';
+require_once __DIR__ . '/ZVecWeightedReRanker.php';
 
 class ZVec
 {
@@ -1644,3 +1652,20 @@ class ZVec
         return new ZVecFieldSchema($out);
     }
 }
+
+// Backward-compatible aliases for global namespace usage
+class_alias(ZVec::class, 'ZVec');
+class_alias(ZVecException::class, 'ZVecException');
+class_alias(ZVecSchema::class, 'ZVecSchema');
+class_alias(ZVecDoc::class, 'ZVecDoc');
+class_alias(ZVecCollectionOptions::class, 'ZVecCollectionOptions');
+class_alias(ZVecCollectionStats::class, 'ZVecCollectionStats');
+class_alias(ZVecFieldSchema::class, 'ZVecFieldSchema');
+class_alias(ZVecIndexParams::class, 'ZVecIndexParams');
+\class_alias(ZVecQueryInterface::class, 'ZVecQueryInterface');
+class_alias(ZVecVectorQuery::class, 'ZVecVectorQuery');
+class_alias(ZVecGroupByVectorQuery::class, 'ZVecGroupByVectorQuery');
+\class_alias(ZVecReRanker::class, 'ZVecReRanker');
+class_alias(ZVecRerankedDoc::class, 'ZVecRerankedDoc');
+class_alias(ZVecRrfReRanker::class, 'ZVecRrfReRanker');
+class_alias(ZVecWeightedReRanker::class, 'ZVecWeightedReRanker');

@@ -1,10 +1,14 @@
 --TEST--
 Extensions: Embedding Functions - Integration with ZVec
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/embeddings/EmbeddingInterfaces.php';
+
+use CrazyGoat\ZVec\ApiEmbeddingFunction;
+use CrazyGoat\ZVec\DenseEmbeddingFunction;
+use CrazyGoat\ZVec\ZVecException;
 
 /**
  * Mock embedding function for testing (simulates API without making HTTP calls)

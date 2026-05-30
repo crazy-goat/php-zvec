@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+namespace CrazyGoat\ZVec;
+
+use RuntimeException;
+use Throwable;
+
 if (extension_loaded('zvec')) return;
 
 class ZVecException extends RuntimeException
