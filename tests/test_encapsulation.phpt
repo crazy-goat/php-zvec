@@ -1,7 +1,7 @@
 --TEST--
 Encapsulation: Private properties with getters/setters on reranker classes
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php if (!extension_loaded('ffi')) die('skip FFI extension not available (native extension uses public properties)'); ?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
