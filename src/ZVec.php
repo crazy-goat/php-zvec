@@ -250,7 +250,7 @@ class ZVec
         return $groups;
     }
 
-    public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
+    public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = self::DEFAULT_MAX_BUFFER_SIZE): self
     {
         $path = self::validateCollectionPath($path);
         $ffi = self::ffi();
@@ -260,7 +260,7 @@ class ZVec
         return new self($out, $path);
     }
 
-    public static function open(string $path, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
+    public static function open(string $path, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = self::DEFAULT_MAX_BUFFER_SIZE): self
     {
         $path = self::validateCollectionPath($path);
         $ffi = self::ffi();
@@ -336,7 +336,7 @@ class ZVec
             // Re-open via stored path so we can destroy the on-disk data
             $ffi = self::ffi();
             $newHandle = $ffi->new('zvec_collection_t');
-            $status = $ffi->zvec_collection_open($this->path, 0, 1, 67108864, FFI::addr($newHandle));
+            $status = $ffi->zvec_collection_open($this->path, 0, 1, self::DEFAULT_MAX_BUFFER_SIZE, FFI::addr($newHandle));
             self::checkStatus($status);
             try {
                 self::checkStatus($ffi->zvec_collection_destroy($newHandle));
@@ -358,7 +358,7 @@ class ZVec
     {
         $this->checkClosed();
         $ffi = self::ffi();
-        $bufSize = 8192;
+        $bufSize = self::SCHEMA_BUFFER_SIZE;
         while (true) {
             $buf = $ffi->new("char[$bufSize]");
             self::checkStatus($ffi->zvec_collection_schema($this->handle, $buf, $bufSize));
@@ -367,7 +367,7 @@ class ZVec
                 return $str;
             }
             $bufSize *= 2;
-            if ($bufSize > 1048576) {
+            if ($bufSize > self::MAX_STRING_BUFFER_SIZE) {
                 throw new ZVecException('Schema string exceeds maximum buffer size of 1 MB');
             }
         }
@@ -377,7 +377,7 @@ class ZVec
     {
         $this->checkClosed();
         $ffi = self::ffi();
-        $bufSize = 4096;
+        $bufSize = self::PATH_BUFFER_SIZE;
         while (true) {
             $buf = $ffi->new("char[$bufSize]");
             self::checkStatus($ffi->zvec_collection_path($this->handle, $buf, $bufSize));
@@ -386,7 +386,7 @@ class ZVec
                 return $str;
             }
             $bufSize *= 2;
-            if ($bufSize > 1048576) {
+            if ($bufSize > self::MAX_STRING_BUFFER_SIZE) {
                 throw new ZVecException('Path string exceeds maximum buffer size of 1 MB');
             }
         }
@@ -504,13 +504,13 @@ class ZVec
     }
 
     /** @deprecated Use createIndex() with ZVecIndexParams::forHnsw() instead */
-    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = 50, int $efConstruction = 500, int $quantizeType = 0, int $concurrency = 0, bool $useContiguousMemory = false): void
+    public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = self::DEFAULT_HNSW_M, int $efConstruction = self::DEFAULT_HNSW_EF_CONSTRUCTION, int $quantizeType = 0, int $concurrency = 0, bool $useContiguousMemory = false): void
     {
         $this->createIndex($fieldName, ZVecIndexParams::forHnsw($metricType, $m, $efConstruction, $quantizeType, $useContiguousMemory), $concurrency);
     }
 
     /** @deprecated Use createIndex() with ZVecIndexParams::forHnswRabitq() instead */
-    public function createHnswRabitqIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $totalBits = 7, int $numClusters = 16, int $m = 50, int $efConstruction = 500, int $sampleCount = 0, int $concurrency = 0): void
+    public function createHnswRabitqIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $totalBits = 7, int $numClusters = 16, int $m = self::DEFAULT_HNSW_M, int $efConstruction = self::DEFAULT_HNSW_EF_CONSTRUCTION, int $sampleCount = 0, int $concurrency = 0): void
     {
         $this->createIndex($fieldName, ZVecIndexParams::forHnswRabitq($metricType, $totalBits, $numClusters, $m, $efConstruction, $sampleCount), $concurrency);
     }
@@ -657,6 +657,17 @@ class ZVec
     public const LOG_ERROR = 3;
     public const LOG_FATAL = 4;
 
+    // Default buffer sizes
+    public const DEFAULT_MAX_BUFFER_SIZE = 67108864; // 64 MB
+    public const SCHEMA_BUFFER_SIZE = 8192;
+    public const PATH_BUFFER_SIZE = 4096;
+    public const MAX_STRING_BUFFER_SIZE = 1048576; // 1 MB max for schema/stats strings
+    public const BYTES_PER_MB = 1048576;
+
+    // Default HNSW index parameters
+    public const DEFAULT_HNSW_M = 50;
+    public const DEFAULT_HNSW_EF_CONSTRUCTION = 500;
+
     // Data types for alterColumn (scalar numeric only)
     public const TYPE_INT32 = 4;
     public const TYPE_INT64 = 5;
@@ -738,7 +749,7 @@ class ZVec
             $ffi->zvec_config_data_set_brute_force_by_keys_ratio($configData, $bruteForceByKeysRatio);
         }
         if ($memoryLimitMb > 0) {
-            $ffi->zvec_config_data_set_memory_limit($configData, $memoryLimitMb * 1048576);
+            $ffi->zvec_config_data_set_memory_limit($configData, $memoryLimitMb * self::BYTES_PER_MB);
         }
 
         try {
@@ -1354,7 +1365,7 @@ class ZVec
     {
         $this->checkClosed();
         $ffi = self::ffi();
-        $bufSize = 4096;
+        $bufSize = self::PATH_BUFFER_SIZE;
         while (true) {
             $buf = $ffi->new("char[$bufSize]");
             self::checkStatus($ffi->zvec_collection_stats($this->handle, $buf, $bufSize));
@@ -1363,7 +1374,7 @@ class ZVec
                 return $str;
             }
             $bufSize *= 2;
-            if ($bufSize > 1048576) {
+            if ($bufSize > self::MAX_STRING_BUFFER_SIZE) {
                 throw new ZVecException('Stats string exceeds maximum buffer size of 1 MB');
             }
         }
