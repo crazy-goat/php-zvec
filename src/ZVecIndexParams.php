@@ -27,7 +27,7 @@ class ZVecIndexParams
         return $this->handle;
     }
 
-    public static function forHnsw(int $metricType, int $m = 50, int $efConstruction = 500, int $quantizeType = ZVec::QUANTIZE_UNDEFINED, bool $useContiguousMemory = false): self
+    public static function forHnsw(int $metricType, int $m = ZVec::DEFAULT_HNSW_M, int $efConstruction = ZVec::DEFAULT_HNSW_EF_CONSTRUCTION, int $quantizeType = ZVec::QUANTIZE_UNDEFINED, bool $useContiguousMemory = false): self
     {
         if ($m <= 0) {
             throw new ZVecException("m must be a positive integer, got: {$m}");
@@ -41,7 +41,7 @@ class ZVecIndexParams
         return new self($handle);
     }
 
-    public static function forHnswRabitq(int $metricType, int $totalBits = 7, int $numClusters = 16, int $m = 50, int $efConstruction = 500, int $sampleCount = 0): self
+    public static function forHnswRabitq(int $metricType, int $totalBits = 7, int $numClusters = 16, int $m = ZVec::DEFAULT_HNSW_M, int $efConstruction = ZVec::DEFAULT_HNSW_EF_CONSTRUCTION, int $sampleCount = 0): self
     {
         if ($m <= 0) {
             throw new ZVecException("m must be a positive integer, got: {$m}");
