@@ -863,7 +863,8 @@ class ZVec
     /**
      * @param float[] $queryVector
      * @param string[]|null $outputFields
-     * @return ZVecDoc[]|ZVecRerankedDoc[]
+     * @return ZVecDoc[]
+     * @deprecated Use queryWithReranker() when passing a $reranker. The $reranker parameter is deprecated.
      */
     public function query(
         string|ZVecVectorQuery $fieldName,
@@ -880,6 +881,27 @@ class ZVec
         bool $isUsingRefiner = false,
         ?ZVecReRanker $reranker = null
     ): array {
+        if ($reranker !== null) {
+            trigger_error(
+                'query(): Passing $reranker is deprecated. Use queryWithReranker() instead.',
+                E_USER_DEPRECATED
+            );
+            return $this->queryWithReranker(
+                fieldName: $fieldName,
+                queryVector: $queryVector,
+                topk: $topk,
+                includeVector: $includeVector,
+                filter: $filter,
+                outputFields: $outputFields,
+                queryParamType: $queryParamType,
+                hnswEf: $hnswEf,
+                ivfNprobe: $ivfNprobe,
+                radius: $radius,
+                isLinear: $isLinear,
+                isUsingRefiner: $isUsingRefiner,
+                reranker: $reranker
+            );
+        }
         $this->checkClosed();
 
         // Handle ZVecVectorQuery object
@@ -928,9 +950,6 @@ class ZVec
             throw new ZVecException('Field name must not be empty');
         }
 
-        // If reranker is provided, fetch more results for two-stage retrieval
-        $fetchTopk = $reranker !== null ? max($topk * 2, 100) : $topk;
-
         $ffi = self::ffi();
         $dim = count($queryVector);
         $vecData = $ffi->new("float[$dim]");
@@ -951,7 +970,7 @@ class ZVec
 
                 $status = $ffi->zvec_collection_query_ex(
                     $this->handle, $fieldName, $vecData, $dim,
-                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                    $topk, $includeVector ? 1 : 0, $filter ?? '',
                     $ofArr, $ofCount,
                     $queryParamType, $hnswEf, $ivfNprobe,
                     $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
@@ -960,7 +979,7 @@ class ZVec
             } else {
                 $status = $ffi->zvec_collection_query(
                     $this->handle, $fieldName, $vecData, $dim,
-                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                    $topk, $includeVector ? 1 : 0, $filter ?? '',
                     FFI::addr($result)
                 );
             }
@@ -969,15 +988,7 @@ class ZVec
             self::freeCStringArray($ofCStrings);
         }
 
-        $docs = self::parseQueryResult($result);
-
-        // Apply reranker if provided
-        if ($reranker !== null) {
-            $queryResults = [$fieldName => $docs];
-            return $reranker->rerank($queryResults);
-        }
-
-        return $docs;
+        return self::parseQueryResult($result);
     }
 
     /**
@@ -1019,7 +1030,8 @@ class ZVec
     /**
      * @param float[] $queryVector
      * @param string[]|null $outputFields
-     * @return ZVecDoc[]|ZVecRerankedDoc[]
+     * @return ZVecDoc[]
+     * @deprecated Use queryWithReranker() when passing a $reranker. The $reranker parameter is deprecated.
      */
     public function queryFp64(
         string $fieldName,
@@ -1037,6 +1049,27 @@ class ZVec
         ?ZVecReRanker $reranker = null
     ): array {
         $this->checkClosed();
+        if ($reranker !== null) {
+            trigger_error(
+                'queryFp64(): Passing $reranker is deprecated. Use queryWithReranker() instead.',
+                E_USER_DEPRECATED
+            );
+            return $this->queryWithRerankerFp64(
+                fieldName: $fieldName,
+                queryVector: $queryVector,
+                topk: $topk,
+                includeVector: $includeVector,
+                filter: $filter,
+                outputFields: $outputFields,
+                queryParamType: $queryParamType,
+                hnswEf: $hnswEf,
+                ivfNprobe: $ivfNprobe,
+                radius: $radius,
+                isLinear: $isLinear,
+                isUsingRefiner: $isUsingRefiner,
+                reranker: $reranker
+            );
+        }
         if ($topk <= 0) {
             throw new ZVecException("topk must be a positive integer, got: {$topk}");
         }
@@ -1051,8 +1084,208 @@ class ZVec
             $vecData[$i] = $v;
         }
 
-        // If reranker is provided, fetch more results for two-stage retrieval
-        $fetchTopk = $reranker !== null ? max($topk * 2, 100) : $topk;
+        $result = $ffi->new('zvec_query_result_t');
+
+        $ofCStrings = [];
+        try {
+            $ofArr = null;
+            $ofCount = -1;
+            if ($outputFields !== null || $queryParamType !== self::QUERY_PARAM_NONE) {
+                if ($outputFields !== null) {
+                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
+                }
+
+                $status = $ffi->zvec_collection_query_fp64_ex(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $topk, $includeVector ? 1 : 0, $filter ?? '',
+                    $ofArr, $ofCount,
+                    $queryParamType, $hnswEf, $ivfNprobe,
+                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                    FFI::addr($result)
+                );
+            } else {
+                $status = $ffi->zvec_collection_query_fp64(
+                    $this->handle, $fieldName, $vecData, $dim,
+                    $topk, $includeVector ? 1 : 0, $filter ?? '',
+                    FFI::addr($result)
+                );
+            }
+            self::checkStatus($status);
+        } finally {
+            self::freeCStringArray($ofCStrings);
+        }
+
+        return self::parseQueryResult($result);
+    }
+
+    /**
+     * Two-stage retrieval: fetch candidates then rerank to top results.
+     *
+     * @param float[] $queryVector
+     * @param string[]|null $outputFields
+     * @return ZVecRerankedDoc[] Reranked results sorted by combined score
+     */
+    public function queryWithReranker(
+        string|ZVecVectorQuery $fieldName,
+        array $queryVector = [],
+        int $topk = 10,
+        bool $includeVector = false,
+        ?string $filter = null,
+        ?array $outputFields = null,
+        int $queryParamType = self::QUERY_PARAM_NONE,
+        int $hnswEf = 200,
+        int $ivfNprobe = 10,
+        float $radius = 0.0,
+        bool $isLinear = false,
+        bool $isUsingRefiner = false,
+        ?ZVecReRanker $reranker = null
+    ): array {
+        $this->checkClosed();
+        if ($reranker === null) {
+            throw new ZVecException('queryWithReranker() requires a $reranker argument');
+        }
+
+        // Fetch more results for two-stage retrieval
+        $fetchTopk = max($topk * 2, 100);
+
+        // Resolve ZVecVectorQuery to individual params
+        $resolvedFieldName = $fieldName;
+        $resolvedQueryVector = $queryVector;
+        $resolvedQueryParamType = $queryParamType;
+        $resolvedHnswEf = $hnswEf;
+        $resolvedIvfNprobe = $ivfNprobe;
+        $resolvedRadius = $radius;
+        $resolvedIsLinear = $isLinear;
+        $resolvedIsUsingRefiner = $isUsingRefiner;
+
+        if ($fieldName instanceof ZVecVectorQuery) {
+            $vq = $fieldName;
+            $resolvedFieldName = $vq->fieldName;
+            $resolvedQueryVector = $vq->vector;
+            $resolvedQueryParamType = $vq->queryParamType;
+            $resolvedHnswEf = $vq->hnswEf;
+            $resolvedIvfNprobe = $vq->ivfNprobe;
+            $resolvedRadius = $vq->radius;
+            $resolvedIsLinear = $vq->isLinear;
+            $resolvedIsUsingRefiner = $vq->isUsingRefiner;
+            $fetchTopk = $vq->topk !== null ? max($vq->topk * 2, 100) : $fetchTopk;
+            $includeVector = $vq->includeVector ?? $includeVector;
+            $filter = $vq->filter ?? $filter;
+
+            if ($vq->docId !== null) {
+                throw new ZVecException("queryWithReranker() with docId not yet implemented.");
+            }
+
+            if ($vq->useFp64) {
+                return $this->queryWithRerankerFp64(
+                    fieldName: $resolvedFieldName,
+                    queryVector: $resolvedQueryVector,
+                    topk: $topk,
+                    includeVector: $includeVector,
+                    filter: $filter,
+                    outputFields: $outputFields,
+                    queryParamType: $resolvedQueryParamType,
+                    hnswEf: $resolvedHnswEf,
+                    ivfNprobe: $resolvedIvfNprobe,
+                    radius: $resolvedRadius,
+                    isLinear: $resolvedIsLinear,
+                    isUsingRefiner: $resolvedIsUsingRefiner,
+                    reranker: $reranker
+                );
+            }
+        }
+
+        if ($topk <= 0) {
+            throw new ZVecException("topk must be a positive integer, got: {$topk}");
+        }
+        if (is_string($resolvedFieldName) && $resolvedFieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
+
+        $ffi = self::ffi();
+        $dim = count($resolvedQueryVector);
+        $vecData = $ffi->new("float[$dim]");
+        foreach ($resolvedQueryVector as $i => $v) {
+            $vecData[$i] = $v;
+        }
+
+        $result = $ffi->new('zvec_query_result_t');
+
+        $ofCStrings = [];
+        try {
+            $ofArr = null;
+            $ofCount = -1;
+            if ($outputFields !== null || $resolvedQueryParamType !== self::QUERY_PARAM_NONE) {
+                if ($outputFields !== null) {
+                    [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
+                }
+
+                $status = $ffi->zvec_collection_query_ex(
+                    $this->handle, $resolvedFieldName, $vecData, $dim,
+                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                    $ofArr, $ofCount,
+                    $resolvedQueryParamType, $resolvedHnswEf, $resolvedIvfNprobe,
+                    $resolvedRadius, $resolvedIsLinear ? 1 : 0, $resolvedIsUsingRefiner ? 1 : 0,
+                    FFI::addr($result)
+                );
+            } else {
+                $status = $ffi->zvec_collection_query(
+                    $this->handle, $resolvedFieldName, $vecData, $dim,
+                    $fetchTopk, $includeVector ? 1 : 0, $filter ?? '',
+                    FFI::addr($result)
+                );
+            }
+            self::checkStatus($status);
+        } finally {
+            self::freeCStringArray($ofCStrings);
+        }
+
+        $docs = self::parseQueryResult($result);
+        $queryResults = [$resolvedFieldName => $docs];
+        return $reranker->rerank($queryResults);
+    }
+
+    /**
+     * Two-stage retrieval for FP64 vectors.
+     *
+     * @param float[] $queryVector
+     * @param string[]|null $outputFields
+     * @return ZVecRerankedDoc[] Reranked results sorted by combined score
+     */
+    private function queryWithRerankerFp64(
+        string $fieldName,
+        array $queryVector,
+        int $topk = 10,
+        bool $includeVector = false,
+        ?string $filter = null,
+        ?array $outputFields = null,
+        int $queryParamType = self::QUERY_PARAM_NONE,
+        int $hnswEf = 200,
+        int $ivfNprobe = 10,
+        float $radius = 0.0,
+        bool $isLinear = false,
+        bool $isUsingRefiner = false,
+        ?ZVecReRanker $reranker = null
+    ): array {
+        $this->checkClosed();
+        if ($reranker === null) {
+            throw new ZVecException('queryWithRerankerFp64() requires a $reranker argument');
+        }
+        if ($topk <= 0) {
+            throw new ZVecException("topk must be a positive integer, got: {$topk}");
+        }
+        if ($fieldName === '') {
+            throw new ZVecException('Field name must not be empty');
+        }
+
+        $fetchTopk = max($topk * 2, 100);
+
+        $ffi = self::ffi();
+        $dim = count($queryVector);
+        $vecData = $ffi->new("double[$dim]");
+        foreach ($queryVector as $i => $v) {
+            $vecData[$i] = $v;
+        }
 
         $result = $ffi->new('zvec_query_result_t');
 
@@ -1086,14 +1319,8 @@ class ZVec
         }
 
         $docs = self::parseQueryResult($result);
-
-        // Apply reranker if provided
-        if ($reranker !== null) {
-            $queryResults = [$fieldName => $docs];
-            return $reranker->rerank($queryResults);
-        }
-
-        return $docs;
+        $queryResults = [$fieldName => $docs];
+        return $reranker->rerank($queryResults);
     }
 
     /**

@@ -1,7 +1,11 @@
 --TEST--
 Query with reranker parameter: RRF and Weighted reranker integration
 --SKIPIF--
-<?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
+<?php
+if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available');
+require_once __DIR__ . '/../src/ZVec.php';
+if (!method_exists('ZVec', 'queryWithReranker')) die('skip queryWithReranker() not available in native extension');
+?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
@@ -54,9 +58,9 @@ try {
     // Test 2: Query with RRF reranker (two-stage retrieval)
     echo "\nTest 2: Query with RRF reranker (two-stage retrieval)\n";
     $rrfReranker = new ZVecRrfReRanker(topn: 3, rankConstant: 60);
-    $results = $collection->query(
-        'embedding',
-        [1.0, 0.0, 0.0, 0.0],
+    $results = $collection->queryWithReranker(
+        fieldName: 'embedding',
+        queryVector: [1.0, 0.0, 0.0, 0.0],
         topk: 3,
         reranker: $rrfReranker
     );
@@ -74,9 +78,9 @@ try {
         metricType: ZVecSchema::METRIC_L2,
         weights: ['embedding' => 1.0]
     );
-    $results = $collection->query(
-        'embedding',
-        [1.0, 0.0, 0.0, 0.0],
+    $results = $collection->queryWithReranker(
+        fieldName: 'embedding',
+        queryVector: [1.0, 0.0, 0.0, 0.0],
         topk: 3,
         reranker: $weightedReranker
     );
@@ -91,7 +95,11 @@ try {
         fieldName: 'embedding',
         vector: [0.0, 1.0, 0.0, 0.0]
     );
-    $results = $collection->query($vq, topk: 3, reranker: $rrfReranker);
+    $results = $collection->queryWithReranker(
+        fieldName: $vq,
+        topk: 3,
+        reranker: $rrfReranker
+    );
     assert(count($results) === 3, "Expected 3 results with VectorQuery");
     assert($results[0] instanceof ZVecRerankedDoc, "Results should be ZVecRerankedDoc");
     // With [0,1,0,0] query, doc10 (AI Research with [0.1, 0.9...]) should be closest

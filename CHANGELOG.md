@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **SMELL-009: Added `queryWithReranker()` method for type-safe reranked queries** (#90)
+  - New `queryWithReranker()` method on `ZVec` returns `ZVecRerankedDoc[]` — static analysis tools can infer the correct return type
+  - Supports `string|ZVecVectorQuery` as field name, with all existing query parameters
+  - Routes FP64 queries via internal `queryWithRerankerFp64()` helper
+
+### Deprecated
+
+- **SMELL-009: The `$reranker` parameter on `query()` and `queryFp64()` is deprecated** (#90)
+  - Passing `$reranker` to `query()` now triggers `E_USER_DEPRECATED` and delegates to `queryWithReranker()`
+  - Existing code continues to work (backward compatible) but should migrate to `queryWithReranker()`
+
 ### Changed
 
 - **SMELL-017: Extracted `collection_batch_op()` template in `ffi/zvec_ffi.cc`** (#97)
