@@ -259,6 +259,9 @@ The deprecated `addField*()` methods (`addFieldBinary()`, `addFieldArrayString()
 - **Static factories**: `ZVec` uses `create()` and `open()` static methods,
   constructor is private.
 - **Fluent / builder**: `ZVecSchema` and `ZVecDoc` methods return `$this` (`self`).
+- **Getter/setter with fluent setters**: Data classes (`ZVecRerankedDoc`,
+  `ZVecRrfReRanker`, `ZVecWeightedReRanker`) use `private` properties with
+  public getters and setters. Setters return `self` for fluent chaining.
 - **RAII**: `__destruct()` calls `close()` / resource-free methods.
 - **Ownership tracking**: Use `$ownsHandle` boolean to decide if destructor frees.
 
