@@ -43,7 +43,7 @@ try {
     );
 
     foreach ($results as $doc) {
-        $score = $doc->combinedScore;
+        $score = $doc->getCombinedScore();
         if ($score < 0.0 || $score > 1.0) {
             echo "FAIL: Mixed-scores score {$score} out of [0, 1]\n";
             exit(1);
@@ -67,7 +67,7 @@ try {
     );
 
     foreach ($resultsAllNeg as $doc) {
-        $score = $doc->combinedScore;
+        $score = $doc->getCombinedScore();
         if ($score < 0.0 || $score > 1.0) {
             echo "FAIL: All-negative score {$score} out of [0, 1] for doc {$doc->getPk()}\n";
             exit(1);
@@ -97,7 +97,7 @@ try {
         );
 
         foreach ($results2 as $doc) {
-            $score = $doc->combinedScore;
+            $score = $doc->getCombinedScore();
             if ($score < 0.0 || $score > 1.0) {
                 echo "FAIL: L2 Score {$score} out of [0, 1] range\n";
                 exit(1);

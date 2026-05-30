@@ -67,9 +67,9 @@ try {
     assert(count($results) === 3, "Expected 3 results after reranking");
     assert($results[0] instanceof ZVecRerankedDoc, "Results should be ZVecRerankedDoc objects");
     assert($results[0]->getPk() === 'doc1', "First reranked result should be doc1");
-    assert($results[0]->combinedScore > 0, "Combined score should be positive");
+    assert($results[0]->getCombinedScore() > 0, "Combined score should be positive");
     echo "  - Got " . count($results) . " ZVecRerankedDoc results\n";
-    echo "  - First result: " . $results[0]->getPk() . " (score: " . round($results[0]->combinedScore, 4) . ")\n";
+    echo "  - First result: " . $results[0]->getPk() . " (score: " . round($results[0]->getCombinedScore(), 4) . ")\n";
 
     // Test 3: Query with Weighted reranker
     echo "\nTest 3: Query with Weighted reranker\n";

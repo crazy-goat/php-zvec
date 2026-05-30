@@ -59,6 +59,46 @@ PHP_METHOD(ZVecRerankedDoc, getOriginalScore) {
     zend_call_method_with_0_params(Z_OBJ_P(doc), Z_OBJCE_P(doc), nullptr, "getscore", return_value);
 }
 
+PHP_METHOD(ZVecRerankedDoc, getDoc) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    zval *doc = zend_read_property(zvec_reranked_doc_ce, Z_OBJ_P(ZEND_THIS), "doc", sizeof("doc") - 1, 1, nullptr);
+    if (doc) {
+        ZVAL_COPY(return_value, doc);
+    } else {
+        RETURN_NULL();
+    }
+}
+
+PHP_METHOD(ZVecRerankedDoc, getCombinedScore) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    zval *score = zend_read_property(zvec_reranked_doc_ce, Z_OBJ_P(ZEND_THIS), "combinedScore", sizeof("combinedScore") - 1, 1, nullptr);
+    if (score && Z_TYPE_P(score) == IS_DOUBLE) {
+        RETURN_DOUBLE(Z_DVAL_P(score));
+    } else {
+        RETURN_DOUBLE(0.0);
+    }
+}
+
+PHP_METHOD(ZVecRerankedDoc, getSourceRanks) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    zval *ranks = zend_read_property(zvec_reranked_doc_ce, Z_OBJ_P(ZEND_THIS), "sourceRanks", sizeof("sourceRanks") - 1, 1, nullptr);
+    if (ranks && Z_TYPE_P(ranks) == IS_ARRAY) {
+        ZVAL_COPY(return_value, ranks);
+    } else {
+        array_init(return_value);
+    }
+}
+
+PHP_METHOD(ZVecRerankedDoc, getSourceScores) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    zval *scores = zend_read_property(zvec_reranked_doc_ce, Z_OBJ_P(ZEND_THIS), "sourceScores", sizeof("sourceScores") - 1, 1, nullptr);
+    if (scores && Z_TYPE_P(scores) == IS_ARRAY) {
+        ZVAL_COPY(return_value, scores);
+    } else {
+        array_init(return_value);
+    }
+}
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zvec_rd___construct, 0, 0, 2)
     ZEND_ARG_OBJ_INFO(0, doc, ZVecDoc, 0)
     ZEND_ARG_TYPE_INFO(0, combinedScore, IS_DOUBLE, 0)
@@ -72,10 +112,26 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rd_get_original_score, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rd_get_doc, 0, 0, IS_OBJECT, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rd_get_combined_score, 0, 0, IS_DOUBLE, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rd_get_source_ranks, 0, 0, IS_ARRAY, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rd_get_source_scores, 0, 0, IS_ARRAY, 0)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry zvec_reranked_doc_methods[] = {
     PHP_ME(ZVecRerankedDoc, __construct, arginfo_zvec_rd___construct, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecRerankedDoc, getPk, arginfo_zvec_rd_get_pk, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecRerankedDoc, getOriginalScore, arginfo_zvec_rd_get_original_score, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecRerankedDoc, getDoc, arginfo_zvec_rd_get_doc, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecRerankedDoc, getCombinedScore, arginfo_zvec_rd_get_combined_score, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecRerankedDoc, getSourceRanks, arginfo_zvec_rd_get_source_ranks, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecRerankedDoc, getSourceScores, arginfo_zvec_rd_get_source_scores, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

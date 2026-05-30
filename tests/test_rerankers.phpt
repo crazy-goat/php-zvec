@@ -54,8 +54,8 @@ try {
     // Verify RRF results structure (don't check exact pk as it depends on search algorithm)
     if (count($rrfResults) > 0) {
         $first = $rrfResults[0];
-        echo "RRF first result has combinedScore: " . ($first->combinedScore > 0 ? 'yes' : 'no') . "\n";
-        echo "RRF first result has sourceRanks: " . (count($first->sourceRanks) > 0 ? 'yes' : 'no') . "\n";
+        echo "RRF first result has combinedScore: " . ($first->getCombinedScore() > 0 ? 'yes' : 'no') . "\n";
+        echo "RRF first result has sourceRanks: " . (count($first->getSourceRanks()) > 0 ? 'yes' : 'no') . "\n";
         echo "RRF first result has pk: " . (strlen($first->getPk()) > 0 ? 'yes' : 'no') . "\n";
     }
     
@@ -71,8 +71,8 @@ try {
     
     if (count($weightedResults) > 0) {
         $first = $weightedResults[0];
-        echo "Weighted first result has combinedScore: " . ($first->combinedScore >= 0 ? 'yes' : 'no') . "\n";
-        echo "Weighted first result has sourceScores: " . (count($first->sourceScores) > 0 ? 'yes' : 'no') . "\n";
+        echo "Weighted first result has combinedScore: " . ($first->getCombinedScore() >= 0 ? 'yes' : 'no') . "\n";
+        echo "Weighted first result has sourceScores: " . (count($first->getSourceScores()) > 0 ? 'yes' : 'no') . "\n";
     }
     
     // Test edge cases

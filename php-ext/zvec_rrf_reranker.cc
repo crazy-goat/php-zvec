@@ -15,6 +15,46 @@ PHP_METHOD(ZVecRrfReRanker, __construct) {
     zend_update_property_long(zvec_rrf_reranker_ce, Z_OBJ_P(ZEND_THIS), "rankConstant", sizeof("rankConstant") - 1, rank_constant);
 }
 
+PHP_METHOD(ZVecRrfReRanker, getTopn) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    zval *val = zend_read_property(zvec_rrf_reranker_ce, Z_OBJ_P(ZEND_THIS), "topn", sizeof("topn") - 1, 1, nullptr);
+    if (val && Z_TYPE_P(val) == IS_LONG) {
+        RETURN_LONG(Z_LVAL_P(val));
+    } else {
+        RETURN_LONG(10);
+    }
+}
+
+PHP_METHOD(ZVecRrfReRanker, setTopn) {
+    zend_long topn;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_LONG(topn)
+    ZEND_PARSE_PARAMETERS_END();
+
+    zend_update_property_long(zvec_rrf_reranker_ce, Z_OBJ_P(ZEND_THIS), "topn", sizeof("topn") - 1, topn);
+    RETURN_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
+}
+
+PHP_METHOD(ZVecRrfReRanker, getRankConstant) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    zval *val = zend_read_property(zvec_rrf_reranker_ce, Z_OBJ_P(ZEND_THIS), "rankConstant", sizeof("rankConstant") - 1, 1, nullptr);
+    if (val && Z_TYPE_P(val) == IS_LONG) {
+        RETURN_LONG(Z_LVAL_P(val));
+    } else {
+        RETURN_LONG(60);
+    }
+}
+
+PHP_METHOD(ZVecRrfReRanker, setRankConstant) {
+    zend_long rank_constant;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_LONG(rank_constant)
+    ZEND_PARSE_PARAMETERS_END();
+
+    zend_update_property_long(zvec_rrf_reranker_ce, Z_OBJ_P(ZEND_THIS), "rankConstant", sizeof("rankConstant") - 1, rank_constant);
+    RETURN_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
+}
+
 PHP_METHOD(ZVecRrfReRanker, rerank) {
     zval *query_results;
     ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -168,8 +208,26 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rrf_rerank, 0, 1, IS_ARRAY,
     ZEND_ARG_TYPE_INFO(0, queryResults, IS_ARRAY, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rrf_get_topn, 0, 0, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rrf_set_topn, 0, 1, IS_OBJECT, 0)
+    ZEND_ARG_TYPE_INFO(0, topn, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rrf_get_rank_constant, 0, 0, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_zvec_rrf_set_rank_constant, 0, 1, IS_OBJECT, 0)
+    ZEND_ARG_TYPE_INFO(0, rankConstant, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry zvec_rrf_reranker_methods[] = {
     PHP_ME(ZVecRrfReRanker, __construct, arginfo_zvec_rrf___construct, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecRrfReRanker, getTopn, arginfo_zvec_rrf_get_topn, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecRrfReRanker, setTopn, arginfo_zvec_rrf_set_topn, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecRrfReRanker, getRankConstant, arginfo_zvec_rrf_get_rank_constant, ZEND_ACC_PUBLIC)
+    PHP_ME(ZVecRrfReRanker, setRankConstant, arginfo_zvec_rrf_set_rank_constant, ZEND_ACC_PUBLIC)
     PHP_ME(ZVecRrfReRanker, rerank, arginfo_zvec_rrf_rerank, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };

@@ -10,42 +10,12 @@ require_once __DIR__ . '/ZVec.php';
 require_once __DIR__ . '/ZVecReRanker.php';
 require_once __DIR__ . '/ZVecRerankedDoc.php';
 
-/**
- * Weighted ReRanker for combining multi-vector search results.
- * 
- * Normalizes scores per metric type and computes weighted sum.
- * Useful when you want to give different importance to different vector fields.
- * 
- * Score normalization per metric:
- * - IP (Inner Product): min-max to [0, 1], higher is better
- * - COSINE: min-max to [0, 1], higher is better  
- * - L2: inverted min-max, lower distance is better
- * 
- * Final score = Σ(weight_i × normalized_score_i)
- */
 class ZVecWeightedReRanker implements ZVecReRanker
 {
-    /**
-     * Number of top results to return after reranking.
-     */
-    public int $topn;
+    private int $topn;
+    private int $metricType;
+    private array $weights;
 
-    /**
-     * Metric type for score normalization.
-     * Use ZVecSchema::METRIC_L2, METRIC_IP, or METRIC_COSINE
-     */
-    public int $metricType;
-
-    /**
-     * Weights for each vector field.
-     * Format: [fieldName => weight] where weights sum should typically be 1.0
-     * Example: ['dense_embedding' => 0.7, 'sparse_embedding' => 0.3]
-     */
-    public array $weights;
-
-    /**
-     * @param array<string, float> $weights Field name → weight mapping (required, must not be empty)
-     */
     public function __construct(array $weights, int $topn = 10, int $metricType = ZVecSchema::METRIC_IP)
     {
         if (empty($weights)) {
@@ -56,23 +26,50 @@ class ZVecWeightedReRanker implements ZVecReRanker
         $this->weights = $weights;
     }
 
-    /**
-     * Rerank results using weighted score combination.
-     * 
-     * @param array $queryResults Results from each vector field query.
-     *        Format: [fieldName => ZVecDoc[]] where each ZVecDoc[] is ordered by relevance.
-     *        Each field should have the same metric type (or you need separate rerankers per metric).
-     * @return ZVecRerankedDoc[] Reranked and merged results, sorted by combined score (highest first)
-     */
+    public function getTopn(): int
+    {
+        return $this->topn;
+    }
+
+    public function setTopn(int $topn): self
+    {
+        $this->topn = $topn;
+        return $this;
+    }
+
+    public function getMetricType(): int
+    {
+        return $this->metricType;
+    }
+
+    public function setMetricType(int $metricType): self
+    {
+        $this->metricType = $metricType;
+        return $this;
+    }
+
+    public function getWeights(): array
+    {
+        return $this->weights;
+    }
+
+    public function setWeights(array $weights): self
+    {
+        if (empty($weights)) {
+            throw new ZVecException('ZVecWeightedReRanker requires at least one field weight');
+        }
+        $this->weights = $weights;
+        return $this;
+    }
+
     public function rerank(array $queryResults): array
     {
         if (empty($queryResults)) {
             return [];
         }
 
-        // First pass: collect all documents and find min/max scores per field
-        $fieldStats = []; // [fieldName => ['min' => float, 'max' => float]]
-        $allDocs = [];    // [fieldName => [pk => ['doc' => ZVecDoc, 'score' => float, 'rank' => int]]]
+        $fieldStats = [];
+        $allDocs = [];
 
         foreach ($queryResults as $fieldName => $docs) {
             if (!is_array($docs)) {
@@ -96,7 +93,6 @@ class ZVecWeightedReRanker implements ZVecReRanker
                     'rank' => $rank + 1,
                 ];
 
-                // Update min/max
                 if ($score < $fieldStats[$fieldName]['min']) {
                     $fieldStats[$fieldName]['min'] = $score;
                 }
@@ -106,19 +102,17 @@ class ZVecWeightedReRanker implements ZVecReRanker
             }
         }
 
-        // Second pass: normalize scores and compute weighted sum
-        $combinedScores = []; // [pk => ['combined' => float, 'ranks' => [], 'scores' => [], 'doc' => ZVecDoc]]
+        $combinedScores = [];
 
         foreach ($allDocs as $fieldName => $docs) {
             $weight = $this->weights[$fieldName] ?? 0.0;
             if ($weight == 0.0) {
-                continue; // Skip fields with no weight
+                continue;
             }
 
             $stats = $fieldStats[$fieldName];
             $range = $stats['max'] - $stats['min'];
             
-            // Avoid division by zero
             if ($range == 0) {
                 $range = 1.0;
             }
@@ -128,13 +122,9 @@ class ZVecWeightedReRanker implements ZVecReRanker
                 $doc = $data['doc'];
                 $rank = $data['rank'];
 
-                // Normalize score based on metric type
-                // 1 = L2 (distance, lower is better), 2 = IP, 3 = COSINE (both higher is better)
                 if ($this->metricType === ZVecSchema::METRIC_L2) {
-                    // L2: invert so lower distance => higher normalized score
                     $normalizedScore = ($stats['max'] - $score) / $range;
                 } else {
-                    // IP, COSINE: higher score => higher normalized score
                     $normalizedScore = ($score - $stats['min']) / $range;
                 }
 
@@ -153,7 +143,6 @@ class ZVecWeightedReRanker implements ZVecReRanker
             }
         }
 
-        // Convert to ZVecRerankedDoc objects
         $reranked = [];
         foreach ($combinedScores as $pk => $data) {
             $reranked[] = new ZVecRerankedDoc(
@@ -164,10 +153,8 @@ class ZVecWeightedReRanker implements ZVecReRanker
             );
         }
 
-        // Sort by combined score descending
-        usort($reranked, fn(ZVecRerankedDoc $a, ZVecRerankedDoc $b) => $b->combinedScore <=> $a->combinedScore);
+        usort($reranked, fn(ZVecRerankedDoc $a, ZVecRerankedDoc $b) => $b->getCombinedScore() <=> $a->getCombinedScore());
 
-        // Return top N
         return array_slice($reranked, 0, $this->topn);
     }
 }

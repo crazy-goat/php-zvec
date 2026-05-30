@@ -101,7 +101,7 @@ try {
 
     // Verify we got title field
     foreach ($resultsWithFields as $result) {
-        $title = $result->doc->getString('title');
+        $title = $result->getDoc()->getString('title');
         assert(!empty($title), "Title should not be empty");
     }
 

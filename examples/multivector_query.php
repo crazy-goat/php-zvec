@@ -108,10 +108,10 @@ try {
 
     echo "   Combined results (top 3):\n";
     foreach ($multiResults as $i => $result) {
-        $title = $result->doc->getString('title');
-        $ranks = $result->sourceRanks;
+        $title = $result->getDoc()->getString('title');
+        $ranks = $result->getSourceRanks();
         echo "   " . ($i + 1) . ". {$result->getPk()}: {$title}\n";
-        echo "      Combined RRF score: " . round($result->combinedScore, 6) . "\n";
+        echo "      Combined RRF score: " . round($result->getCombinedScore(), 6) . "\n";
         echo "      Source ranks: title=" . ($ranks['title_embedding'] ?? '-') .
              ", content=" . ($ranks['content_embedding'] ?? '-') . "\n\n";
     }
@@ -135,10 +135,10 @@ try {
 
     echo "   Weighted results (top 3):\n";
     foreach ($weightedResults as $i => $result) {
-        $title = $result->doc->getString('title');
-        $scores = $result->sourceScores;
+        $title = $result->getDoc()->getString('title');
+        $scores = $result->getSourceScores();
         echo "   " . ($i + 1) . ". {$result->getPk()}: {$title}\n";
-        echo "      Combined weighted score: " . round($result->combinedScore, 4) . "\n";
+        echo "      Combined weighted score: " . round($result->getCombinedScore(), 4) . "\n";
         echo "      Source scores: title=" . round($scores['title_embedding'] ?? 0, 4) .
              ", content=" . round($scores['content_embedding'] ?? 0, 4) . "\n\n";
     }
@@ -159,8 +159,8 @@ try {
         echo "   (No results matching filter)\n";
     } else {
         foreach ($filteredResults as $i => $result) {
-            $title = $result->doc->getString('title');
-            $category = $result->doc->getString('category');
+            $title = $result->getDoc()->getString('title');
+            $category = $result->getDoc()->getString('category');
             echo "   " . ($i + 1) . ". {$result->getPk()}: {$title} [{$category}]\n";
         }
     }
@@ -183,7 +183,7 @@ try {
 
     echo "   Results with mixed HNSW params:\n";
     foreach ($paramResults as $i => $result) {
-        echo "   " . ($i + 1) . ". {$result->getPk()}: {$result->doc->getString('title')}\n";
+        echo "   " . ($i + 1) . ". {$result->getPk()}: {$result->getDoc()->getString('title')}\n";
     }
     echo "\n";
 
