@@ -474,6 +474,14 @@ class ZVec
     public function alterColumn(string $columnName, ?string $newName = null, ?int $newDataType = null, ?bool $nullable = null, int $concurrency = 0): void
     {
         $this->checkClosed();
+
+        if ($newDataType !== null && $nullable === null) {
+            throw new ZVecException(
+                'nullable must be explicitly specified when changing data type. '
+                . 'Use alterColumn("name", newDataType: TYPE_FLOAT, nullable: true|false).'
+            );
+        }
+
         // Data type constants for alter column (scalar numeric only)
         // INT32 = 4, INT64 = 5, UINT32 = 6, UINT64 = 7, FLOAT = 8, DOUBLE = 9
         $dataType = $newDataType ?? 0; // 0 = UNDEFINED (no type change)
