@@ -25,6 +25,20 @@ tests/*.sh
 # Docker build output
 docker/out/
 
+# Agent/IDE artifacts
+.env.lichyflow
+.lichyflow/
+.reasonix/
+lichyflow.yaml
+doc
+5
+closed
+combinedScore
+handleType
+sourceRanks
+sourceScores
+true
+
 # PHP extension build artifacts
 php-ext/autom4te.cache/
 php-ext/build/
