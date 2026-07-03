@@ -100,6 +100,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **SEC-007: Validate version argument with semver regex to prevent URL injection in FFI library download** (#75)
+  - Added `preg_match('/^v\d+\.\d+\.\d+(-[\w.-]*\w)?$/', $version)` validation in both `bin/zvec-install` and `Installer::install()`
+  - Rejects path traversal (`../../etc/passwd`), incomplete semver (`v0.4`), empty strings, and URL-unsafe characters (`+`)
+  - Accepts standard semver with optional pre-release suffixes (e.g. `v0.5.0-alpha1`, `v0.4.0-rc.2`)
+  - CLI entry point writes to STDERR and exits with code 1; programmatic path throws `RuntimeException`
+  - Added `tests/test_installer_version_validation.phpt` — 15 test cases covering valid versions, path traversal, null byte injection, and trailing special characters
+
 - **SEC-002: Replace predictable tempnam() with cryptographically random temp directory to prevent symlink race** (#71)
   - Replaced `tempnam()` + `.tar.gz` suffix with `mkdir()` + `random_bytes(8)` + `bin2hex()` for secure temp directory creation
   - Temp directory created with 0700 permissions (only current user can access)
