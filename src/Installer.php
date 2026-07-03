@@ -34,6 +34,9 @@ class Installer
         }
 
         $version = $version ?? self::detectVersion();
+        if (!preg_match('/^v\d+\.\d+\.\d+[\w.-]*$/', $version)) {
+            throw new RuntimeException("Invalid version format: {$version}. Expected semver format (e.g. v0.4.0)");
+        }
         $url = "https://github.com/" . self::GITHUB_REPO . "/releases/download/{$version}/{$assetName}";
 
         $libDir = self::LIB_DIR;
