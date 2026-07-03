@@ -15,7 +15,6 @@ foreach ($validVersions as $v) {
     try {
         Installer::install($v);
         ob_end_clean();
-        // If no exception, platform returned early (no asset for platform)
         echo "PASS: {$v} accepted\n";
     } catch (RuntimeException $e) {
         ob_end_clean();
@@ -23,7 +22,6 @@ foreach ($validVersions as $v) {
             echo "FAIL: {$v} rejected as invalid but should be accepted\n";
             exit(1);
         }
-        // Download failure is expected (not a validation error)
         echo "PASS: {$v} accepted (download error expected)\n";
     }
 }
@@ -38,6 +36,9 @@ $invalidVersions = [
     ['not-a-version', 'just text'],
     ['v1.2', 'missing patch'],
     ['v0.4.0+build.123', 'plus in version (URL-unsafe)'],
+    ['v0.4.0.', 'trailing dot'],
+    ['v0.4.0-', 'trailing hyphen'],
+    ['v0.4.0--', 'double trailing hyphen'],
 ];
 foreach ($invalidVersions as [$v, $label]) {
     try {
@@ -69,4 +70,7 @@ PASS: null byte rejected
 PASS: just text rejected
 PASS: missing patch rejected
 PASS: plus in version (URL-unsafe) rejected
+PASS: trailing dot rejected
+PASS: trailing hyphen rejected
+PASS: double trailing hyphen rejected
 PASS: All version validation tests completed
