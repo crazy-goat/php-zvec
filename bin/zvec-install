@@ -22,6 +22,11 @@ if ($argc > 1) {
         exit(0);
     }
     $version = 'v' . ltrim($argv[1], 'v');
+    if (!preg_match('/^v\d+\.\d+\.\d+(-[\w.-]*\w)?$/', $version)) {
+        fwrite(STDERR, "Invalid version format: {$version}\n");
+        fwrite(STDERR, "Expected format: v0.4.0 or 0.4.0 (semver with optional pre-release suffix)\n");
+        exit(1);
+    }
 }
 
 Installer::install($version);
