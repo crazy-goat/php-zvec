@@ -8,13 +8,13 @@ if (extension_loaded('zvec')) return;
 
 /**
  * Interface for rerankers that post-process vector search results.
- * 
- * Rerankers are used for:
- * - Multi-vector fusion (combining results from multiple vector fields)
- * - Two-stage retrieval (recall top-K, then rerank to top-N)
- * - Semantic reranking with external models
- * 
- * Implementations: ZVecRrfReRanker, ZVecWeightedReRanker
+ *
+ * Supports multi-vector fusion (combining results from multiple vector
+ * fields), two-stage retrieval (recall top-K then rerank to top-N), and
+ * semantic reranking with external models.
+ *
+ * @see ZVecRrfReRanker
+ * @see ZVecWeightedReRanker
  */
 interface ZVecReRanker
 {

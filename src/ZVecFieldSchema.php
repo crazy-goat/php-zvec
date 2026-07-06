@@ -8,6 +8,16 @@ use FFI;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Field schema introspection result.
+ *
+ * Returned by getFieldSchema(). Provides data type, dimension,
+ * vector-specific metadata (dense vs sparse), index type, and
+ * nullability for any collection field. The underlying CData
+ * handle is freed on destruction.
+ *
+ * @see ZVec::getFieldSchema()
+ */
 class ZVecFieldSchema
 {
     private FFI\CData $handle;

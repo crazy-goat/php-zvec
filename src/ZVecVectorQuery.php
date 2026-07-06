@@ -8,6 +8,18 @@ use FFI;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Query builder for vector search.
+ *
+ * Supports search parameters (HNSW ef, IVF nprobe, radius, linear mode),
+ * reranking via ZVecReRanker, and filter expressions. Create via constructor
+ * with field name and query vector, or use fromId() for document-based queries.
+ * Return type of ZVec::query() differs when a reranker is attached.
+ *
+ * @see ZVec::query()
+ * @see ZVecGroupByVectorQuery For grouped queries
+ * @see ZVecReRanker
+ */
 class ZVecVectorQuery implements ZVecQueryInterface
 {
     private FFI\CData $handle;

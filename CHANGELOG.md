@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **DOC-001: Added class-level PHPDoc to all major classes for IDE tooling** (#60)
+  - Added class-level PHPDoc blocks to all 15 source files: ZVec, ZVecException, ZVecCollectionOptions, ZVecCollectionStats, ZVecFieldSchema, ZVecIndexParams, ZVecQueryInterface, ZVecVectorQuery, ZVecGroupByVectorQuery, ZVecSchema, ZVecDoc, ZVecRerankedDoc, ZVecRrfReRanker, ZVecWeightedReRanker, ZVecReRanker
+  - Each block follows a consistent format: one-line purpose, usage paragraph, and `@see` cross-references
+  - All `@see` references verified against actual methods and classes
+
 - **TEST-007: Memory leak regression tests for FFI memory safety** (#105)
   - Added 5 `.phpt` test files for memory leak regression testing:
     - `test_memory_collection_lifecycle.phpt` — 50x create/open/close/destroy cycle with memory growth tracking

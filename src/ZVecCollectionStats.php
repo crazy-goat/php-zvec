@@ -8,6 +8,15 @@ use FFI;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Structured collection statistics as an object.
+ *
+ * Wraps the FFI stats struct with typed getters for document count,
+ * index count, and per-index completeness. Returned by getStatsStruct().
+ * The underlying CData handle is freed on destruction.
+ *
+ * @see ZVec::getStatsStruct()
+ */
 class ZVecCollectionStats
 {
     private FFI\CData $handle;

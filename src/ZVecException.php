@@ -9,6 +9,16 @@ use Throwable;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Exception thrown by all ZVec operations on FFI error.
+ *
+ * Carries the C library error code and message. The `$code` maps
+ * directly to the zvec C++ status code; message is the FFI string.
+ * Provides additional error context via getErrorFile(), getErrorLine(),
+ * and getErrorFunction() when verboseErrors is enabled.
+ *
+ * @see ZVec::checkStatus() For the FFI status check pattern
+ */
 class ZVecException extends RuntimeException
 {
     private ?string $errorFile = null;

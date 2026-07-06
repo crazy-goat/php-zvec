@@ -6,6 +6,18 @@ namespace CrazyGoat\ZVec;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Reranked document wrapper with combined score.
+ *
+ * Returned by reranker implementations (ZVecRrfReRanker,
+ * ZVecWeightedReRanker). Wraps the original ZVecDoc and adds
+ * combinedScore, sourceRanks (per-field rank), and sourceScores
+ * (per-field original score) from multi-vector queries.
+ *
+ * @see ZVecReRanker
+ * @see ZVecRrfReRanker
+ * @see ZVecWeightedReRanker
+ */
 class ZVecRerankedDoc
 {
     private ZVecDoc $doc;

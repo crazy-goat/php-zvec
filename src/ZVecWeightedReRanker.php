@@ -10,6 +10,17 @@ require_once __DIR__ . '/ZVec.php';
 require_once __DIR__ . '/ZVecReRanker.php';
 require_once __DIR__ . '/ZVecRerankedDoc.php';
 
+/**
+ * Weighted score fusion reranker.
+ *
+ * Combines results from multiple vector field queries using normalized
+ * weighted scores. Supports both METRIC_IP and METRIC_L2 normalisation.
+ * Each field has a configurable weight; scores are normalised to [0,1]
+ * per field before fusion.
+ *
+ * @see ZVecRrfReRanker For rank-based fusion
+ * @see ZVecReRanker Interface
+ */
 class ZVecWeightedReRanker implements ZVecReRanker
 {
     private int $topn;

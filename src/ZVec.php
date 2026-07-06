@@ -23,6 +23,19 @@ require_once __DIR__ . '/ZVecRerankedDoc.php';
 require_once __DIR__ . '/ZVecRrfReRanker.php';
 require_once __DIR__ . '/ZVecWeightedReRanker.php';
 
+/**
+ * Main entry point for zvec vector database operations.
+ *
+ * Provides static factory methods (create() / open()) for collection
+ * lifecycle, and wraps the FFI bridge to the zvec C++ library.
+ * Must call init() once before any other operation.
+ *
+ * Lifecycle: init() -> create()/open() -> insert/query -> close()/destroy()
+ *
+ * @see ZVecSchema For defining collection schemas
+ * @see ZVecDoc For creating and manipulating documents
+ * @see ZVecException For error details
+ */
 class ZVec
 {
     private static ?FFI $ffi = null;
