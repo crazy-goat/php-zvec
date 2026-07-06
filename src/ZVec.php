@@ -739,7 +739,7 @@ class ZVec
      *     LOG_FATAL (4) — fatal errors only
      * @param string|null $logDir Directory for log file output. Required when
      *     $logType is LOG_FILE. Directory must exist and be writable.
-     * @param string|null $logBasename Log file name prefix (default: "zvec").
+     * @param string|null $logBasename Log file name prefix (default: null — library uses "zvec" internally).
      *     Final name: {basename}.YYYY-MM-DD.N.log
      * @param int $logFileSize Maximum single log file size in bytes before
      *     rotation. 0 = unlimited rotation.
