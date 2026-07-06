@@ -8,6 +8,18 @@ use FFI;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Group-by query builder for vector search.
+ *
+ * Groups results by a field value. Supports setting group count,
+ * group top-k, radius, linear mode, and filter expressions.
+ * Currently limited to single-group queries (no multi-group support).
+ * Some query parameter setters (HNSW, IVF, Vamana, Flat) throw
+ * ZVecException as they are not supported for group-by queries.
+ *
+ * @see ZVecVectorQuery
+ * @see ZVec::groupByQuery()
+ */
 class ZVecGroupByVectorQuery implements ZVecQueryInterface
 {
     private FFI\CData $handle;

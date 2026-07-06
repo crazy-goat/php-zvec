@@ -8,6 +8,18 @@ use FFI;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Document representation with fluent setters and typed getters.
+ *
+ * Supports typed setters/getters for all scalar, vector, array, and
+ * binary field types. Additional features: operator tracking (OP_INSERT,
+ * OP_UPDATE, OP_UPSERT, OP_DELETE), field nullability, serialization/
+ * deserialization, merge semantics, and memory usage introspection.
+ * Created with `new ZVecDoc('primary_key')` or obtained from query results.
+ *
+ * @see ZVec::insert()
+ * @see ZVec::fetch()
+ */
 class ZVecDoc
 {
     private FFI\CData $handle;

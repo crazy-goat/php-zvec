@@ -6,6 +6,16 @@ namespace CrazyGoat\ZVec;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Options for creating or opening collections with createWith()/openWith().
+ *
+ * Controls read-only mode, memory-mapped I/O, and buffer size.
+ * Use factory methods readOnly(), readWrite(), or defaults() for
+ * common configurations.
+ *
+ * @see ZVec::createWith()
+ * @see ZVec::openWith()
+ */
 class ZVecCollectionOptions
 {
     public bool $readOnly = false;

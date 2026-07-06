@@ -9,6 +9,17 @@ if (extension_loaded('zvec')) return;
 require_once __DIR__ . '/ZVecReRanker.php';
 require_once __DIR__ . '/ZVecRerankedDoc.php';
 
+/**
+ * Reciprocal Rank Fusion (RRF) reranker.
+ *
+ * Combines results from multiple vector field queries using the RRF
+ * scoring formula: score = sum(1 / (rankConstant + rank)) for each
+ * document across all fields. Supports a configurable rank constant
+ * (default: 60) and top-N results limit.
+ *
+ * @see ZVecWeightedReRanker For weighted fusion
+ * @see ZVecReRanker Interface
+ */
 class ZVecRrfReRanker implements ZVecReRanker
 {
     private int $topn;

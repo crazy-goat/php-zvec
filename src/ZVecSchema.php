@@ -8,6 +8,19 @@ use FFI;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Fluent schema builder for collection field definitions.
+ *
+ * Create with `new ZVecSchema('collection_name')`, then chain add*()
+ * methods to define fields. Minimum requirement: one vector field + one
+ * string field (primary key). Supports scalar types, vector types (FP32,
+ * FP64, INT8, FP16, INT4, INT16, BINARY32, BINARY64), sparse vectors,
+ * array types, and binary fields. The underlying CData handle is freed
+ * on destruction.
+ *
+ * @see ZVec::create()
+ * @see ZVecDoc
+ */
 class ZVecSchema
 {
     private FFI\CData $handle;

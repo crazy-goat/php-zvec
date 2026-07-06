@@ -8,6 +8,17 @@ use FFI;
 
 if (extension_loaded('zvec')) return;
 
+/**
+ * Index creation parameter builder.
+ *
+ * Replaces the deprecated createHnswIndex(), createFlatIndex(),
+ * createIvfIndex(), and createHnswRabitqIndex() methods with a
+ * unified, type-safe API. Use factory methods: forHnsw(), forFlat(),
+ * forIvf(), forVamana(), forHnswRabitq(), or forInvert().
+ * The underlying CData handle is freed on destruction.
+ *
+ * @see ZVec::createIndex()
+ */
 class ZVecIndexParams
 {
     private FFI\CData $handle;
