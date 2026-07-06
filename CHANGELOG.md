@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **TEST-001: ZVecException isolation tests for error code strings, constructor, chaining, and error details** (#99)
+  - Added 4 unit test files for `ZVecException` class:
+    - `test_exception_error_code_string.phpt` — getErrorCodeString() mapping for codes 0-10, 99, and -1
+    - `test_exception_constructor.phpt` — parameter combinations (default, message, code, all params, partial details)
+    - `test_exception_chaining.phpt` — exception chaining with RuntimeException, ZVecException, custom Throwable, deep chaining
+    - `test_exception_error_details.phpt` — getErrorFile/Line/Function with boundary values, empty strings, unicode, chaining preservation
+  - Added 1 integration test:
+    - `test_exception_integration.phpt` — real FFI round-trip errors (INVALID_ARGUMENT, ALREADY_EXISTS, invalid filter, chaining)
+  - Added `examples/08_error_handling.php` — comprehensive error handling patterns demonstration
+  - Each test uses `try-finally` with `uniqid()` temp directory and cleanup
+  - Tests skip properly when native zvec extension is loaded (FFI-only methods)
+
 - **DOC-001: Added class-level PHPDoc to all major classes for IDE tooling** (#60)
   - Added class-level PHPDoc blocks to all 15 source files: ZVec, ZVecException, ZVecCollectionOptions, ZVecCollectionStats, ZVecFieldSchema, ZVecIndexParams, ZVecQueryInterface, ZVecVectorQuery, ZVecGroupByVectorQuery, ZVecSchema, ZVecDoc, ZVecRerankedDoc, ZVecRrfReRanker, ZVecWeightedReRanker, ZVecReRanker
   - Each block follows a consistent format: one-line purpose, usage paragraph, and `@see` cross-references
