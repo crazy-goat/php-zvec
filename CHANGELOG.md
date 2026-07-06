@@ -86,6 +86,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All existing `addField*()` methods remain as deprecated aliases
   - Updated all internal call sites to use new method names
 
+- **DOC-005: Add PHPDoc for `ZVec::init()`, `isInitialized()`, and `shutdown()`** (#64)
+  - Added comprehensive PHPDoc block to `init()` documenting all 13 parameters with descriptions, valid constant ranges, default values, and 0-value semantics
+  - Added PHPDoc for `isInitialized()` with `@return bool` description
+  - Added PHPDoc for `shutdown()` with `@throws ZVecException` documentation
+  - Cover `$logType`, `$logLevel`, `$logDir`, `$logBasename`, `$logFileSize`, `$logOverdueDays`, `$queryThreads`, `$optimizeThreads`, `$invertToForwardScanRatio`, `$bruteForceByKeysRatio`, `$memoryLimitMb`, `$allowedBasePath`, and `$verboseErrors`
+
 ### Deprecated
 
 - `addFieldBinary()` — use `addBinary()` instead

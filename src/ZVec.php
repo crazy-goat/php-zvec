@@ -722,6 +722,46 @@ class ZVec
     public const QUANTIZE_INT4 = 3;
     public const QUANTIZE_RABITQ = 4;
 
+    /**
+     * Initialize the zvec library.
+     *
+     * Must be called once before any other ZVec operation.
+     * Subsequent calls are no-ops (idempotent).
+     *
+     * @param int $logType Log destination. One of:
+     *     LOG_CONSOLE (0) — stderr output
+     *     LOG_FILE    (1) — file output (requires $logDir)
+     * @param int $logLevel Log verbosity filter. One of:
+     *     LOG_DEBUG (0) — all messages
+     *     LOG_INFO  (1) — informational and above
+     *     LOG_WARN  (2) — warnings and above (default)
+     *     LOG_ERROR (3) — errors only
+     *     LOG_FATAL (4) — fatal errors only
+     * @param string|null $logDir Directory for log file output. Required when
+     *     $logType is LOG_FILE. Directory must exist and be writable.
+     * @param string|null $logBasename Log file name prefix (default: null — library uses "zvec" internally).
+     *     Final name: {basename}.YYYY-MM-DD.N.log
+     * @param int $logFileSize Maximum single log file size in bytes before
+     *     rotation. 0 = unlimited rotation.
+     * @param int $logOverdueDays Days after which old log files are auto-deleted.
+     *     0 = no auto-deletion.
+     * @param int $queryThreads Thread pool size for queries. 0 = auto-detect
+     *     (uses hardware concurrency).
+     * @param int $optimizeThreads Thread pool size for optimize operations.
+     *     0 = auto-detect.
+     * @param float $invertToForwardScanRatio Threshold controlling when the
+     *     query planner switches from inverted index to forward scan.
+     *     0.0 = use library default.
+     * @param float $bruteForceByKeysRatio Threshold for brute-force vs indexed
+     *     key lookup. 0.0 = use library default.
+     * @param int $memoryLimitMb Memory limit for the collection cache in MB.
+     *     0 = unlimited.
+     * @param string|null $allowedBasePath Restrict database paths to this directory.
+     *     All create/open calls will reject paths outside this tree. null = no restriction.
+     * @param bool $verboseErrors When true, error messages include file and line information.
+     * @throws ZVecException On FFI initialization failure (e.g., shared library
+     *     not found, GPU init failure), or when $allowedBasePath does not exist.
+     */
     public static function init(
         int $logType = self::LOG_CONSOLE,
         int $logLevel = self::LOG_WARN,
@@ -777,11 +817,24 @@ class ZVec
         }
     }
 
+    /**
+     * Check whether the zvec library has been initialized.
+     *
+     * @return bool true if init() was called successfully, false otherwise.
+     */
     public static function isInitialized(): bool
     {
         return self::ffi()->zvec_ffi_is_initialized() !== 0;
     }
 
+    /**
+     * Shut down the zvec library and release global resources.
+     *
+     * Idempotent — safe to call multiple times.
+     * After shutdown, init() must be called again before any operations.
+     *
+     * @throws ZVecException On FFI shutdown error.
+     */
     public static function shutdown(): void
     {
         self::ffi()->zvec_ffi_shutdown();
