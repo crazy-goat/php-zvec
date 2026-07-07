@@ -145,6 +145,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `Installer::verifyChecksum()` public method
   - Added `tests/test_installer_checksum.phpt` — 5 test scenarios covering valid checksum, mismatch, empty file, binary content, and recomputed hash
 
+- **SEC-009: Add advisory file locking (flock) to prevent TOCTOU race condition in concurrent Installer::install()** (#77)
+  - Acquires `LOCK_EX` on `lib/install.lock` before the `file_exists($libPath)` check (lock-check pattern)
+  - Double-check inside the lock: re-verifies the library isn't already installed by another concurrent process
+  - Lock file persists as a sentinel (never deleted) — ensures all concurrent processes share the same inode for `flock()` serialization
+  - Lock is released in `finally` block — crash-safe (kernel auto-releases `flock` on process termination)
+  - Added `tests/test_installer_flock.phpt` — 4 test scenarios covering basic flock, concurrent serialization, source code verification, and behavioral double-check test with `Installer::install()`
+
 ### Changed
 
 - **SMELL-004: Triplicated Insert/Upsert/Update Code** (#85)
