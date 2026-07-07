@@ -54,26 +54,28 @@ if (!array_key_exists('proxy', $debug)) {
 echo "PASS: __debugInfo returns masked apiKey + baseUrl + timeout + proxy\n";
 
 // Test 3: clone is prevented (sodium_memzero shared buffer protection)
+$cloneError = '';
 try {
     $clone = clone $e;
     echo "FAIL: clone should throw Error\n";
     exit(1);
 } catch (\Error $err) {
-    if (!str_contains($err->getMessage(), 'clone')) {
-        echo "FAIL: clone error unexpected: " . $err->getMessage() . "\n";
+    $cloneError = $err->getMessage();
+    if (!str_contains($cloneError, 'clone')) {
+        echo "FAIL: clone error unexpected: " . $cloneError . "\n";
         exit(1);
     }
-    echo "PASS: clone() throws Error: " . $err->getMessage() . "\n";
+    echo "PASS: clone() throws Error\n";
 }
 
-// Test 4: Empty key shows ****
+// Test 4: Empty key shows *** (substr('', -4) returns '')
 $e2 = new OpenAIDenseEmbedding('');
 $debug2 = $e2->__debugInfo();
-if ($debug2['apiKey'] !== '****') {
-    echo "FAIL: Empty key not masked correctly\n";
+if ($debug2['apiKey'] !== '***') {
+    echo "FAIL: Empty key not masked correctly, expected '***', got '" . $debug2['apiKey'] . "'\n";
     exit(1);
 }
-echo "PASS: Empty API key shows '****'\n";
+echo "PASS: Empty API key shows '***'\n";
 
 // Test 5: Env var loading (OPENAI_API_KEY)
 putenv('OPENAI_API_KEY=sk-env-test-key');
@@ -100,21 +102,21 @@ putenv('OPENAI_API_KEY');
 // Test 7: No key and no env var — empty string
 $e5 = new OpenAIDenseEmbedding();
 $debug5 = $e5->__debugInfo();
-if ($debug5['apiKey'] !== '****') {
-    echo "FAIL: Expected empty key, got '" . $debug5['apiKey'] . "'\n";
+if ($debug5['apiKey'] !== '***') {
+    echo "FAIL: Expected empty key mask '***', got '" . $debug5['apiKey'] . "'\n";
     exit(1);
 }
-echo "PASS: No key and no env var — empty API key\n";
+echo "PASS: No key and no env var — empty API key shows '***'\n";
 
 echo "\nAll API key runtime tests passed!\n";
 ?>
 --EXPECT--
 PASS: var_dump masks API key (shows ***2345)
 PASS: __debugInfo returns masked apiKey + baseUrl + timeout + proxy
-PASS: clone() throws Error: Attempted to clone a non-clonable object class "CrazyGoat\ZVec\OpenAIDenseEmbedding".
-PASS: Empty API key shows '****'
+PASS: clone() throws Error
+PASS: Empty API key shows '***'
 PASS: API key loaded from OPENAI_API_KEY env var
 PASS: Explicit API key takes priority over env var
-PASS: No key and no env var — empty API key
+PASS: No key and no env var — empty API key shows '***'
 
 All API key runtime tests passed!

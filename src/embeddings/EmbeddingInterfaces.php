@@ -73,7 +73,7 @@ interface SparseEmbeddingFunction
  */
 abstract class ApiEmbeddingFunction
 {
-    protected string $apiKey;
+    protected string $apiKey = '';
     protected string $baseUrl;
     protected int $timeout;
     protected ?string $proxy = null;
@@ -84,7 +84,7 @@ abstract class ApiEmbeddingFunction
         int $timeout = 30,
         ?string $proxy = null
     ) {
-        $this->apiKey = $apiKey ?? getenv('OPENAI_API_KEY') ?? getenv('DASHSCOPE_API_KEY') ?? '';
+        $this->apiKey = $apiKey ?? (getenv('OPENAI_API_KEY') ?: null) ?? (getenv('DASHSCOPE_API_KEY') ?: null) ?? '';
         $this->baseUrl = $baseUrl ?? $this->getDefaultBaseUrl();
         $this->timeout = $timeout;
         $this->proxy = $proxy;
