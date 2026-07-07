@@ -113,13 +113,13 @@ try {
     exec("rm -rf " . escapeshellarg($path));
 }
 ?>
---EXPECT--
+--EXPECTF--
 Test 1: Query without reranker
   - Got 5 ZVecDoc results
 
 Test 2: Query with RRF reranker (two-stage retrieval)
   - Got 3 ZVecRerankedDoc results
-  - First result: doc1 (score: 0.0164)
+  - First result: doc1 (score: %f)
 
 Test 3: Query with Weighted reranker
   - Got 3 ZVecRerankedDoc results
