@@ -25,6 +25,7 @@ class ZVecSchema
 {
     private FFI\CData $handle;
 
+    /** @throws ZVecException */
     public function __construct(string $name)
     {
         if ($name === '') {
@@ -33,6 +34,7 @@ class ZVecSchema
         $this->handle = self::ffi()->zvec_schema_create($name);
     }
 
+    /** @throws ZVecException */
     public function __destruct()
     {
         self::ffi()->zvec_schema_free($this->handle);
@@ -47,54 +49,63 @@ class ZVecSchema
         return $this->handle;
     }
 
+    /** @throws ZVecException */
     public function setMaxDocCountPerSegment(int $count): self
     {
         self::ffi()->zvec_schema_set_max_doc_count_per_segment($this->handle, $count);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addInt64(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_int64($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addString(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_string($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addFloat(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_float($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addDouble(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_double($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addBool(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_bool($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addInt32(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_int32($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addUint32(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_uint32($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addUint64(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_uint64($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
@@ -106,6 +117,7 @@ class ZVecSchema
     public const METRIC_COSINE = 3;
     public const METRIC_MIPSL2 = 4;
 
+    /** @throws ZVecException */
     public function addVectorFp32(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -115,6 +127,7 @@ class ZVecSchema
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addVectorFp64(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -124,12 +137,14 @@ class ZVecSchema
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addSparseVectorFp32(string $name, int $metricType = self::METRIC_IP): self
     {
         self::ffi()->zvec_schema_add_field_sparse_vector_fp32($this->handle, $name, $metricType);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addVectorInt8(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -139,6 +154,7 @@ class ZVecSchema
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addVectorFp16(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -148,6 +164,7 @@ class ZVecSchema
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addVectorInt4(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -157,6 +174,7 @@ class ZVecSchema
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addVectorInt16(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -166,6 +184,7 @@ class ZVecSchema
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addVectorBinary32(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -175,6 +194,7 @@ class ZVecSchema
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addVectorBinary64(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -184,6 +204,7 @@ class ZVecSchema
         return $this;
     }
 
+    /** @throws ZVecException */
     public function addSparseVectorFp16(string $name, int $metricType = self::METRIC_IP): self
     {
         self::ffi()->zvec_schema_add_field_sparse_vector_fp16($this->handle, $name, $metricType);
@@ -197,6 +218,7 @@ class ZVecSchema
         return $this->addBinary($name, $nullable);
     }
 
+    /** @throws ZVecException */
     public function addBinary(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_binary($this->handle, $name, $nullable ? 1 : 0);
@@ -210,6 +232,7 @@ class ZVecSchema
         return $this->addArrayString($name, $nullable);
     }
 
+    /** @throws ZVecException */
     public function addArrayString(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_string($this->handle, $name, $nullable ? 1 : 0);
@@ -223,6 +246,7 @@ class ZVecSchema
         return $this->addArrayBool($name, $nullable);
     }
 
+    /** @throws ZVecException */
     public function addArrayBool(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_bool($this->handle, $name, $nullable ? 1 : 0);
@@ -236,6 +260,7 @@ class ZVecSchema
         return $this->addArrayInt32($name, $nullable);
     }
 
+    /** @throws ZVecException */
     public function addArrayInt32(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_int32($this->handle, $name, $nullable ? 1 : 0);
@@ -249,6 +274,7 @@ class ZVecSchema
         return $this->addArrayInt64($name, $nullable);
     }
 
+    /** @throws ZVecException */
     public function addArrayInt64(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_int64($this->handle, $name, $nullable ? 1 : 0);
@@ -262,6 +288,7 @@ class ZVecSchema
         return $this->addArrayUint32($name, $nullable);
     }
 
+    /** @throws ZVecException */
     public function addArrayUint32(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_uint32($this->handle, $name, $nullable ? 1 : 0);
@@ -275,6 +302,7 @@ class ZVecSchema
         return $this->addArrayUint64($name, $nullable);
     }
 
+    /** @throws ZVecException */
     public function addArrayUint64(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_uint64($this->handle, $name, $nullable ? 1 : 0);
@@ -288,6 +316,7 @@ class ZVecSchema
         return $this->addArrayFloat($name, $nullable);
     }
 
+    /** @throws ZVecException */
     public function addArrayFloat(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_float($this->handle, $name, $nullable ? 1 : 0);
@@ -301,6 +330,7 @@ class ZVecSchema
         return $this->addArrayDouble($name, $nullable);
     }
 
+    /** @throws ZVecException */
     public function addArrayDouble(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_double($this->handle, $name, $nullable ? 1 : 0);

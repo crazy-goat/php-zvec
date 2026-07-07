@@ -50,6 +50,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
 
     /**
      * @param float[] $vector Dense vector data
+     * @throws ZVecException
      */
     public function __construct(string $fieldName, array $vector)
     {
@@ -122,6 +123,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $query;
     }
 
+    /** @throws ZVecException */
     public function setHnswParams(int $ef): self
     {
         $this->queryParamType = ZVec::QUERY_PARAM_HNSW;
@@ -130,6 +132,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setHnswRabitqParams(int $ef): self
     {
         $this->queryParamType = ZVec::QUERY_PARAM_HNSW_RABITQ;
@@ -138,6 +141,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setIvfParams(int $nprobe): self
     {
         $this->queryParamType = ZVec::QUERY_PARAM_IVF;
@@ -146,6 +150,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setFlatParams(): self
     {
         $this->queryParamType = ZVec::QUERY_PARAM_FLAT;
@@ -153,6 +158,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setVamanaParams(int $efSearch): self
     {
         $this->queryParamType = ZVec::QUERY_PARAM_VAMANA;
@@ -161,6 +167,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setRadius(float $radius): self
     {
         $this->radius = $radius;
@@ -168,6 +175,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setLinear(bool $linear): self
     {
         $this->isLinear = $linear;
@@ -175,6 +183,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setUsingRefiner(bool $refiner): self
     {
         $this->isUsingRefiner = $refiner;
@@ -182,6 +191,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setTopk(int $topk): self
     {
         $this->topk = $topk;
@@ -189,6 +199,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setIncludeVector(bool $include): self
     {
         $this->includeVector = $include;
@@ -196,6 +207,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setFilter(string $filter): self
     {
         $this->filter = $filter;
@@ -205,6 +217,8 @@ class ZVecVectorQuery implements ZVecQueryInterface
 
     /**
      * @param string[] $fields
+
+     * @throws ZVecException
      */
     public function setOutputFields(array $fields): self
     {

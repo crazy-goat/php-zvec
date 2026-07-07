@@ -35,16 +35,19 @@ class ZVecCollectionStats
     {
     }
 
+    /** @throws ZVecException */
     public function getDocCount(): int
     {
         return self::ffi()->zvec_collection_stats_get_doc_count($this->handle);
     }
 
+    /** @throws ZVecException */
     public function getIndexCount(): int
     {
         return self::ffi()->zvec_collection_stats_get_index_count($this->handle);
     }
 
+    /** @throws ZVecException */
     public function getIndexName(int $index): string
     {
         $ptr = self::ffi()->zvec_collection_stats_get_index_name($this->handle, $index);
@@ -54,6 +57,7 @@ class ZVecCollectionStats
         return is_string($ptr) ? $ptr : FFI::string($ptr);
     }
 
+    /** @throws ZVecException */
     public function getIndexCompleteness(int $index): float
     {
         return self::ffi()->zvec_collection_stats_get_index_completeness($this->handle, $index);

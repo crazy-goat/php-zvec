@@ -42,6 +42,7 @@ class ZVecIndexParams
         return $this->handle;
     }
 
+    /** @throws ZVecException */
     public static function forHnsw(int $metricType, int $m = ZVec::DEFAULT_HNSW_M, int $efConstruction = ZVec::DEFAULT_HNSW_EF_CONSTRUCTION, int $quantizeType = ZVec::QUANTIZE_UNDEFINED, bool $useContiguousMemory = false): self
     {
         if ($m <= 0) {
@@ -56,6 +57,7 @@ class ZVecIndexParams
         return new self($handle);
     }
 
+    /** @throws ZVecException */
     public static function forHnswRabitq(int $metricType, int $totalBits = 7, int $numClusters = 16, int $m = ZVec::DEFAULT_HNSW_M, int $efConstruction = ZVec::DEFAULT_HNSW_EF_CONSTRUCTION, int $sampleCount = 0): self
     {
         if ($m <= 0) {
@@ -70,6 +72,7 @@ class ZVecIndexParams
         return new self($handle);
     }
 
+    /** @throws ZVecException */
     public static function forFlat(int $metricType, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
     {
         $ffi = self::ffi();
@@ -78,6 +81,7 @@ class ZVecIndexParams
         return new self($handle);
     }
 
+    /** @throws ZVecException */
     public static function forIvf(int $metricType, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
     {
         if ($nList <= 0) {
@@ -92,6 +96,7 @@ class ZVecIndexParams
         return new self($handle);
     }
 
+    /** @throws ZVecException */
     public static function forVamana(int $metricType, int $maxDegree = 64, int $searchListSize = 100, float $alpha = 1.2, bool $saturateGraph = false, bool $useContiguousMemory = false, bool $useIdMap = false, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
     {
         if ($maxDegree <= 0) {
@@ -106,6 +111,7 @@ class ZVecIndexParams
         return new self($handle);
     }
 
+    /** @throws ZVecException */
     public static function forInvert(bool $enableRange = true, bool $enableWildcard = false): self
     {
         $ffi = self::ffi();

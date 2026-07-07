@@ -163,6 +163,8 @@ class ZVecDoc
     /**
      * @param int[] $indices
      * @param float[] $values
+
+     * @throws ZVecException
      */
     public function setSparseVectorFp32(string $field, array $indices, array $values): self
     {
@@ -253,6 +255,8 @@ class ZVecDoc
     /**
      * @param int[] $indices
      * @param int[] $values (FP16 raw uint16 values)
+
+     * @throws ZVecException
      */
     public function setSparseVectorFp16(string $field, array $indices, array $values): self
     {
@@ -1005,6 +1009,7 @@ class ZVecDoc
         return $this;
     }
 
+    /** @throws ZVecException */
     public function serialize(): string
     {
         $ffi = self::ffi();
@@ -1026,6 +1031,7 @@ class ZVecDoc
      *           uses an internal serialization format with no integrity checking
      *           or authentication. Deserializing malicious data may cause
      *           undefined behavior or crashes in the C++ layer.
+     * @throws ZVecException On deserialization failure
      */
     public static function deserialize(string $data): self
     {
