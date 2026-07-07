@@ -73,21 +73,54 @@ interface SparseEmbeddingFunction
  */
 abstract class ApiEmbeddingFunction
 {
-    protected string $apiKey;
+    protected string $apiKey = '';
     protected string $baseUrl;
     protected int $timeout;
     protected ?string $proxy = null;
 
     public function __construct(
-        string $apiKey,
+        ?string $apiKey = null,
         ?string $baseUrl = null,
         int $timeout = 30,
         ?string $proxy = null
     ) {
-        $this->apiKey = $apiKey;
+        $this->apiKey = $apiKey ?? (getenv('OPENAI_API_KEY') ?: null) ?? (getenv('DASHSCOPE_API_KEY') ?: null) ?? '';
         $this->baseUrl = $baseUrl ?? $this->getDefaultBaseUrl();
         $this->timeout = $timeout;
         $this->proxy = $proxy;
+    }
+
+    /**
+     * Control var_dump() output — mask the API key to prevent accidental exposure.
+     *
+     * @return array Debug info with masked API key
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'apiKey' => '***' . substr($this->apiKey, -4),
+            'baseUrl' => $this->baseUrl,
+            'timeout' => $this->timeout,
+            'proxy' => $this->proxy,
+        ];
+    }
+
+    /**
+     * Destructor — clear API key from memory if sodium extension is available.
+     */
+    public function __destruct()
+    {
+        if (function_exists('sodium_memzero')) {
+            sodium_memzero($this->apiKey);
+        }
+    }
+
+    /**
+     * Prevent cloning — cloned instances would share the same string buffer
+     * for $apiKey, and sodium_memzero() in __destruct would corrupt the clone's key.
+     */
+    private function __clone(): void
+    {
     }
 
     abstract protected function getDefaultBaseUrl(): string;

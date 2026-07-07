@@ -45,14 +45,14 @@ class QwenDenseEmbedding extends ApiEmbeddingFunction implements DenseEmbeddingF
     /**
      * Constructor.
      *
-     * @param string $apiKey DashScope API key
+     * @param string|null $apiKey DashScope API key (default: DASHSCOPE_API_KEY env var)
      * @param string $model Model name (default: text-embedding-v4)
      * @param string|null $baseUrl Custom base URL (default: https://dashscope.aliyuncs.com/api/v1)
      * @param int $timeout Request timeout in seconds (default: 30)
      * @param string|null $proxy HTTP proxy URL (optional)
      */
     public function __construct(
-        string $apiKey,
+        ?string $apiKey = null,
         string $model = self::MODEL_V4,
         ?string $baseUrl = null,
         int $timeout = 30,
