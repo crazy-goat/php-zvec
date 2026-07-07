@@ -21,8 +21,14 @@ class Installer
      * SHA-256 checksum verification is performed before extraction to ensure integrity
      * of the downloaded archive (see verifyChecksum()).
      *
+     * Concurrent installations are serialized via advisory file locking (flock) to prevent
+     * TOCTOU race conditions between the file-exists check and the download+extract window.
+     * The lock is acquired first, then the existence of the library is re-checked inside the
+     * lock (lock-check pattern). The lock file persists as a sentinel to ensure all concurrent
+     * processes share the same inode for flock() serialization.
+     *
      * @param string|null $version Release version tag (e.g., "v0.4.10"). Auto-detected from composer if null.
-     * @throws RuntimeException On download failure, checksum mismatch, extraction failure, or missing lib in archive.
+     * @throws RuntimeException On download failure, checksum mismatch, extraction failure, lock failure, or missing lib in archive.
      */
     public static function install(?string $version = null): void
     {
@@ -46,38 +52,58 @@ class Installer
 
         $libName = self::libName();
         $libPath = $libDir . '/' . $libName;
-        if (file_exists($libPath)) {
-            echo "zvec FFI library already installed at {$libPath}\n";
-            return;
-        }
 
-        echo "Downloading zvec FFI library {$version} for " . self::platformLabel() . "...\n";
-
-        $tmpDir = sys_get_temp_dir() . '/zvec_ffi_' . bin2hex(random_bytes(8));
-        if (!mkdir($tmpDir, 0700)) {
-            throw new RuntimeException("Failed to create temporary directory");
+        // Acquire exclusive lock to serialize concurrent installations (TOCTOU mitigation)
+        $lockFile = $libDir . '/install.lock';
+        $lockFh = fopen($lockFile, 'w+');
+        if (!$lockFh) {
+            throw new RuntimeException("Could not create lock file: {$lockFile}");
         }
-        $tmpFile = $tmpDir . '/download.tar.gz';
+        if (!flock($lockFh, LOCK_EX)) {
+            fclose($lockFh);
+            throw new RuntimeException("Could not acquire installation lock");
+        }
 
         try {
-            self::download($url, $tmpFile);
-
-            $expectedHash = self::getExpectedHash($version, $assetName);
-            self::verifyChecksum($tmpFile, $expectedHash);
-
-            self::extract($tmpFile, $libDir);
-        } finally {
-            if (file_exists($tmpFile)) {
-                unlink($tmpFile);
+            // Double-check after acquiring lock — another process may have installed it
+            if (file_exists($libPath)) {
+                echo "zvec FFI library already installed at {$libPath}\n";
+                return;
             }
-            exec("rm -rf " . escapeshellarg($tmpDir));
-        }
 
-        if (!file_exists($libPath)) {
-            throw new RuntimeException("Download succeeded but {$libName} not found in archive.");
-        }
+            echo "Downloading zvec FFI library {$version} for " . self::platformLabel() . "...\n";
 
-        echo "zvec FFI library installed at {$libPath}\n";
+            $tmpDir = sys_get_temp_dir() . '/zvec_ffi_' . bin2hex(random_bytes(8));
+            if (!mkdir($tmpDir, 0700)) {
+                throw new RuntimeException("Failed to create temporary directory");
+            }
+            $tmpFile = $tmpDir . '/download.tar.gz';
+
+            try {
+                self::download($url, $tmpFile);
+
+                $expectedHash = self::getExpectedHash($version, $assetName);
+                self::verifyChecksum($tmpFile, $expectedHash);
+
+                self::extract($tmpFile, $libDir);
+            } finally {
+                if (file_exists($tmpFile)) {
+                    unlink($tmpFile);
+                }
+                exec("rm -rf " . escapeshellarg($tmpDir));
+            }
+
+            if (!file_exists($libPath)) {
+                throw new RuntimeException("Download succeeded but {$libName} not found in archive.");
+            }
+
+            echo "zvec FFI library installed at {$libPath}\n";
+        } finally {
+            flock($lockFh, LOCK_UN);
+            fclose($lockFh);
+            // Lock file persists as a sentinel. Never delete — removing it would let
+            // a new process create a different inode and bypass flock() serialization.
+        }
     }
 
     public static function verifyChecksum(string $filePath, string $expectedHash): void
