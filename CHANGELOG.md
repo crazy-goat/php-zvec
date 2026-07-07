@@ -26,6 +26,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests verify both PHP heap (`memory_get_usage()`) and native memory (VmRSS) stability
   - 500KB threshold for memory growth detection across all test scenarios
 
+- **TEST-004: Rerankers — Edge case coverage for RRF and Weighted re-rankers** (#102)
+  - Added 7 `.phpt` test files for reranker edge cases:
+    - `test_reranker_rrf_empty.phpt` — empty query results, null values, non-ZVecDoc elements
+    - `test_reranker_weighted_zero_range.phpt` — zero-range normalization guard (all scores identical)
+    - `test_reranker_weighted_float_min_bug.phpt` — PHP_FLOAT_MIN initialization bug detection
+    - `test_reranker_weighted_l2_metric.phpt` — L2 metric normalization (lower distance = higher score)
+    - `test_reranker_weighted_negative_scores.phpt` — negative IP score normalization
+    - `test_reranker_rrf_custom_rank_constant.phpt` — custom rank constant effect on combined scores
+    - `test_reranker_weighted_empty_weights.phpt` — empty weights edge cases (constructor + setter)
+  - Added `test_reranker_in_query.phpt` — integration test for `queryWithReranker()` with RRF
+  - Fixed PHP_FLOAT_MIN bug detection logic in `test_reranker_weighted_float_min_bug.phpt`
+  - Each test uses `try-finally` with `uniqid()` temp directory and cleanup
+  - All 9 reranker tests pass with 100% success rate
+
 - **SMELL-013: Migrated all classes to `CrazyGoat\ZVec\` namespace with PSR-4 autoloading** (#94)
   - All library classes now live under `CrazyGoat\ZVec\` namespace
   - Global class names preserved via `class_alias()` for backward compatibility
