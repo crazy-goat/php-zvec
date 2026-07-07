@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **SEC-012: Enforce explicit SSL certificate verification in embedding API requests** (#80)
+  - Added `CURLOPT_SSL_VERIFYPEER => true` and `CURLOPT_SSL_VERIFYHOST => 2` to all embedding HTTP requests
+  - Using `curl_setopt_array()` to ensure SSL options are always applied together
+  - Proxy configuration remains as a separate `curl_setopt()` call (unchanged)
+  - Added static analysis test `test_embedding_ssl_verify.phpt` to verify SSL options are present in source
+
 ### Added
 
 - **TEST-001: ZVecException isolation tests for error code strings, constructor, chaining, and error details** (#99)

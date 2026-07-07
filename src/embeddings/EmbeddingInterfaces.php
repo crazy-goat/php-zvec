@@ -105,11 +105,18 @@ abstract class ApiEmbeddingFunction
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
         
         $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $this->getHeaders());
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_HTTPHEADER => $this->getHeaders(),
+            // Explicit SSL verification — never trust silently even if global
+            // PHP curl options are changed (e.g., curl.cainfo="") or CA bundle
+            // is not configured. See SEC-012.
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
         
         if ($this->proxy !== null) {
             curl_setopt($ch, CURLOPT_PROXY, $this->proxy);
