@@ -45,7 +45,7 @@ class OpenAIDenseEmbedding extends ApiEmbeddingFunction implements DenseEmbeddin
     /**
      * Constructor.
      *
-     * @param string $apiKey OpenAI API key
+     * @param string|null $apiKey OpenAI API key (default: OPENAI_API_KEY env var)
      * @param string $model Model name (default: text-embedding-3-small)
      * @param int|null $dimensions Number of dimensions (optional, only for v3 models)
      * @param string|null $baseUrl Custom base URL (default: https://api.openai.com/v1)
@@ -53,7 +53,7 @@ class OpenAIDenseEmbedding extends ApiEmbeddingFunction implements DenseEmbeddin
      * @param string|null $proxy HTTP proxy URL (optional)
      */
     public function __construct(
-        string $apiKey,
+        ?string $apiKey = null,
         string $model = self::MODEL_SMALL,
         ?int $dimensions = null,
         ?string $baseUrl = null,

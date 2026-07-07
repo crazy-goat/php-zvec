@@ -55,4 +55,4 @@ All C++ FFI functions accept opaque handle types. When these are null (e.g., aft
 
 1. **Local filesystem security**: The temp directory fix (SEC-002) assumes the attacker already has local user access. It prevents privilege escalation via symlink attacks.
 2. **TLS is not explicitly pinned**: The download stream context sets `verify_peer` and `verify_peer_name` to true, relying on the system's CA bundle. No certificate pinning is implemented.
-3. **API keys in memory**: Embedding function API keys are stored in PHP string properties and are not explicitly zeroed after use. This is a known limitation (see SEC-008).
+3. **API keys in memory**: Embedding function API keys are stored in PHP string properties. Starting from v0.4.12+, `__debugInfo()` masks the key in var_dump output and `__destruct()` calls `sodium_memzero()` when the sodium extension is available (see SEC-008).
