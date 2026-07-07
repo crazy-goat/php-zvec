@@ -13,16 +13,25 @@ require_once __DIR__ . '/EmbeddingInterfaces.php';
  *
  * Supports text-embedding-3-small, text-embedding-3-large, and text-embedding-ada-002 models.
  *
+ * API key security:
+ * - Use environment variables (getenv()) instead of hardcoding keys
+ * - See README Security section and SECURITY.md for API key safety guidance
+ * - The API key is masked in var_dump() output and cleared from memory
+ *   via sodium_memzero() in __destruct() when ext-sodium is available
+ *
  * Example usage:
  * ```php
+ * // Recommended: use environment variable
  * $embedder = new OpenAIDenseEmbedding(
- *     apiKey: 'sk-...',
+ *     apiKey: getenv('OPENAI_API_KEY'),
  *     model: 'text-embedding-3-small'
  * );
  *
  * $vector = $embedder->embed('Hello world');
  * // Returns float[1536] for text-embedding-3-small
  * ```
+ *
+ * @see SECURITY.md for full security policy and API key handling guidelines
  */
 class OpenAIDenseEmbedding extends ApiEmbeddingFunction implements DenseEmbeddingFunction
 {
