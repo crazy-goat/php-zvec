@@ -19,12 +19,16 @@ if (extension_loaded('zvec')) return;
  *
  * @see ZVec::insert()
  * @see ZVec::fetch()
+  * @throws ZVecException On FFI error
  */
 class ZVecDoc
 {
     private FFI\CData $handle;
     private bool $ownsHandle;
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function __construct(FFI\CData|string $handleOrPk, bool $ownsHandle = true)
     {
         if (is_string($handleOrPk)) {
@@ -52,24 +56,36 @@ class ZVecDoc
         return $this->handle;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setInt64(string $field, int $value): self
     {
         self::ffi()->zvec_doc_set_int64($this->handle, $field, $value);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setString(string $field, string $value): self
     {
         self::ffi()->zvec_doc_set_string($this->handle, $field, $value);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setFloat(string $field, float $value): self
     {
         self::ffi()->zvec_doc_set_float($this->handle, $field, $value);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setDouble(string $field, float $value): self
     {
         self::ffi()->zvec_doc_set_double($this->handle, $field, $value);
@@ -78,6 +94,7 @@ class ZVecDoc
 
     /**
      * @param float[] $vector
+      * @throws ZVecException On FFI error
      */
     public function setVectorFp32(string $field, array $vector): self
     {
@@ -93,6 +110,7 @@ class ZVecDoc
 
     /**
      * @param float[] $vector
+      * @throws ZVecException On FFI error
      */
     public function setVectorFp64(string $field, array $vector): self
     {
@@ -106,24 +124,36 @@ class ZVecDoc
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setBool(string $field, bool $value): self
     {
         self::ffi()->zvec_doc_set_bool($this->handle, $field, $value ? 1 : 0);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setInt32(string $field, int $value): self
     {
         self::ffi()->zvec_doc_set_int32($this->handle, $field, $value);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setUint32(string $field, int $value): self
     {
         self::ffi()->zvec_doc_set_uint32($this->handle, $field, $value);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setUint64(string $field, int $value): self
     {
         self::ffi()->zvec_doc_set_uint64($this->handle, $field, $value);
@@ -132,6 +162,7 @@ class ZVecDoc
 
     /**
      * @param int[] $vector
+      * @throws ZVecException On FFI error
      */
     public function setVectorInt8(string $field, array $vector): self
     {
@@ -147,6 +178,7 @@ class ZVecDoc
 
     /**
      * @param int[] $vector
+      * @throws ZVecException On FFI error
      */
     public function setVectorFp16(string $field, array $vector): self
     {
@@ -163,6 +195,7 @@ class ZVecDoc
     /**
      * @param int[] $indices
      * @param float[] $values
+      * @throws ZVecException On FFI error
      */
     public function setSparseVectorFp32(string $field, array $indices, array $values): self
     {
@@ -192,6 +225,7 @@ class ZVecDoc
 
     /**
      * @param int[] $vector
+      * @throws ZVecException On FFI error
      */
     public function setVectorInt4(string $field, array $vector): self
     {
@@ -207,6 +241,7 @@ class ZVecDoc
 
     /**
      * @param int[] $vector
+      * @throws ZVecException On FFI error
      */
     public function setVectorInt16(string $field, array $vector): self
     {
@@ -222,6 +257,7 @@ class ZVecDoc
 
     /**
      * @param int[] $data
+      * @throws ZVecException On FFI error
      */
     public function setVectorBinary32(string $field, array $data): self
     {
@@ -237,6 +273,7 @@ class ZVecDoc
 
     /**
      * @param int[] $data
+      * @throws ZVecException On FFI error
      */
     public function setVectorBinary64(string $field, array $data): self
     {
@@ -253,6 +290,7 @@ class ZVecDoc
     /**
      * @param int[] $indices
      * @param int[] $values (FP16 raw uint16 values)
+      * @throws ZVecException On FFI error
      */
     public function setSparseVectorFp16(string $field, array $indices, array $values): self
     {
@@ -281,6 +319,7 @@ class ZVecDoc
 
     /**
      * @param string $data Raw binary data
+      * @throws ZVecException On FFI error
      */
     public function setBinary(string $field, string $data): self
     {
@@ -299,6 +338,7 @@ class ZVecDoc
 
     /**
      * @param int[] $data
+      * @throws ZVecException On FFI error
      */
     public function setArrayInt32(string $field, array $data): self
     {
@@ -318,6 +358,7 @@ class ZVecDoc
 
     /**
      * @param int[] $data
+      * @throws ZVecException On FFI error
      */
     public function setArrayInt64(string $field, array $data): self
     {
@@ -337,6 +378,7 @@ class ZVecDoc
 
     /**
      * @param int[] $data
+      * @throws ZVecException On FFI error
      */
     public function setArrayUint32(string $field, array $data): self
     {
@@ -356,6 +398,7 @@ class ZVecDoc
 
     /**
      * @param int[] $data
+      * @throws ZVecException On FFI error
      */
     public function setArrayUint64(string $field, array $data): self
     {
@@ -375,6 +418,7 @@ class ZVecDoc
 
     /**
      * @param float[] $data
+      * @throws ZVecException On FFI error
      */
     public function setArrayFloat(string $field, array $data): self
     {
@@ -394,6 +438,7 @@ class ZVecDoc
 
     /**
      * @param float[] $data
+      * @throws ZVecException On FFI error
      */
     public function setArrayDouble(string $field, array $data): self
     {
@@ -413,6 +458,7 @@ class ZVecDoc
 
     /**
      * @param string[] $strings
+      * @throws ZVecException On FFI error
      */
     public function setArrayString(string $field, array $strings): self
     {
@@ -433,6 +479,7 @@ class ZVecDoc
 
     /**
      * @param bool[] $data
+      * @throws ZVecException On FFI error
      */
     public function setArrayBool(string $field, array $data): self
     {
@@ -450,6 +497,9 @@ class ZVecDoc
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getPk(): string
     {
         $result = self::ffi()->zvec_doc_get_pk($this->handle);
@@ -459,11 +509,17 @@ class ZVecDoc
         return FFI::string($result);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getScore(): float
     {
         return self::ffi()->zvec_doc_get_score($this->handle);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getInt64(string $field): ?int
     {
         $ffi = self::ffi();
@@ -474,6 +530,9 @@ class ZVecDoc
         return null;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getString(string $field): ?string
     {
         $ffi = self::ffi();
@@ -484,6 +543,9 @@ class ZVecDoc
         return null;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getFloat(string $field): ?float
     {
         $ffi = self::ffi();
@@ -494,6 +556,9 @@ class ZVecDoc
         return null;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getDouble(string $field): ?float
     {
         $ffi = self::ffi();
@@ -506,6 +571,7 @@ class ZVecDoc
 
     /**
      * @return float[]|null
+      * @throws ZVecException On FFI error
      */
     public function getVectorFp32(string $field): ?array
     {
@@ -524,6 +590,7 @@ class ZVecDoc
 
     /**
      * @return float[]|null
+      * @throws ZVecException On FFI error
      */
     public function getVectorFp64(string $field): ?array
     {
@@ -540,6 +607,9 @@ class ZVecDoc
         return null;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getBool(string $field): ?bool
     {
         $ffi = self::ffi();
@@ -550,6 +620,9 @@ class ZVecDoc
         return null;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getInt32(string $field): ?int
     {
         $ffi = self::ffi();
@@ -560,6 +633,9 @@ class ZVecDoc
         return null;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getUint32(string $field): ?int
     {
         $ffi = self::ffi();
@@ -570,6 +646,9 @@ class ZVecDoc
         return null;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getUint64(string $field): ?int
     {
         $ffi = self::ffi();
@@ -582,6 +661,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getVectorInt8(string $field): ?array
     {
@@ -600,6 +680,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getVectorFp16(string $field): ?array
     {
@@ -618,6 +699,7 @@ class ZVecDoc
 
     /**
      * @return array{indices: int[], values: float[]}|null
+     * @throws ZVecException On FFI error
      */
     public function getSparseVectorFp32(string $field): ?array
     {
@@ -640,6 +722,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getVectorInt4(string $field): ?array
     {
@@ -658,6 +741,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getVectorInt16(string $field): ?array
     {
@@ -676,6 +760,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getVectorBinary32(string $field): ?array
     {
@@ -694,6 +779,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getVectorBinary64(string $field): ?array
     {
@@ -712,6 +798,7 @@ class ZVecDoc
 
     /**
      * @return array{indices: int[], values: int[]}|null
+     * @throws ZVecException On FFI error
      */
     public function getSparseVectorFp16(string $field): ?array
     {
@@ -734,6 +821,7 @@ class ZVecDoc
 
     /**
      * @return string|null Raw binary data
+     * @throws ZVecException On FFI error
      */
     public function getBinary(string $field): ?string
     {
@@ -751,6 +839,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getArrayInt32(string $field): ?array
     {
@@ -769,6 +858,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getArrayInt64(string $field): ?array
     {
@@ -787,6 +877,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getArrayUint32(string $field): ?array
     {
@@ -805,6 +896,7 @@ class ZVecDoc
 
     /**
      * @return int[]|null
+     * @throws ZVecException On FFI error
      */
     public function getArrayUint64(string $field): ?array
     {
@@ -823,6 +915,7 @@ class ZVecDoc
 
     /**
      * @return float[]|null
+     * @throws ZVecException On FFI error
      */
     public function getArrayFloat(string $field): ?array
     {
@@ -841,6 +934,7 @@ class ZVecDoc
 
     /**
      * @return float[]|null
+     * @throws ZVecException On FFI error
      */
     public function getArrayDouble(string $field): ?array
     {
@@ -859,6 +953,7 @@ class ZVecDoc
 
     /**
      * @return string[]|null
+     * @throws ZVecException On FFI error
      */
     public function getArrayString(string $field): ?array
     {
@@ -891,6 +986,7 @@ class ZVecDoc
 
     /**
      * @return bool[]|null
+     * @throws ZVecException On FFI error
      */
     public function getArrayBool(string $field): ?array
     {
@@ -920,11 +1016,17 @@ class ZVecDoc
         }
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function hasField(string $field): bool
     {
         return self::ffi()->zvec_doc_has_field($this->handle, $field) !== 0;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function hasVector(string $field): bool
     {
         return self::ffi()->zvec_doc_has_vector($this->handle, $field) !== 0;
@@ -932,6 +1034,7 @@ class ZVecDoc
 
     /**
      * @return string[]
+     * @throws ZVecException On FFI error
      */
     public function fieldNames(): array
     {
@@ -957,6 +1060,7 @@ class ZVecDoc
 
     /**
      * @return string[]
+     * @throws ZVecException On FFI error
      */
     public function vectorNames(): array
     {
@@ -982,29 +1086,44 @@ class ZVecDoc
 
     // --- Enhanced Doc API ---
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setFieldNull(string $field): self
     {
         self::ffi()->zvec_doc_set_field_null($this->handle, $field);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function isFieldNull(string $field): bool
     {
         return self::ffi()->zvec_doc_is_field_null($this->handle, $field) !== 0;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function removeField(string $field): self
     {
         self::ffi()->zvec_doc_remove_field($this->handle, $field);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function merge(ZVecDoc $other): self
     {
         self::ffi()->zvec_doc_merge($this->handle, $other->handle);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function serialize(): string
     {
         $ffi = self::ffi();
@@ -1026,6 +1145,8 @@ class ZVecDoc
      *           uses an internal serialization format with no integrity checking
      *           or authentication. Deserializing malicious data may cause
      *           undefined behavior or crashes in the C++ layer.
+     *
+     * @throws ZVecException On FFI error
      */
     public static function deserialize(string $data): self
     {
@@ -1045,28 +1166,43 @@ class ZVecDoc
         }
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function isEmpty(): bool
     {
         return self::ffi()->zvec_doc_is_empty($this->handle) !== 0;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function clear(): self
     {
         self::ffi()->zvec_doc_clear($this->handle);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getMemoryUsage(): int
     {
         return self::ffi()->zvec_doc_memory_usage($this->handle);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setOperator(int $op): self
     {
         self::ffi()->zvec_doc_set_operator($this->handle, $op);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getOperator(): int
     {
         return self::ffi()->zvec_doc_get_operator($this->handle);

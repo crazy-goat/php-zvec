@@ -272,6 +272,9 @@ class ZVec
         return $groups;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public static function create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = self::DEFAULT_MAX_BUFFER_SIZE): self
     {
         $path = self::validateCollectionPath($path);
@@ -282,6 +285,9 @@ class ZVec
         return new self($out, $path);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public static function open(string $path, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = self::DEFAULT_MAX_BUFFER_SIZE): self
     {
         $path = self::validateCollectionPath($path);
@@ -327,6 +333,9 @@ class ZVec
     {
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function close(): void
     {
         if ($this->closed || $this->destroyed) {
@@ -336,18 +345,27 @@ class ZVec
         $this->closed = true;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function flush(): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_flush($this->handle));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function optimize(int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_optimize($this->handle, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function destroy(): void
     {
         if ($this->destroyed) {
@@ -376,6 +394,9 @@ class ZVec
         $this->destroyed = true;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function schema(): string
     {
         $this->checkClosed();
@@ -395,6 +416,9 @@ class ZVec
         }
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function path(): string
     {
         $this->checkClosed();
@@ -416,6 +440,7 @@ class ZVec
 
     /**
      * @return array{read_only: bool, enable_mmap: bool, max_buffer_size: int}
+     * @throws ZVecException On FFI error
      */
     public function options(): array
     {
@@ -432,66 +457,99 @@ class ZVec
         ];
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addColumnInt64(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_int64($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addColumnFloat(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_float($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addColumnDouble(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_double($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addColumnString(string $name, bool $nullable = true, string $defaultExpr = '', int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_string($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addColumnBool(string $name, bool $nullable = true, string $defaultExpr = 'false', int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_bool($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addColumnInt32(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_int32($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addColumnUint32(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_uint32($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addColumnUint64(string $name, bool $nullable = true, string $defaultExpr = '0', int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_add_column_uint64($this->handle, $name, $nullable ? 1 : 0, $defaultExpr, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function dropColumn(string $name): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_drop_column($this->handle, $name));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function renameColumn(string $oldName, string $newName, int $concurrency = 0): void
     {
         $this->checkClosed();
         self::checkStatus(self::ffi()->zvec_collection_rename_column($this->handle, $oldName, $newName, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function alterColumn(string $columnName, ?string $newName = null, ?int $newDataType = null, ?bool $nullable = null, int $concurrency = 0): void
     {
         $this->checkClosed();
@@ -512,6 +570,9 @@ class ZVec
         self::checkStatus(self::ffi()->zvec_collection_alter_column($this->handle, $columnName, $rename, $dataType, $isNullable, $concurrency));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function dropIndex(string $fieldName): void
     {
         $this->checkClosed();
@@ -520,6 +581,8 @@ class ZVec
 
     /**
      * Create an index using the unified IndexParams API.
+     *
+     * @throws ZVecException On FFI error
      */
     public function createIndex(string $fieldName, ZVecIndexParams $params, int $concurrency = 0): void
     {
@@ -527,31 +590,41 @@ class ZVec
         self::checkStatus(self::ffi()->zvec_collection_create_index($this->handle, $fieldName, $params->getHandle(), $concurrency));
     }
 
-    /** @deprecated Use createIndex() with ZVecIndexParams::forInvert() instead */
+    /** @deprecated Use createIndex() with ZVecIndexParams::forInvert() instead
+     * @throws ZVecException On FFI error
+     */
     public function createInvertIndex(string $fieldName, bool $enableRange = true, bool $enableWildcard = false): void
     {
         $this->createIndex($fieldName, ZVecIndexParams::forInvert($enableRange, $enableWildcard));
     }
 
-    /** @deprecated Use createIndex() with ZVecIndexParams::forHnsw() instead */
+    /** @deprecated Use createIndex() with ZVecIndexParams::forHnsw() instead
+     * @throws ZVecException On FFI error
+     */
     public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = self::DEFAULT_HNSW_M, int $efConstruction = self::DEFAULT_HNSW_EF_CONSTRUCTION, int $quantizeType = 0, int $concurrency = 0, bool $useContiguousMemory = false): void
     {
         $this->createIndex($fieldName, ZVecIndexParams::forHnsw($metricType, $m, $efConstruction, $quantizeType, $useContiguousMemory), $concurrency);
     }
 
-    /** @deprecated Use createIndex() with ZVecIndexParams::forHnswRabitq() instead */
+    /** @deprecated Use createIndex() with ZVecIndexParams::forHnswRabitq() instead
+     * @throws ZVecException On FFI error
+     */
     public function createHnswRabitqIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $totalBits = 7, int $numClusters = 16, int $m = self::DEFAULT_HNSW_M, int $efConstruction = self::DEFAULT_HNSW_EF_CONSTRUCTION, int $sampleCount = 0, int $concurrency = 0): void
     {
         $this->createIndex($fieldName, ZVecIndexParams::forHnswRabitq($metricType, $totalBits, $numClusters, $m, $efConstruction, $sampleCount), $concurrency);
     }
 
-    /** @deprecated Use createIndex() with ZVecIndexParams::forFlat() instead */
+    /** @deprecated Use createIndex() with ZVecIndexParams::forFlat() instead
+     * @throws ZVecException On FFI error
+     */
     public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $quantizeType = 0, int $concurrency = 0): void
     {
         $this->createIndex($fieldName, ZVecIndexParams::forFlat($metricType, $quantizeType), $concurrency);
     }
 
-    /** @deprecated Use createIndex() with ZVecIndexParams::forIvf() instead */
+    /** @deprecated Use createIndex() with ZVecIndexParams::forIvf() instead
+     * @throws ZVecException On FFI error
+     */
     public function createIvfIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = 0, int $concurrency = 0): void
     {
         $this->createIndex($fieldName, ZVecIndexParams::forIvf($metricType, $nList, $nIters, $useSoar, $quantizeType), $concurrency);
@@ -569,10 +642,19 @@ class ZVec
         self::checkStatus($ffi->{"zvec_collection_{$operation}"}($this->handle, $arr, $count));
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function insert(ZVecDoc ...$docs): void { $this->writeDocs('insert', ...$docs); }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function upsert(ZVecDoc ...$docs): void { $this->writeDocs('upsert', ...$docs); }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function update(ZVecDoc ...$docs): void { $this->writeDocs('update', ...$docs); }
 
     /**
@@ -606,19 +688,25 @@ class ZVec
 
     /**
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
+     * @throws ZVecException On FFI error
      */
     public function insertBatch(ZVecDoc ...$docs): array { return $this->writeDocsBatch('insert', ...$docs); }
 
     /**
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
+     * @throws ZVecException On FFI error
      */
     public function upsertBatch(ZVecDoc ...$docs): array { return $this->writeDocsBatch('upsert', ...$docs); }
 
     /**
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
+     * @throws ZVecException On FFI error
      */
     public function updateBatch(ZVecDoc ...$docs): array { return $this->writeDocsBatch('update', ...$docs); }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function delete(string ...$pks): void
     {
         $this->checkClosed();
@@ -634,6 +722,9 @@ class ZVec
         }
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function deleteByFilter(string $filter): void
     {
         $this->checkClosed();
@@ -642,6 +733,7 @@ class ZVec
 
     /**
      * @return ZVecDoc[]
+     * @throws ZVecException On FFI error
      */
     public function fetch(string ...$pks): array
     {
@@ -834,6 +926,7 @@ class ZVec
      * Check whether the zvec library has been initialized.
      *
      * @return bool true if init() was called successfully, false otherwise.
+     * @throws ZVecException On FFI error
      */
     public static function isInitialized(): bool
     {
@@ -855,6 +948,7 @@ class ZVec
 
     /**
      * @return array{code: int, message: ?string, file: ?string, line: int, function: ?string}
+     * @throws ZVecException On FFI error
      */
     public static function getLastErrorDetails(): array
     {
@@ -878,31 +972,49 @@ class ZVec
         return $result;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public static function clearError(): void
     {
         self::ffi()->zvec_clear_error();
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public static function getVersion(): string
     {
         return self::ffi()->zvec_get_version();
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public static function checkVersion(int $major, int $minor, int $patch): bool
     {
         return self::ffi()->zvec_check_version($major, $minor, $patch) !== 0;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public static function getVersionMajor(): int
     {
         return self::ffi()->zvec_get_version_major();
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public static function getVersionMinor(): int
     {
         return self::ffi()->zvec_get_version_minor();
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public static function getVersionPatch(): int
     {
         return self::ffi()->zvec_get_version_patch();
@@ -912,6 +1024,7 @@ class ZVec
      * Query using a native ZVecVectorQuery object.
      *
      * @return ZVecDoc[]
+     * @throws ZVecException On FFI error
      */
     public function queryVector(ZVecVectorQuery $query): array
     {
@@ -929,6 +1042,7 @@ class ZVec
      * GroupBy query using a native ZVecGroupByVectorQuery object.
      *
      * @return array<array{group_value: string, docs: ZVecDoc[]}>
+     * @throws ZVecException On FFI error
      */
     public function groupByVectorQuery(ZVecGroupByVectorQuery $query): array
     {
@@ -1149,6 +1263,7 @@ class ZVec
      * @param float[] $queryVector
      * @param string[]|null $outputFields
      * @return ZVecDoc[]
+     * @throws ZVecException On FFI error
      * @deprecated Use queryWithReranker() when passing a $reranker. The $reranker parameter is deprecated.
      */
     public function query(
@@ -1215,6 +1330,8 @@ class ZVec
 
     /**
      * @param int[] $queryVector
+     * @return ZVecDoc[]
+     * @throws ZVecException On FFI error
      */
     public function queryFp16(
         string $fieldName,
@@ -1253,6 +1370,7 @@ class ZVec
      * @param float[] $queryVector
      * @param string[]|null $outputFields
      * @return ZVecDoc[]
+     * @throws ZVecException On FFI error
      * @deprecated Use queryWithReranker() when passing a $reranker. The $reranker parameter is deprecated.
      */
     public function queryFp64(
@@ -1314,6 +1432,7 @@ class ZVec
      * @param float[] $queryVector
      * @param string[]|null $outputFields
      * @return ZVecRerankedDoc[] Reranked results sorted by combined score
+     * @throws ZVecException On FFI error
      */
     public function queryWithReranker(
         string|ZVecVectorQuery $fieldName,
@@ -1422,6 +1541,7 @@ class ZVec
      * @param string|null $filter Optional filter expression applied to all queries
      * @param string[]|null $outputFields Fields to include in returned documents
      * @return ZVecRerankedDoc[] Reranked results sorted by combined score
+     * @throws ZVecException On FFI error
      */
     public function queryMulti(
         array $vectorQueries,
@@ -1472,6 +1592,7 @@ class ZVec
     /**
      * @param string[]|null $outputFields
      * @return ZVecDoc[]
+     * @throws ZVecException On FFI error
      */
     public function queryByFilter(string $filter, int $topk = 100, ?array $outputFields = null): array
     {
@@ -1521,6 +1642,7 @@ class ZVec
      * @param bool $isLinear Use linear search
      * @param bool $isUsingRefiner Use refiner
      * @return ZVecDoc[]
+     * @throws ZVecException On FFI error
      */
     public function queryById(
         string $fieldName,
@@ -1590,6 +1712,7 @@ class ZVec
      * @param float[] $queryVector
      * @param string[]|null $outputFields
      * @return array<array{group_value: string, docs: ZVecDoc[]}>
+     * @throws ZVecException On FFI error
      */
     public function groupByQuery(
         string|ZVecVectorQuery $fieldName,
@@ -1675,6 +1798,9 @@ class ZVec
         return $groups;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function stats(): string
     {
         $this->checkClosed();
@@ -1696,6 +1822,8 @@ class ZVec
 
     /**
      * Get structured collection stats.
+     *
+     * @throws ZVecException On FFI error
      */
     public function getStatsStruct(): ZVecCollectionStats
     {
@@ -1708,6 +1836,8 @@ class ZVec
 
     /**
      * Get structured field schema for a specific field.
+     *
+     * @throws ZVecException On FFI error
      */
     public function getFieldSchema(string $fieldName): ZVecFieldSchema
     {
