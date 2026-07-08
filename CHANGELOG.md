@@ -96,6 +96,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **DOC-003: Added `@throws ZVecException` annotations on all FFI-calling methods** (#62)
+  - Added `@throws ZVecException` to ~122 methods across 8 source files (`ZVec`, `ZVecSchema`, `ZVecDoc`, `ZVecIndexParams`, `ZVecVectorQuery`, `ZVecGroupByVectorQuery`, `ZVecFieldSchema`, `ZVecCollectionStats`)
+  - Methods without existing PHPDoc: added single-line `/** @throws ZVecException */` annotation
+  - Methods with existing PHPDoc: added `@throws ZVecException` line inside the existing doc block
+  - Skipped: `__destruct`, `__clone`, `getHandle()`, `ffi()`, `checkStatus()`, and private helper methods
+  - All `php -l` syntax checks pass
+
 - **SMELL-008: Made properties private with getters/setters on reranker data classes** (#89)
   - `ZVecRerankedDoc`: all properties (`$doc`, `$combinedScore`, `$sourceRanks`, `$sourceScores`) are now `private`
   - Added getters: `getDoc()`, `getCombinedScore()`, `getSourceRanks()`, `getSourceScores()`

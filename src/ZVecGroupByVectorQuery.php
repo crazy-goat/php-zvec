@@ -44,6 +44,8 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
 
     /**
      * @param float[] $vector
+
+     * @throws ZVecException
      */
     public function __construct(string $fieldName, array $vector, string $groupByField, int $groupCount = 2, int $groupTopk = 3)
     {
@@ -101,6 +103,7 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
         return $this->handle;
     }
 
+    /** @throws ZVecException */
     public function free(): void
     {
         if ($this->closed) {
@@ -113,18 +116,21 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
         }
     }
 
+    /** @throws ZVecException */
     public function setGroupByField(string $field): self
     {
         self::ffi()->zvec_group_by_vector_query_set_group_by_field($this->handle, $field);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setGroupCount(int $count): self
     {
         self::ffi()->zvec_group_by_vector_query_set_group_count($this->handle, $count);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setGroupTopk(int $topk): self
     {
         self::ffi()->zvec_group_by_vector_query_set_group_topk($this->handle, $topk);
@@ -133,6 +139,8 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
 
     /**
      * GroupByVectorQuery does not support general topk; use setGroupTopk() instead.
+
+     * @throws ZVecException
      */
     public function setTopk(int $topk): self
     {
@@ -141,6 +149,7 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
         );
     }
 
+    /** @throws ZVecException */
     public function setRadius(float $radius): self
     {
         $this->radius = $radius;
@@ -148,6 +157,7 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setLinear(bool $linear): self
     {
         $this->isLinear = $linear;
@@ -155,6 +165,7 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setUsingRefiner(bool $refiner): self
     {
         $this->isUsingRefiner = $refiner;
@@ -162,12 +173,14 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setIncludeVector(bool $include): self
     {
         self::ffi()->zvec_group_by_vector_query_set_include_vector($this->handle, $include ? 1 : 0);
         return $this;
     }
 
+    /** @throws ZVecException */
     public function setFilter(string $filter): self
     {
         self::ffi()->zvec_group_by_vector_query_set_filter($this->handle, $filter);
@@ -176,6 +189,8 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
 
     /**
      * @param string[] $fields
+
+     * @throws ZVecException
      */
     public function setOutputFields(array $fields): self
     {
