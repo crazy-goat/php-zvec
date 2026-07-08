@@ -85,6 +85,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supports `string|ZVecVectorQuery` as field name, with all existing query parameters
   - Routes FP64 queries via internal `queryWithRerankerFp64()` helper
 
+- **New classes: ZVecCollectionOptions, ZVecFieldSchema, ZVecCollectionStats** (#66)
+  - `ZVecCollectionOptions` with `createWith()` / `openWith()` factory methods on `ZVec` for structured collection creation
+  - `ZVecFieldSchema` with `getFieldSchema()` introspection API for inspecting field metadata (name, data type, dimension, vector type)
+  - `ZVecCollectionStats` with `getStatsStruct()` structured statistics (doc count, index count, index names, completeness)
+
+- **ZVecIndexParams: Unified index creation API** (#66)
+  - Added `ZVecIndexParams` class with static factory methods: `forHnsw()`, `forFlat()`, `forIvf()`, `forVamana()`, `forInvert()`, `forHnswRabitq()`
+  - New `createIndex()` method on `ZVec` replaces deprecated `createHnswIndex()`, `createFlatIndex()`, `createIvfIndex()`, `createHnswRabitqIndex()`
+  - Supports all index types with type-safe parameters
+
+- **Vamana (DiskANN) index support** (#66)
+  - Added `ZVecIndexParams::forVamana()` factory method with DiskANN parameters (maxDegree, searchListSize, alpha, saturateGraph, useContiguousMemory, useIdMap, quantizeType)
+
+- **HNSW-RaBitQ quantization index** (#66)
+  - Added `ZVecIndexParams::forHnswRabitq()` factory method for RaBitQ quantized HNSW index
+  - New constant `ZVec::QUANTIZE_RABITQ = 4`
+  - Parameters: totalBits, numClusters, m, efConstruction, sampleCount
+
+- **`useContiguousMemory` parameter for HNSW indexes** (#66)
+  - Added `$useContiguousMemory` boolean parameter to `ZVecIndexParams::forHnsw()` and `ZVecIndexParams::forVamana()`
+  - Reduces memory fragmentation by allocating contiguous memory for index graph
+
+- **New constants: METRIC_MIPSL2** (#66)
+  - Added `ZVecSchema::METRIC_MIPSL2` constant for Max Inner Product with Squared L2 distance
+
+- **Enhanced Document API: setters, getters, serialization, operators** (#66)
+  - `setFieldNull()`, `isFieldNull()`, `removeField()`, `merge()` for flexible document manipulation
+  - `serialize()` / `deserialize()` for binary document serialization
+  - `isEmpty()`, `clear()`, `getMemoryUsage()` for document introspection
+  - `setOperator()` / `getOperator()` with `OP_INSERT`, `OP_UPDATE`, `OP_UPSERT`, `OP_DELETE` constants
+
+- **ZVecVectorQuery builder pattern** (#66)
+  - `ZVecVectorQuery` class for structured query building with fluent interface
+  - Supports `setHnswParams()`, `setIvfParams()`, `setFlatParams()`, `setRadius()`, `setLinear()`, `setUsingRefiner()`
+  - `queryVector()` method accepts ZVecVectorQuery directly
+  - `ZVecGroupByVectorQuery` for group-by queries with query object
+
+- **Version information API** (#66)
+  - `getVersion()` returns semver string, `checkVersion(major, minor, patch)` boolean comparison
+  - `getVersionMajor()`, `getVersionMinor()`, `getVersionPatch()` for individual components
+
+- **Lifecycle methods: isInitialized(), shutdown()** (#66)
+  - `isInitialized()` static method checks if FFI has been initialized
+  - `shutdown()` static method for explicit resource cleanup
+
+- **VECTOR_FP64 (double-precision vector) support** (#66)
+  - `addVectorFp64()` for FP64 schema fields, `setVectorFp64()` / `getVectorFp64()` for document access
+  - `queryFp64()` method for double-precision vector search
+
+- **BINARY field type and 8 ARRAY field types** (#66)
+  - `TYPE_BINARY` (40) for binary blob storage
+  - 8 array types: `TYPE_ARRAY_STRING` (50), `TYPE_ARRAY_BOOL` (51), `TYPE_ARRAY_INT32` (52), `TYPE_ARRAY_INT64` (53), `TYPE_ARRAY_UINT32` (54), `TYPE_ARRAY_UINT64` (55), `TYPE_ARRAY_FLOAT` (56), `TYPE_ARRAY_DOUBLE` (57)
+  - New schema methods: `addBinary()`, `addArrayString()`, `addArrayBool()`, `addArrayInt32()`, `addArrayInt64()`, `addArrayUint32()`, `addArrayUint64()`, `addArrayFloat()`, `addArrayDouble()`
+
+- **Enhanced error context in ZVecException** (#66)
+  - `getErrorFile()`, `getErrorLine()`, `getErrorFunction()` provide source location of FFI errors
+  - Helps debug which operation caused the failure
+
 ### Deprecated
 
 - **SMELL-013: Global namespace class names are deprecated** (#94)
@@ -93,6 +151,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SMELL-009: The `$reranker` parameter on `query()` and `queryFp64()` is deprecated** (#90)
   - Passing `$reranker` to `query()` now triggers `E_USER_DEPRECATED` and delegates to `queryWithReranker()`
   - Existing code continues to work (backward compatible) but should migrate to `queryWithReranker()`
+- **Deprecated index creation methods** (#66)
+  - `createHnswIndex()` — use `createIndex(ZVecIndexParams::forHnsw())` instead
+  - `createFlatIndex()` — use `createIndex(ZVecIndexParams::forFlat())` instead
+  - `createIvfIndex()` — use `createIndex(ZVecIndexParams::forIvf())` instead
+  - `createHnswRabitqIndex()` — use `createIndex(ZVecIndexParams::forHnswRabitq())` instead
 
 ### Changed
 
