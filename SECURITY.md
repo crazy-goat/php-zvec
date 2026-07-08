@@ -8,7 +8,36 @@
 
 ## Reporting a Vulnerability
 
-Please open a GitHub issue with the `type:security` label, or contact the maintainers directly.
+Please open a [GitHub Security Advisory](https://github.com/crazy-goat/php-zvec/security/advisories/new)
+or contact the maintainers directly. You will receive a response within 48 hours.
+
+## FFI Security Model
+
+This PHP library uses FFI to load a native shared library (`libzvec_ffi.so`).
+The shared library runs with the **same system privileges as the PHP process**.
+Only load trusted `.so` files from official sources.
+
+## Supply Chain
+
+Pre-built shared libraries are downloaded from GitHub Releases over HTTPS.
+SHA-256 checksum verification is performed before extraction (see SEC-001 below).
+For maximum trust, build the library from source using `./build_zvec.sh`.
+
+## API Key Safety
+
+Embedding classes accept API keys as constructor parameters. Best practice:
+use environment variables:
+
+```php
+// Recommended:
+$apiKey = getenv('OPENAI_API_KEY');
+$embedding = new OpenAIDenseEmbedding(apiKey: $apiKey);
+
+// NOT recommended:
+$embedding = new OpenAIDenseEmbedding(apiKey: 'sk-...hardcoded...');
+```
+
+See the [Security section in README](./README.md#security) for more details.
 
 ## Security Mitigations
 

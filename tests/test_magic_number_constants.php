@@ -1,8 +1,3 @@
---TEST--
-SMELL-007: Named constants replace magic numbers
---SKIPIF--
-<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
---FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
 
@@ -174,21 +169,3 @@ if ($failed === 0) {
     echo "FAILED: $failed test(s) failed\n";
 }
 ?>
---EXPECT--
-OK: ZVec::DEFAULT_MAX_BUFFER_SIZE = 67108864
-OK: ZVec::SCHEMA_BUFFER_SIZE = 8192
-OK: ZVec::PATH_BUFFER_SIZE = 4096
-OK: ZVec::MAX_STRING_BUFFER_SIZE = 1048576
-OK: ZVec::BYTES_PER_MB = 1048576
-OK: ZVec::DEFAULT_HNSW_M = 50
-OK: ZVec::DEFAULT_HNSW_EF_CONSTRUCTION = 500
-OK: 67108864 only in constant declaration
-OK: 8192 only in constant declaration
-OK: 4096 only in constant declaration
-OK: 1048576 only in constant declarations
-OK: 50 only in constant declaration and deprecated methods
-OK: 500 only in constant declaration and deprecated methods
-OK: ZVecIndexParams uses ZVec::DEFAULT_HNSW_M
-OK: ZVecIndexParams uses ZVec::DEFAULT_HNSW_EF_CONSTRUCTION
-
-All tests passed!

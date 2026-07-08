@@ -7,23 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Security
-
-- **SEC-008: Mask API keys in debug output and clear from memory in destructor** (#76)
-  - Added `__debugInfo()` method to `ApiEmbeddingFunction` — masks API key as `***xxxx` (last 4 chars visible) in `var_dump()` output
-  - Added `__destruct()` method to `ApiEmbeddingFunction` — calls `sodium_memzero()` on the API key string buffer when `ext-sodium` is available
-  - Constructor `$apiKey` parameter changed from `string` to `?string = null` — falls back to `OPENAI_API_KEY` or `DASHSCOPE_API_KEY` environment variables
-  - Added `private __clone()` to prevent cloned-instance string buffer corruption
-  - Updated `SECURITY.md` — marked "API keys in memory" as fixed
-  - Added 4 test files: `test_embedding_apikey_mask.phpt` (source analysis), `test_embedding_apikey_env.phpt` (env var fallback), `test_embedding_apikey_destruct.phpt` (destructor), `test_embedding_apikey_runtime.phpt` (runtime validation)
-
-- **SEC-012: Enforce explicit SSL certificate verification in embedding API requests** (#80)
-  - Added `CURLOPT_SSL_VERIFYPEER => true` and `CURLOPT_SSL_VERIFYHOST => 2` to all embedding HTTP requests
-  - Using `curl_setopt_array()` to ensure SSL options are always applied together
-  - Proxy configuration remains as a separate `curl_setopt()` call (unchanged)
-  - Added static analysis test `test_embedding_ssl_verify.phpt` to verify SSL options are present in source
-
 ### Added
+
+- **DOC-004: Added PHPDoc blocks to all constant declarations across ZVec, ZVecSchema, and ZVecDoc** (#63)
+  - Added descriptive PHPDoc blocks before 57 constants in `ZVec.php` (index types, query params, log types/levels, buffer sizes, HNSW defaults, data types, quantize types)
+  - Added PHPDoc blocks before 4 metric type constants in `ZVecSchema.php` (METRIC_L2, METRIC_IP, METRIC_COSINE, METRIC_MIPSL2)
+  - Added PHPDoc blocks before 4 document operator constants in `ZVecDoc.php` (OP_INSERT, OP_UPDATE, OP_UPSERT, OP_DELETE)
+  - Each PHPDoc includes description, numeric value, C++ enum cross-reference, and `@see` consumer method links
+
+- **DOC-003: Missing `@throws ZVecException` on All FFI-Calling Methods** (#62)
+  - Added `@throws ZVecException On FFI error` PHPDoc annotation to all public methods across 4 source files:
+    - `src/ZVec.php` — 57 methods (addColumn*, create*/open*/query* methods, version API, etc.)
+    - `src/ZVecSchema.php` — 38 methods (all add* methods including deprecated aliases)
+    - `src/ZVecDoc.php` — 65 methods (all set*/get*/has* methods, constructor, serialize/deserialize, etc.)
+    - `src/ZVecIndexParams.php` — 6 methods (forHnsw, forFlat, forIvf, forVamana, forInvert, forHnswRabitq)
+  - Every public method that calls `self::ffi()`, `self::ffi()->`, or `self::checkStatus()` now documents the thrown exception
+  - No methods without direct FFI calls (getHandle, createWith, openWith, getOptions, getFFI) were annotated
+  - Destructors correctly left without `@throws` annotations
+
+- **DOC-010: Missing Security Documentation** (#69)
+  - Added Security section to README covering trust model, input validation, memory limits, file permissions, supply chain, and selected known security limitations (SEC-001, SEC-002, SEC-004, SEC-008, SEC-012)
+  - Updated `SECURITY.md` with vulnerability disclosure response-time commitment, FFI security model, supply chain notes, and API key safety guidance
+  - Updated `OpenAIDenseEmbedding` and `QwenDenseEmbedding` PHPDoc blocks to reference `SECURITY.md` for API key handling guidelines; code examples now use `getenv()` pattern
+  - See `README.md#security` and `SECURITY.md` for full documentation
 
 - **TEST-001: ZVecException isolation tests for error code strings, constructor, chaining, and error details** (#99)
   - Added 4 unit test files for `ZVecException` class:
@@ -188,6 +194,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Lock file persists as a sentinel (never deleted) — ensures all concurrent processes share the same inode for `flock()` serialization
   - Lock is released in `finally` block — crash-safe (kernel auto-releases `flock` on process termination)
   - Added `tests/test_installer_flock.phpt` — 4 test scenarios covering basic flock, concurrent serialization, source code verification, and behavioral double-check test with `Installer::install()`
+
+- **SEC-008: Mask API keys in debug output and clear from memory in destructor** (#76)
+  - Added `__debugInfo()` method to `ApiEmbeddingFunction` — masks API key as `***xxxx` (last 4 chars visible) in `var_dump()` output
+  - Added `__destruct()` method to `ApiEmbeddingFunction` — calls `sodium_memzero()` on the API key string buffer when `ext-sodium` is available
+  - Constructor `$apiKey` parameter changed from `string` to `?string = null` — falls back to `OPENAI_API_KEY` or `DASHSCOPE_API_KEY` environment variables
+  - Added `private __clone()` to prevent cloned-instance string buffer corruption
+  - Updated `SECURITY.md` — marked "API keys in memory" as fixed
+  - Added 4 test files: `test_embedding_apikey_mask.phpt` (source analysis), `test_embedding_apikey_env.phpt` (env var fallback), `test_embedding_apikey_destruct.phpt` (destructor), `test_embedding_apikey_runtime.phpt` (runtime validation)
+
+- **SEC-012: Enforce explicit SSL certificate verification in embedding API requests** (#80)
+  - Added `CURLOPT_SSL_VERIFYPEER => true` and `CURLOPT_SSL_VERIFYHOST => 2` to all embedding HTTP requests
+  - Using `curl_setopt_array()` to ensure SSL options are always applied together
+  - Proxy configuration remains as a separate `curl_setopt()` call (unchanged)
+  - Added static analysis test `test_embedding_ssl_verify.phpt` to verify SSL options are present in source
 
 ### Changed
 

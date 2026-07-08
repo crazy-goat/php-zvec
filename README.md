@@ -288,11 +288,69 @@ See `tasks/done/` for detailed planning documents.
 ### Remaining
 - [ ] FP64 (double) vectors (`tasks/todo/29_fp64_vectors.md`)
 
+## Security
+
+See [`SECURITY.md`](./SECURITY.md) for the full security policy, including how to report vulnerabilities
+and which versions are supported.
+
+### Trust Model
+
+The FFI shared library (`libzvec_ffi.so`) is loaded into the PHP process address
+space and runs with the **same system privileges** as the PHP process itself. Only
+load `.so` files from trusted sources. Pre-built libraries are downloaded from
+GitHub Releases with SHA-256 checksum verification.
+
+### Input Validation
+
+- **Collection paths** (`$path` in `create()`/`open()`): Should NOT come from
+  untrusted user input. An attacker could create or access arbitrary directories.
+- **Filter expressions** (`$filter` in `query()`/`deleteByFilter()`): Passed
+  directly to the zvec C++ engine. Sanitize any user-controlled filter strings.
+  The filter language does not support SQL injection, but malformed expressions
+  may cause errors or unexpected behavior.
+- **Document primary keys**: Passed directly to the C++ layer. Ensure PK values
+  are validated if sourced from user input.
+
+### Memory Limits
+
+Use `ZVec::init(memoryLimitMb: 1024)` to cap collection cache memory. Without
+a memory limit, collections may consume all available system memory under heavy
+write or search load.
+
+### File Permissions
+
+Collection directories inherit the OS default umask. On shared hosting, ensure
+collection paths are not world-readable. Set restrictive permissions explicitly
+after creation if needed:
+
+```bash
+chmod 700 /path/to/collection
+```
+
+### Supply Chain
+
+Pre-built shared libraries are downloaded from GitHub Releases via `vendor/bin/zvec-install`.
+Downloads use HTTPS with TLS verification (CA bundle). SHA-256 checksums are verified
+before extraction using `hash_equals()` (timing-safe comparison).
+
+For production deployments, build the library from source with `./build_zvec.sh`
+for full supply chain control.
+
 ## Known Limitations
 
 - **GroupByQuery**: The C++ API has this method but it returns all documents in a single group with empty group value. This is a known issue in upstream zvec (marked as "Coming Soon" in zvec docs).
 - **Platform**: Pre-built FFI library available for Linux x86_64 (glibc). macOS builds coming soon.
 - **musl Linux** (e.g., Alpine): musl-based Linux is not yet supported by the pre-built library. Build from source instead.
+
+### Known Security Limitations
+
+| ID | Description | Issue | Status |
+|---|---|---|---|
+| **SEC-001** | SHA-256 checksum verification added to downloaded `.so` files | [#70](https://github.com/crazy-goat/php-zvec/issues/70) | ✅ Fixed v0.4.12 |
+| **SEC-002** | `tempnam()` symlink race replaced with cryptographically random temp directory | [#71](https://github.com/crazy-goat/php-zvec/issues/71) | ✅ Fixed v0.4.12 |
+| **SEC-004** | Null pointer safety in C++ FFI bridge — 50+ handle-accepting functions | [#73](https://github.com/crazy-goat/php-zvec/issues/73) | 🔄 In Progress |
+| **SEC-008** | API key masking in `var_dump()` + `sodium_memzero()` in destructor | [#76](https://github.com/crazy-goat/php-zvec/issues/76) | ✅ Fixed v0.4.12 |
+| **SEC-012** | Explicit SSL certificate verification in embedding API requests | [#80](https://github.com/crazy-goat/php-zvec/issues/80) | ✅ Fixed v0.4.12 |
 
 ## License
 
