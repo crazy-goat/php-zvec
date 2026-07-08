@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **DOC-009: Created MIGRATION.md with migration guide from deprecated APIs** (#68)
+  - Added `MIGRATION.md` at project root covering: Index Creation (HNSW, Flat, IVF, HNSW-RaBitQ, Vamana), Statistics, Schema Introspection, Collection Options, Query Object Pattern, Reranker in Queries, and Deprecated Schema Methods
+  - Each section includes BEFORE (old API) and AFTER (new API) code blocks
+  - Added "Upgrading from v0.4.x" section to README.md linking to MIGRATION.md
+
 - **DOC-004: Added PHPDoc blocks to all constant declarations across ZVec, ZVecSchema, and ZVecDoc** (#63)
   - Added descriptive PHPDoc blocks before 57 constants in `ZVec.php` (index types, query params, log types/levels, buffer sizes, HNSW defaults, data types, quantize types)
   - Added PHPDoc blocks before 4 metric type constants in `ZVecSchema.php` (METRIC_L2, METRIC_IP, METRIC_COSINE, METRIC_MIPSL2)

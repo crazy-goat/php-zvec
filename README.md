@@ -92,6 +92,18 @@ php -r 'echo extension_loaded("zvec") ? "zvec extension loaded" : "not loaded";'
 
 When the extension is loaded, `require_once 'src/ZVec.php'` is a no-op (guard clause skips the FFI implementation), so existing code works without changes.
 
+## Upgrading from v0.4.x
+
+See [MIGRATION.md](./MIGRATION.md) for a complete migration guide covering:
+
+- **Index Creation** — replace `createHnswIndex()`, `createFlatIndex()`, etc. with `createIndex()` + `ZVecIndexParams`
+- **Statistics** — replace `stats()` JSON parsing with typed `getStatsStruct()`
+- **Schema Introspection** — new `getFieldSchema()` API
+- **Collection Options** — use `ZVecCollectionOptions` with `createWith()`/`openWith()`
+- **Query Object** — use `ZVecVectorQuery` builder with `queryVector()`
+- **Reranker in Queries** — use `queryWithReranker()` instead of `$reranker` param on `query()`
+- **Deprecated Schema Methods** — rename `addField*()` to `add*()` (e.g. `addFieldBinary()` → `addBinary()`)
+
 ## Quick Start
 
 ```php
