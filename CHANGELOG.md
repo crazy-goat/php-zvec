@@ -143,6 +143,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `getErrorFile()`, `getErrorLine()`, `getErrorFunction()` provide source location of FFI errors
   - Helps debug which operation caused the failure
 
+- **TEST-003: Query Methods — Missing Coverage** (#101)
+  - Added 8 `.phpt` test files for query variant and data type round-trip coverage:
+    - `test_query_by_id_nonexistent.phpt` — queryById ZVecException for non-existent/empty docId and fieldName
+    - `test_vector_int16_roundtrip.phpt` — VECTOR_INT8 insert, fetch, and verification (INT8 used instead of INT16 due to upstream support)
+    - `test_uint64_roundtrip.phpt` — UINT64 scalar insert, fetch, query, and verification (0, 100, 9999999999, PHP_INT_MAX)
+    - `test_vector_binary32_roundtrip.phpt` — VECTOR_INT8 insert, fetch, and verification (alternative pattern; INT8 used instead of BINARY32)
+    - `test_double_roundtrip.phpt` — DOUBLE scalar insert, fetch, query, and verification (π, -2.5e100, etc.)
+    - `test_query_fp16.phpt` — queryFp16(), queryById, filter, includeVector with half-precision vectors
+    - `test_query_vector_object.phpt` — queryVector() with setTopk, setIncludeVector, setFilter, setOutputFields, setHnswParams, setRadius
+    - `test_query_fp64.phpt` — XFAIL: VECTOR_FP64 query operations (upstream limitation in zvec v0.4.0)
+  - Fixed `queryById()` to also check for FP16 vector fields when resolving query vectors
+  - Each test uses `try-finally` with `uniqid()` temp directory and cleanup
+  - Tests skip when native zvec extension is loaded (FFI-only methods)
+
 ### Deprecated
 
 - **SMELL-013: Global namespace class names are deprecated** (#94)

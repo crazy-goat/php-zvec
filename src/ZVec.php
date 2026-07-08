@@ -2228,9 +2228,19 @@ class ZVec
 
         $vector = $docs[0]->getVectorFp32($fieldName);
         $isFp64 = false;
+        $isFp16 = false;
+        $isInt8 = false;
         if ($vector === null) {
             $vector = $docs[0]->getVectorFp64($fieldName);
             $isFp64 = $vector !== null;
+        }
+        if ($vector === null) {
+            $vector = $docs[0]->getVectorFp16($fieldName);
+            $isFp16 = $vector !== null;
+        }
+        if ($vector === null) {
+            $vector = $docs[0]->getVectorInt8($fieldName);
+            $isInt8 = $vector !== null;
         }
         if ($vector === null) {
             throw new ZVecException("Vector field '$fieldName' not found in document: $docId");
@@ -2241,6 +2251,12 @@ class ZVec
                 $fieldName, $vector, $topk, $includeVector, $filter,
                 $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
                 $radius, $isLinear, $isUsingRefiner
+            );
+        }
+
+        if ($isFp16) {
+            return $this->queryFp16(
+                $fieldName, $vector, $topk, $includeVector, $filter
             );
         }
 
