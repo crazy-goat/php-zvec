@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **DOC-006: Complete README.md update with all missing features and sections** (#65)
+  - Added comprehensive API Reference sections for ZVecIndexParams, ZVecCollectionOptions, ZVecFieldSchema, ZVecCollectionStats, ZVecVectorQuery, ZVecGroupByVectorQuery, re-rankers (ZVecReRanker interface, ZVecRrfReRanker, ZVecWeightedReRanker), and ZVecRerankedDoc
+  - Added full Data Types table with 28 type constants, values, and PHP types
+  - Added Index Types, Metric Types, and Quantize Types reference tables
+  - Updated ZVec (Collection) section with all lifecycle methods (init, isInitialized, shutdown, version API), schema operations (8 addColumn* variants, alterColumn), index management (createIndex with ZVecIndexParams), batch operations, and all search variants (queryVector, queryFp16, queryFp64, queryMulti, queryByFilter, queryById, queryWithReranker, groupByVectorQuery)
+  - Updated ZVecSchema section with all 24+ add* methods (scalar, dense vector, sparse vector, binary, array types + deprecated aliases)
+  - Updated ZVecDoc section with all setters, getters, introspection, serialization, operator tracking, and memory usage
+  - Updated Known Limitations to include alterColumn(), GroupByVectorQuery, and queryById() constraints
+  - Expanded README from 370 to 891 lines
+
+### Added
+
 - **DOC-009: Created MIGRATION.md with migration guide from deprecated APIs** (#68)
   - Added `MIGRATION.md` at project root covering: Index Creation (HNSW, Flat, IVF, HNSW-RaBitQ, Vamana), Statistics, Schema Introspection, Collection Options, Query Object Pattern, Reranker in Queries, and Deprecated Schema Methods
   - Each section includes BEFORE (old API) and AFTER (new API) code blocks
