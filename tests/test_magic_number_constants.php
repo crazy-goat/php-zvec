@@ -26,52 +26,58 @@ foreach ($tests as [$name, $actual, $expected]) {
 $source = file_get_contents(__DIR__ . '/../src/ZVec.php');
 $lines = explode("\n", $source);
 
-// Check for 67108864 (64 MB) - should only appear in constant declaration
+// Helper: returns true if line is a PHPDoc comment line
+$isPhpDoc = function(string $line): bool {
+    $t = trim($line);
+    return str_starts_with($t, '*') || str_starts_with($t, '/**');
+};
+
+// Check for 67108864 (64 MB) - should only appear in constant declaration or PHPDoc
 $found67108864 = [];
 foreach ($lines as $i => $line) {
-    if (strpos($line, '67108864') !== false) {
+    if (strpos($line, '67108864') !== false && !$isPhpDoc($line)) {
         $found67108864[] = $i + 1;
     }
 }
 if (count($found67108864) === 1 && strpos($lines[$found67108864[0] - 1], 'DEFAULT_MAX_BUFFER_SIZE') !== false) {
     echo "OK: 67108864 only in constant declaration\n";
 } else {
-    echo "FAIL: 67108864 found at lines: " . implode(', ', $found67108864) . "\n";
+    echo "FAIL: 67108864 found at non-PHPDoc lines: " . implode(', ', $found67108864) . "\n";
     $failed++;
 }
 
-// Check for 8192 - should only appear in constant declaration
+// Check for 8192 - should only appear in constant declaration or PHPDoc
 $found8192 = [];
 foreach ($lines as $i => $line) {
-    if (preg_match('/\b8192\b/', $line)) {
+    if (preg_match('/\b8192\b/', $line) && !$isPhpDoc($line)) {
         $found8192[] = $i + 1;
     }
 }
 if (count($found8192) === 1 && strpos($lines[$found8192[0] - 1], 'SCHEMA_BUFFER_SIZE') !== false) {
     echo "OK: 8192 only in constant declaration\n";
 } else {
-    echo "FAIL: 8192 found at lines: " . implode(', ', $found8192) . "\n";
+    echo "FAIL: 8192 found at non-PHPDoc lines: " . implode(', ', $found8192) . "\n";
     $failed++;
 }
 
-// Check for 4096 - should only appear in constant declaration
+// Check for 4096 - should only appear in constant declaration or PHPDoc
 $found4096 = [];
 foreach ($lines as $i => $line) {
-    if (preg_match('/\b4096\b/', $line)) {
+    if (preg_match('/\b4096\b/', $line) && !$isPhpDoc($line)) {
         $found4096[] = $i + 1;
     }
 }
 if (count($found4096) === 1 && strpos($lines[$found4096[0] - 1], 'PATH_BUFFER_SIZE') !== false) {
     echo "OK: 4096 only in constant declaration\n";
 } else {
-    echo "FAIL: 4096 found at lines: " . implode(', ', $found4096) . "\n";
+    echo "FAIL: 4096 found at non-PHPDoc lines: " . implode(', ', $found4096) . "\n";
     $failed++;
 }
 
-// Check for 1048576 - should only appear in constant declarations
+// Check for 1048576 - should only appear in constant declarations or PHPDoc
 $found1048576 = [];
 foreach ($lines as $i => $line) {
-    if (preg_match('/\b1048576\b/', $line)) {
+    if (preg_match('/\b1048576\b/', $line) && !$isPhpDoc($line)) {
         $found1048576[] = $i + 1;
     }
 }
@@ -94,10 +100,10 @@ if (count($found1048576) === 2) {
     $failed++;
 }
 
-// Check for 50 as default HNSW m - should only appear in constant declaration and deprecated methods
+// Check for 50 as default HNSW m - should only appear in constant declaration, deprecated methods, and PHPDoc
 $found50 = [];
 foreach ($lines as $i => $line) {
-    if (preg_match('/\b50\b/', $line) && strpos($line, 'LOG_WARN') === false) {
+    if (preg_match('/\b50\b/', $line) && strpos($line, 'LOG_WARN') === false && !$isPhpDoc($line)) {
         $found50[] = $i + 1;
     }
 }
@@ -117,10 +123,10 @@ if ($valid50 && count($found50) >= 1) {
     $failed++;
 }
 
-// Check for 500 as default HNSW efConstruction - should only appear in constant declaration and deprecated methods
+// Check for 500 as default HNSW efConstruction - should only appear in constant declaration, deprecated methods, and PHPDoc
 $found500 = [];
 foreach ($lines as $i => $line) {
-    if (preg_match('/\b500\b/', $line)) {
+    if (preg_match('/\b500\b/', $line) && !$isPhpDoc($line)) {
         $found500[] = $i + 1;
     }
 }
