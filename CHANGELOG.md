@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **DOC-003: Missing `@throws ZVecException` on All FFI-Calling Methods** (#62)
+  - Added `@throws ZVecException On FFI error` PHPDoc annotation to all public methods across 4 source files:
+    - `src/ZVec.php` — 57 methods (addColumn*, create*/open*/query* methods, version API, etc.)
+    - `src/ZVecSchema.php` — 38 methods (all add* methods including deprecated aliases)
+    - `src/ZVecDoc.php` — 65 methods (all set*/get*/has* methods, constructor, serialize/deserialize, etc.)
+    - `src/ZVecIndexParams.php` — 6 methods (forHnsw, forFlat, forIvf, forVamana, forInvert, forHnswRabitq)
+  - Every public method that calls `self::ffi()`, `self::ffi()->`, or `self::checkStatus()` now documents the thrown exception
+  - No methods without direct FFI calls (getHandle, createWith, openWith, getOptions, getFFI) were annotated
+  - Destructors correctly left without `@throws` annotations
+
 - **DOC-010: Missing Security Documentation** (#69)
   - Added Security section to README covering trust model, input validation, memory limits, file permissions, supply chain, and selected known security limitations (SEC-001, SEC-002, SEC-004, SEC-008, SEC-012)
   - Updated `SECURITY.md` with vulnerability disclosure response-time commitment, FFI security model, supply chain notes, and API key safety guidance

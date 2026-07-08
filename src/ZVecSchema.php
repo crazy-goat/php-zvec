@@ -25,6 +25,9 @@ class ZVecSchema
 {
     private FFI\CData $handle;
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function __construct(string $name)
     {
         if ($name === '') {
@@ -47,54 +50,81 @@ class ZVecSchema
         return $this->handle;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function setMaxDocCountPerSegment(int $count): self
     {
         self::ffi()->zvec_schema_set_max_doc_count_per_segment($this->handle, $count);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addInt64(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_int64($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addString(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_string($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addFloat(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_float($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addDouble(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_double($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addBool(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_bool($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addInt32(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_int32($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addUint32(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_uint32($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addUint64(string $name, bool $nullable = false, bool $withInvertIndex = false): self
     {
         self::ffi()->zvec_schema_add_field_uint64($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
@@ -106,6 +136,9 @@ class ZVecSchema
     public const METRIC_COSINE = 3;
     public const METRIC_MIPSL2 = 4;
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addVectorFp32(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -115,6 +148,9 @@ class ZVecSchema
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addVectorFp64(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -124,12 +160,18 @@ class ZVecSchema
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addSparseVectorFp32(string $name, int $metricType = self::METRIC_IP): self
     {
         self::ffi()->zvec_schema_add_field_sparse_vector_fp32($this->handle, $name, $metricType);
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addVectorInt8(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -139,6 +181,9 @@ class ZVecSchema
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addVectorFp16(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -148,6 +193,9 @@ class ZVecSchema
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addVectorInt4(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -157,6 +205,9 @@ class ZVecSchema
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addVectorInt16(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -166,6 +217,9 @@ class ZVecSchema
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addVectorBinary32(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -175,6 +229,9 @@ class ZVecSchema
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addVectorBinary64(string $name, int $dimension, int $metricType = self::METRIC_IP): self
     {
         if ($dimension <= 0) {
@@ -184,123 +241,189 @@ class ZVecSchema
         return $this;
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addSparseVectorFp16(string $name, int $metricType = self::METRIC_IP): self
     {
         self::ffi()->zvec_schema_add_field_sparse_vector_fp16($this->handle, $name, $metricType);
         return $this;
     }
 
-    /** @deprecated Use addBinary() instead */
+    /**
+     * @deprecated Use addBinary() instead
+     *
+     * @throws ZVecException On FFI error
+     */
     public function addFieldBinary(string $name, bool $nullable = true): self
     {
         trigger_error('addFieldBinary() is deprecated, use addBinary() instead', E_USER_DEPRECATED);
         return $this->addBinary($name, $nullable);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addBinary(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_binary($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
-    /** @deprecated Use addArrayString() instead */
+    /**
+     * @deprecated Use addArrayString() instead
+     *
+     * @throws ZVecException On FFI error
+     */
     public function addFieldArrayString(string $name, bool $nullable = true): self
     {
         trigger_error('addFieldArrayString() is deprecated, use addArrayString() instead', E_USER_DEPRECATED);
         return $this->addArrayString($name, $nullable);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addArrayString(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_string($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
-    /** @deprecated Use addArrayBool() instead */
+    /**
+     * @deprecated Use addArrayBool() instead
+     *
+     * @throws ZVecException On FFI error
+     */
     public function addFieldArrayBool(string $name, bool $nullable = true): self
     {
         trigger_error('addFieldArrayBool() is deprecated, use addArrayBool() instead', E_USER_DEPRECATED);
         return $this->addArrayBool($name, $nullable);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addArrayBool(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_bool($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
-    /** @deprecated Use addArrayInt32() instead */
+    /**
+     * @deprecated Use addArrayInt32() instead
+     *
+     * @throws ZVecException On FFI error
+     */
     public function addFieldArrayInt32(string $name, bool $nullable = true): self
     {
         trigger_error('addFieldArrayInt32() is deprecated, use addArrayInt32() instead', E_USER_DEPRECATED);
         return $this->addArrayInt32($name, $nullable);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addArrayInt32(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_int32($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
-    /** @deprecated Use addArrayInt64() instead */
+    /**
+     * @deprecated Use addArrayInt64() instead
+     *
+     * @throws ZVecException On FFI error
+     */
     public function addFieldArrayInt64(string $name, bool $nullable = true): self
     {
         trigger_error('addFieldArrayInt64() is deprecated, use addArrayInt64() instead', E_USER_DEPRECATED);
         return $this->addArrayInt64($name, $nullable);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addArrayInt64(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_int64($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
-    /** @deprecated Use addArrayUint32() instead */
+    /**
+     * @deprecated Use addArrayUint32() instead
+     *
+     * @throws ZVecException On FFI error
+     */
     public function addFieldArrayUint32(string $name, bool $nullable = true): self
     {
         trigger_error('addFieldArrayUint32() is deprecated, use addArrayUint32() instead', E_USER_DEPRECATED);
         return $this->addArrayUint32($name, $nullable);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addArrayUint32(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_uint32($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
-    /** @deprecated Use addArrayUint64() instead */
+    /**
+     * @deprecated Use addArrayUint64() instead
+     *
+     * @throws ZVecException On FFI error
+     */
     public function addFieldArrayUint64(string $name, bool $nullable = true): self
     {
         trigger_error('addFieldArrayUint64() is deprecated, use addArrayUint64() instead', E_USER_DEPRECATED);
         return $this->addArrayUint64($name, $nullable);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addArrayUint64(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_uint64($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
-    /** @deprecated Use addArrayFloat() instead */
+    /**
+     * @deprecated Use addArrayFloat() instead
+     *
+     * @throws ZVecException On FFI error
+     */
     public function addFieldArrayFloat(string $name, bool $nullable = true): self
     {
         trigger_error('addFieldArrayFloat() is deprecated, use addArrayFloat() instead', E_USER_DEPRECATED);
         return $this->addArrayFloat($name, $nullable);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addArrayFloat(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_float($this->handle, $name, $nullable ? 1 : 0);
         return $this;
     }
 
-    /** @deprecated Use addArrayDouble() instead */
+    /**
+     * @deprecated Use addArrayDouble() instead
+     *
+     * @throws ZVecException On FFI error
+     */
     public function addFieldArrayDouble(string $name, bool $nullable = true): self
     {
         trigger_error('addFieldArrayDouble() is deprecated, use addArrayDouble() instead', E_USER_DEPRECATED);
         return $this->addArrayDouble($name, $nullable);
     }
 
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function addArrayDouble(string $name, bool $nullable = true): self
     {
         self::ffi()->zvec_schema_add_field_array_double($this->handle, $name, $nullable ? 1 : 0);
