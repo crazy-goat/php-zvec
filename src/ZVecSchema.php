@@ -131,9 +131,59 @@ class ZVecSchema
         return $this;
     }
 
+    /**
+     * Distance metric: L2 (Euclidean distance).
+     *
+     * Measures straight-line distance between vectors.
+     * Lower values indicate higher similarity. Default
+     * metric when none specified.
+     *
+     * Value: 1 — matches zvec::MetricType::L2
+     *
+     * @see ZVecSchema::METRIC_IP
+     * @see ZVecSchema::METRIC_COSINE
+     */
     public const METRIC_L2 = 1;
+
+    /**
+     * Distance metric: Inner Product.
+     *
+     * Measures dot product similarity. For normalized
+     * (unit-length) vectors, IP is equivalent to cosine
+     * similarity but more efficient.
+     *
+     * Value: 2 — matches zvec::MetricType::IP
+     *
+     * @see ZVecSchema::METRIC_L2
+     * @see ZVecSchema::METRIC_COSINE
+     */
     public const METRIC_IP = 2;
+
+    /**
+     * Distance metric: Cosine similarity.
+     *
+     * Measures angular distance between vectors.
+     * Use for un-normalized vectors where only direction
+     * matters, not magnitude.
+     *
+     * Value: 3 — matches zvec::MetricType::COSINE
+     *
+     * @see ZVecSchema::METRIC_L2
+     * @see ZVecSchema::METRIC_IP
+     */
     public const METRIC_COSINE = 3;
+
+    /**
+     * Distance metric: Modified Inner Product with L2.
+     *
+     * Combines IP and L2 for improved search quality
+     * on un-normalized vectors.
+     *
+     * Value: 4 — matches zvec::MetricType::MIPSL2
+     *
+     * @see ZVecSchema::METRIC_IP
+     * @see ZVecSchema::METRIC_L2
+     */
     public const METRIC_MIPSL2 = 4;
 
     /**

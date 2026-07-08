@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **DOC-004: Added PHPDoc blocks to all constant declarations across ZVec, ZVecSchema, and ZVecDoc** (#63)
+  - Added descriptive PHPDoc blocks before 57 constants in `ZVec.php` (index types, query params, log types/levels, buffer sizes, HNSW defaults, data types, quantize types)
+  - Added PHPDoc blocks before 4 metric type constants in `ZVecSchema.php` (METRIC_L2, METRIC_IP, METRIC_COSINE, METRIC_MIPSL2)
+  - Added PHPDoc blocks before 4 document operator constants in `ZVecDoc.php` (OP_INSERT, OP_UPDATE, OP_UPSERT, OP_DELETE)
+  - Each PHPDoc includes description, numeric value, C++ enum cross-reference, and `@see` consumer method links
+
 - **DOC-003: Missing `@throws ZVecException` on All FFI-Calling Methods** (#62)
   - Added `@throws ZVecException On FFI error` PHPDoc annotation to all public methods across 4 source files:
     - `src/ZVec.php` — 57 methods (addColumn*, create*/open*/query* methods, version API, etc.)

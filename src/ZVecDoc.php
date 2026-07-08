@@ -1208,9 +1208,57 @@ class ZVecDoc
         return self::ffi()->zvec_doc_get_operator($this->handle);
     }
 
+    /**
+     * Document operator: Insert.
+     *
+     * Document will be inserted. Throws if a document
+     * with the same primary key already exists.
+     *
+     * Value: 0
+     *
+     * @see ZVecDoc::setOperator()
+     * @see ZVecDoc::getOperator()
+     */
     public const OP_INSERT = 0;
+
+    /**
+     * Document operator: Update.
+     *
+     * Document will update an existing document.
+     * Throws if the document does not exist.
+     *
+     * Value: 1
+     *
+     * @see ZVecDoc::setOperator()
+     * @see ZVecDoc::getOperator()
+     */
     public const OP_UPDATE = 1;
+
+    /**
+     * Document operator: Upsert.
+     *
+     * Insert or replace. If a document with the same
+     * primary key exists, it is replaced. Otherwise,
+     * a new document is inserted.
+     *
+     * Value: 2
+     *
+     * @see ZVecDoc::setOperator()
+     * @see ZVecDoc::getOperator()
+     */
     public const OP_UPSERT = 2;
+
+    /**
+     * Document operator: Delete.
+     *
+     * Document marks a deletion. Used in batch operations
+     * to remove documents by primary key.
+     *
+     * Value: 3
+     *
+     * @see ZVecDoc::setOperator()
+     * @see ZVecDoc::getOperator()
+     */
     public const OP_DELETE = 3;
 
     private static function ffi(): FFI

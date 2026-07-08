@@ -755,76 +755,628 @@ class ZVec
         return self::parseQueryResult($result);
     }
 
-    // Index types for unified IndexParams API
+    /**
+     * Index type: HNSW (Hierarchical Navigable Small World).
+     *
+     * Graph-based index optimized for high-dimensional vector search.
+     * Supports FP32, FP16, INT8, and INT4 quantization.
+     *
+     * Value: 1 — matches zvec::IndexType::HNSW
+     *
+     * @see ZVecIndexParams::forHnsw()
+     */
     public const INDEX_TYPE_HNSW = 1;
+
+    /**
+     * Index type: IVF (Inverted File).
+     *
+     * Partition-based index for large-scale vector search.
+     * Supports FP32, FP16, INT8, and INT4 quantization.
+     *
+     * Value: 2 — matches zvec::IndexType::IVF
+     *
+     * @see ZVecIndexParams::forIvf()
+     */
     public const INDEX_TYPE_IVF = 2;
+
+    /**
+     * Index type: FLAT (Brute Force).
+     *
+     * Exact search with no index structure. Use for small datasets
+     * or when exact results are required.
+     *
+     * Value: 3 — matches zvec::IndexType::FLAT
+     *
+     * @see ZVecIndexParams::forFlat()
+     */
     public const INDEX_TYPE_FLAT = 3;
+
+    /**
+     * Index type: HNSW-RaBitQ (HNSW + RaBitQ quantization).
+     *
+     * HNSW with RaBitQ (Randomized Bit Quantization) for
+     * memory-efficient approximate search.
+     *
+     * Value: 4 — matches zvec::IndexType::HNSW_RABITQ
+     *
+     * @see ZVecIndexParams::forHnswRabitq()
+     */
     public const INDEX_TYPE_HNSW_RABITQ = 4;
+
+    /**
+     * Index type: Vamana (DiskANN).
+     *
+     * Disk-based graph index for large-scale vector search.
+     * Recommended for datasets with 10,000+ documents.
+     *
+     * Value: 5 — matches zvec::IndexType::VAMANA
+     *
+     * @see ZVecIndexParams::forVamana()
+     */
     public const INDEX_TYPE_VAMANA = 5;
+
+    /**
+     * Index type: INVERT (Inverted Index).
+     *
+     * Keyword-based inverted index for sparse vector search.
+     *
+     * Value: 10 — matches zvec::IndexType::INVERT
+     *
+     * @see ZVecIndexParams::forInvert()
+     */
     public const INDEX_TYPE_INVERT = 10;
 
+    /**
+     * Query parameter preset: None (default).
+     *
+     * Uses index's default search parameters.
+     *
+     * Value: 0
+     */
     public const QUERY_PARAM_NONE = 0;
+
+    /**
+     * Query parameter preset: HNSW.
+     *
+     * Enables HNSW-specific parameters (ef_search).
+     *
+     * Value: 1
+     *
+     * @see ZVecVectorQuery::setHnswEf()
+     */
     public const QUERY_PARAM_HNSW = 1;
+
+    /**
+     * Query parameter preset: IVF.
+     *
+     * Enables IVF-specific parameters (nprobe).
+     *
+     * Value: 2
+     *
+     * @see ZVecVectorQuery::setIvfParams()
+     */
     public const QUERY_PARAM_IVF = 2;
+
+    /**
+     * Query parameter preset: FLAT.
+     *
+     * No additional parameters beyond base query settings.
+     *
+     * Value: 3
+     */
     public const QUERY_PARAM_FLAT = 3;
+
+    /**
+     * Query parameter preset: HNSW-RaBitQ.
+     *
+     * Enables HNSW-RaBitQ specific search parameters.
+     *
+     * Value: 4
+     */
     public const QUERY_PARAM_HNSW_RABITQ = 4;
+
+    /**
+     * Query parameter preset: Vamana (DiskANN).
+     *
+     * Enables Vamana-specific search parameters.
+     *
+     * Value: 5
+     */
     public const QUERY_PARAM_VAMANA = 5;
 
+    /**
+     * Log destination: Console (stderr).
+     *
+     * Writes log messages to standard error output.
+     * Default log type when no explicit log destination is set.
+     *
+     * Value: 0
+     *
+     * @see ZVec::init()
+     */
     public const LOG_CONSOLE = 0;
+
+    /**
+     * Log destination: File.
+     *
+     * Writes log messages to a file. Requires $logDir parameter
+     * in ZVec::init().
+     *
+     * Value: 1
+     *
+     * @see ZVec::init()
+     */
     public const LOG_FILE = 1;
 
+    /**
+     * Log level: Debug.
+     *
+     * Most verbose level. Includes all diagnostic messages.
+     * Use during development or troubleshooting.
+     *
+     * Value: 0
+     *
+     * @see ZVec::init()
+     */
     public const LOG_DEBUG = 0;
+
+    /**
+     * Log level: Info.
+     *
+     * General operational messages. Includes startup info,
+     * configuration details, and normal operation events.
+     *
+     * Value: 1
+     *
+     * @see ZVec::init()
+     */
     public const LOG_INFO = 1;
+
+    /**
+     * Log level: Warning.
+     *
+     * Non-critical issues that may require attention.
+     * Default log level if not specified.
+     *
+     * Value: 2
+     *
+     * @see ZVec::init()
+     */
     public const LOG_WARN = 2;
+
+    /**
+     * Log level: Error.
+     *
+     * Error conditions that prevent normal operation
+     * but do not crash the process.
+     *
+     * Value: 3
+     *
+     * @see ZVec::init()
+     */
     public const LOG_ERROR = 3;
+
+    /**
+     * Log level: Fatal.
+     *
+     * Critical errors that cause process termination.
+     * Least verbose level.
+     *
+     * Value: 4
+     *
+     * @see ZVec::init()
+     */
     public const LOG_FATAL = 4;
 
-    // Default buffer sizes
+    /**
+     * Default maximum buffer size: 64 MB.
+     *
+     * Used for internal I/O buffers during collection operations.
+     *
+     * Value: 67108864 (64 MB)
+     */
     public const DEFAULT_MAX_BUFFER_SIZE = 67108864; // 64 MB
+
+    /**
+     * Schema buffer size: 8192 bytes.
+     *
+     * Fixed-size buffer for serialized schema strings.
+     *
+     * Value: 8192
+     */
     public const SCHEMA_BUFFER_SIZE = 8192;
+
+    /**
+     * Path buffer size: 4096 bytes.
+     *
+     * Fixed-size buffer for collection path strings.
+     *
+     * Value: 4096
+     */
     public const PATH_BUFFER_SIZE = 4096;
+
+    /**
+     * Maximum string buffer size: 1 MB.
+     *
+     * Upper bound for schema/stats string serialization.
+     *
+     * Value: 1048576 (1 MB)
+     */
     public const MAX_STRING_BUFFER_SIZE = 1048576; // 1 MB max for schema/stats strings
+
+    /**
+     * Bytes per megabyte.
+     *
+     * Convenience constant for size conversions.
+     *
+     * Value: 1048576
+     */
     public const BYTES_PER_MB = 1048576;
 
-    // Default HNSW index parameters
+    /**
+     * Default HNSW parameter: M (max connections per node).
+     *
+     * Controls the trade-off between recall and memory usage.
+     * Higher values improve recall but increase memory.
+     *
+     * Value: 50
+     *
+     * @see ZVecIndexParams::forHnsw()
+     */
     public const DEFAULT_HNSW_M = 50;
+
+    /**
+     * Default HNSW parameter: efConstruction.
+     *
+     * Dynamic list size during index construction.
+     * Higher values improve index quality at the cost
+     * of longer build time.
+     *
+     * Value: 500
+     *
+     * @see ZVecIndexParams::forHnsw()
+     */
     public const DEFAULT_HNSW_EF_CONSTRUCTION = 500;
 
-    // Data types for alterColumn (scalar numeric only)
+    /**
+     * Data type: 32-bit signed integer.
+     *
+     * Range: -2147483648 to 2147483647.
+     * Supported in alterColumn() for scalar numeric changes.
+     *
+     * Value: 4 — matches zvec::DataType::INT32
+     */
     public const TYPE_INT32 = 4;
+
+    /**
+     * Data type: 64-bit signed integer.
+     *
+     * Range: -9223372036854775808 to 9223372036854775807.
+     * Default integer type for document fields.
+     *
+     * Value: 5 — matches zvec::DataType::INT64
+     */
     public const TYPE_INT64 = 5;
+
+    /**
+     * Data type: 32-bit unsigned integer.
+     *
+     * Range: 0 to 4294967295.
+     *
+     * Value: 6 — matches zvec::DataType::UINT32
+     */
     public const TYPE_UINT32 = 6;
+
+    /**
+     * Data type: 64-bit unsigned integer.
+     *
+     * Range: 0 to 18446744073709551615.
+     *
+     * Value: 7 — matches zvec::DataType::UINT64
+     */
     public const TYPE_UINT64 = 7;
+
+    /**
+     * Data type: 32-bit float (IEEE 754).
+     *
+     * Single-precision floating point number.
+     *
+     * Value: 8 — matches zvec::DataType::FLOAT
+     */
     public const TYPE_FLOAT = 8;
+
+    /**
+     * Data type: 64-bit double (IEEE 754).
+     *
+     * Double-precision floating point number.
+     *
+     * Value: 9 — matches zvec::DataType::DOUBLE
+     */
     public const TYPE_DOUBLE = 9;
+
+    /**
+     * Data type: Boolean.
+     *
+     * True/false value.
+     *
+     * Value: 3 — matches zvec::DataType::BOOL
+     */
     public const TYPE_BOOL = 3;
 
-    // Vector data types for schema
+    /**
+     * Vector type: 32-bit float vector.
+     *
+     * Most commonly used vector type for embeddings.
+     * Each dimension is a 32-bit float (4 bytes).
+     *
+     * Value: 23 — matches zvec::DataType::VECTOR_FP32
+     *
+     * @see ZVecSchema::addVectorFp32()
+     */
     public const TYPE_VECTOR_FP32 = 23;
+
+    /**
+     * Vector type: 64-bit float vector.
+     *
+     * Double-precision vector for higher accuracy.
+     * Each dimension is a 64-bit double (8 bytes).
+     *
+     * Value: 24 — matches zvec::DataType::VECTOR_FP64
+     *
+     * @see ZVecSchema::addVectorFp64()
+     */
     public const TYPE_VECTOR_FP64 = 24;
+
+    /**
+     * Vector type: 16-bit float vector (half precision).
+     *
+     * Memory-efficient vector type. Each dimension is
+     * a 16-bit half-float (2 bytes).
+     *
+     * Value: 22 — matches zvec::DataType::VECTOR_FP16
+     *
+     * @see ZVecSchema::addVectorFp16()
+     */
     public const TYPE_VECTOR_FP16 = 22;
+
+    /**
+     * Vector type: 4-bit integer vector.
+     *
+     * Highly compressed vector type. Each dimension is
+     * a 4-bit integer (0.5 bytes). Maximum compression
+     * with lowest precision.
+     *
+     * Value: 25 — matches zvec::DataType::VECTOR_INT4
+     */
     public const TYPE_VECTOR_INT4 = 25;
+
+    /**
+     * Vector type: 8-bit integer vector.
+     *
+     * Compressed vector type. Each dimension is
+     * an 8-bit integer (1 byte).
+     *
+     * Value: 26 — matches zvec::DataType::VECTOR_INT8
+     *
+     * @see ZVecSchema::addVectorInt8()
+     */
     public const TYPE_VECTOR_INT8 = 26;
+
+    /**
+     * Vector type: 16-bit integer vector.
+     *
+     * Each dimension is a 16-bit integer (2 bytes).
+     *
+     * Value: 27 — matches zvec::DataType::VECTOR_INT16
+     *
+     * @see ZVecSchema::addVectorInt16()
+     */
     public const TYPE_VECTOR_INT16 = 27;
+
+    /**
+     * Vector type: 32-bit binary vector.
+     *
+     * Binary vector with 32-bit packing.
+     * Each dimension is a single bit.
+     *
+     * Value: 20 — matches zvec::DataType::VECTOR_BINARY32
+     */
     public const TYPE_VECTOR_BINARY32 = 20;
+
+    /**
+     * Vector type: 64-bit binary vector.
+     *
+     * Binary vector with 64-bit packing.
+     * Each dimension is a single bit.
+     *
+     * Value: 21 — matches zvec::DataType::VECTOR_BINARY64
+     */
     public const TYPE_VECTOR_BINARY64 = 21;
+
+    /**
+     * Vector type: Sparse FP32 vector.
+     *
+     * Sparse representation storing only non-zero dimensions.
+     * Uses (index, value) pairs.
+     *
+     * Value: 31 — matches zvec::DataType::SPARSE_VECTOR_FP32
+     *
+     * @see ZVecSchema::addSparseVectorFp32()
+     */
     public const TYPE_SPARSE_VECTOR_FP32 = 31;
+
+    /**
+     * Vector type: Sparse FP16 vector.
+     *
+     * Sparse representation with half-precision values.
+     *
+     * Value: 30 — matches zvec::DataType::SPARSE_VECTOR_FP16
+     *
+     * @see ZVecSchema::addSparseVectorFp16()
+     */
     public const TYPE_SPARSE_VECTOR_FP16 = 30;
+
+    /**
+     * Data type: Binary blob.
+     *
+     * Raw binary data field. Not a vector type.
+     *
+     * Value: 1 — matches zvec::DataType::BINARY
+     *
+     * @see ZVecSchema::addBinary()
+     */
     public const TYPE_BINARY = 1;
+
+    /**
+     * Array type: String array.
+     *
+     * Multi-value field storing an array of strings.
+     *
+     * Value: 41 — matches zvec::DataType::ARRAY_STRING
+     *
+     * @see ZVecSchema::addArrayString()
+     */
     public const TYPE_ARRAY_STRING = 41;
+
+    /**
+     * Array type: Boolean array.
+     *
+     * Multi-value field storing an array of booleans.
+     *
+     * Value: 42 — matches zvec::DataType::ARRAY_BOOL
+     *
+     * @see ZVecSchema::addArrayBool()
+     */
     public const TYPE_ARRAY_BOOL = 42;
+
+    /**
+     * Array type: Int32 array.
+     *
+     * Multi-value field storing an array of 32-bit integers.
+     *
+     * Value: 43 — matches zvec::DataType::ARRAY_INT32
+     *
+     * @see ZVecSchema::addArrayInt32()
+     */
     public const TYPE_ARRAY_INT32 = 43;
+
+    /**
+     * Array type: Int64 array.
+     *
+     * Multi-value field storing an array of 64-bit integers.
+     *
+     * Value: 44 — matches zvec::DataType::ARRAY_INT64
+     *
+     * @see ZVecSchema::addArrayInt64()
+     */
     public const TYPE_ARRAY_INT64 = 44;
+
+    /**
+     * Array type: UInt32 array.
+     *
+     * Multi-value field storing an array of 32-bit unsigned integers.
+     *
+     * Value: 45 — matches zvec::DataType::ARRAY_UINT32
+     *
+     * @see ZVecSchema::addArrayUint32()
+     */
     public const TYPE_ARRAY_UINT32 = 45;
+
+    /**
+     * Array type: UInt64 array.
+     *
+     * Multi-value field storing an array of 64-bit unsigned integers.
+     *
+     * Value: 46 — matches zvec::DataType::ARRAY_UINT64
+     *
+     * @see ZVecSchema::addArrayUint64()
+     */
     public const TYPE_ARRAY_UINT64 = 46;
+
+    /**
+     * Array type: Float array.
+     *
+     * Multi-value field storing an array of 32-bit floats.
+     *
+     * Value: 47 — matches zvec::DataType::ARRAY_FLOAT
+     *
+     * @see ZVecSchema::addArrayFloat()
+     */
     public const TYPE_ARRAY_FLOAT = 47;
+
+    /**
+     * Array type: Double array.
+     *
+     * Multi-value field storing an array of 64-bit doubles.
+     *
+     * Value: 48 — matches zvec::DataType::ARRAY_DOUBLE
+     *
+     * @see ZVecSchema::addArrayDouble()
+     */
     public const TYPE_ARRAY_DOUBLE = 48;
 
-    // Quantize types for index creation
+    /**
+     * Quantize type: Undefined (no quantization).
+     *
+     * No quantization applied. Full precision storage.
+     *
+     * Value: 0 — matches zvec::QuantizeType::UNDEFINED
+     *
+     * @see ZVecIndexParams::forHnsw()
+     * @see ZVecIndexParams::forFlat()
+     */
     public const QUANTIZE_UNDEFINED = 0;
+
+    /**
+     * Quantize type: FP16 (16-bit float).
+     *
+     * Reduces memory usage by 50% vs FP32 with
+     * minimal accuracy loss. Supported on HNSW,
+     * Flat, and IVF indexes.
+     *
+     * Value: 1 — matches zvec::QuantizeType::FP16
+     *
+     * @see ZVecIndexParams::forHnsw()
+     * @see ZVecIndexParams::forFlat()
+     */
     public const QUANTIZE_FP16 = 1;
+
+    /**
+     * Quantize type: INT8 (8-bit integer).
+     *
+     * 4x memory reduction vs FP32. Good trade-off
+     * between compression and accuracy.
+     *
+     * Value: 2 — matches zvec::QuantizeType::INT8
+     *
+     * @see ZVecIndexParams::forHnsw()
+     * @see ZVecIndexParams::forFlat()
+     */
     public const QUANTIZE_INT8 = 2;
+
+    /**
+     * Quantize type: INT4 (4-bit integer).
+     *
+     * 8x memory reduction vs FP32. Highest compression
+     * with the lowest accuracy.
+     *
+     * Value: 3 — matches zvec::QuantizeType::INT4
+     *
+     * @see ZVecIndexParams::forHnsw()
+     * @see ZVecIndexParams::forFlat()
+     */
     public const QUANTIZE_INT4 = 3;
+
+    /**
+     * Quantize type: RaBitQ (Randomized Bit Quantization).
+     *
+     * Specialized quantization for HNSW-RaBitQ index.
+     * Provides good accuracy with significant memory reduction.
+     *
+     * Value: 4 — matches zvec::QuantizeType::RABITQ
+     *
+     * @see ZVecIndexParams::forHnswRabitq()
+     */
     public const QUANTIZE_RABITQ = 4;
 
     /**
