@@ -5,6 +5,7 @@ Quantized indexes: QUANTIZE_INT8, QUANTIZE_FP16 for HNSW and Flat
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
+set_error_handler(static fn(int $errno, string $message): bool => $errno === E_USER_DEPRECATED && str_contains($message, ' is deprecated, use createIndex()'));
 
 $path = __DIR__ . '/../test_dbs/index_quantized_' . uniqid();
 

@@ -6,6 +6,7 @@ Bug 0052: Memory leak in delete() on exception — C strings not freed when chec
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../src/ZVec.php';
+set_error_handler(static fn(int $errno, string $message): bool => $errno === E_USER_DEPRECATED && str_contains($message, ' is deprecated, use createIndex()'));
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 

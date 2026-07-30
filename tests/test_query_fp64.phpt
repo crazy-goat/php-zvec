@@ -10,6 +10,7 @@ if (!extension_loaded('ffi')) die('skip FFI extension not available');
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
+set_error_handler(static fn(int $errno, string $message): bool => $errno === E_USER_DEPRECATED && str_contains($message, ' is deprecated, use createIndex()'));
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
 $path = __DIR__ . '/../test_dbs/fp64q_' . uniqid();

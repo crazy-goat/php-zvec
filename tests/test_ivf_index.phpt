@@ -5,6 +5,7 @@ IVF Index Creation and Query Operations
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
+set_error_handler(static fn(int $errno, string $message): bool => $errno === E_USER_DEPRECATED && str_contains($message, ' is deprecated, use createIndex()'));
 
 $path = __DIR__ . '/../test_dbs/ivf_index_' . uniqid();
 

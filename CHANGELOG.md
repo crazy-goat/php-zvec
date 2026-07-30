@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Deprecated index creation warnings** (#169)
+  - The FFI bindings’ `createHnswIndex()`, `createHnswRabitqIndex()`, `createFlatIndex()`, and `createIvfIndex()` now emit `E_USER_DEPRECATED` before delegating to the unified `createIndex()` API.
+
 ## [0.5.0] - 2026-07-30
 
 ### Fixed

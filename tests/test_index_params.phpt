@@ -5,6 +5,7 @@ IndexParams: unified createIndex() with ZVecIndexParams (all 5 types)
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
+set_error_handler(static fn(int $errno, string $message): bool => $errno === E_USER_DEPRECATED && str_contains($message, ' is deprecated, use createIndex()'));
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
 $path = __DIR__ . '/../test_dbs/idxparams_' . uniqid();

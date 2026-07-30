@@ -19,6 +19,7 @@ Query output_fields optional semantics (zvec v0.6.0): nullopt = all fields, empt
  *                                    not supported by the PHP API)
  */
 require_once __DIR__ . '/../src/ZVec.php';
+set_error_handler(static fn(int $errno, string $message): bool => $errno === E_USER_DEPRECATED && str_contains($message, ' is deprecated, use createIndex()'));
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
 $path = __DIR__ . '/../test_dbs/of_semantics_' . uniqid();
