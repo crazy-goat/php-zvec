@@ -32,28 +32,21 @@ if ($result === null) {
     }
     echo "PASS: Asset name contains 'libzvec_ffi'\n";
 
-    // Platform-specific checks
-    if ($os === 'Linux') {
-        if (str_contains($result, 'ubuntu') || str_contains($result, 'alpine')) {
-            echo "PASS: Linux asset name contains distro identifier\n";
-        } else {
-            echo "FAIL: Linux asset name missing distro identifier\n";
-            exit(1);
-        }
-        if (str_contains($result, $arch)) {
-            echo "PASS: Linux asset name contains architecture\n";
-        } else {
-            echo "FAIL: Linux asset name missing architecture\n";
-            exit(1);
-        }
-    } elseif ($os === 'Darwin') {
-        if (str_contains($result, 'darwin')) {
-            echo "PASS: macOS asset name contains 'darwin'\n";
-        } else {
-            echo "FAIL: macOS asset name missing 'darwin'\n";
-            exit(1);
-        }
+    // Platform-specific checks (uniform output across platforms)
+    $identifierOk = ($os === 'Linux' && (str_contains($result, 'ubuntu') || str_contains($result, 'alpine')))
+        || ($os === 'Darwin' && str_contains($result, 'darwin'));
+    if (!$identifierOk) {
+        echo "FAIL: Asset name missing platform identifier\n";
+        exit(1);
     }
+    echo "PASS: Asset name contains platform identifier\n";
+
+    $expectedArch = $os === 'Darwin' && $arch === 'arm64' ? 'aarch64' : $arch;
+    if (!str_contains($result, $expectedArch)) {
+        echo "FAIL: Asset name missing architecture\n";
+        exit(1);
+    }
+    echo "PASS: Asset name contains architecture\n";
 }
 
 echo "PASS: All resolveAssetName tests completed\n";
@@ -62,6 +55,6 @@ echo "PASS: All resolveAssetName tests completed\n";
 PASS: resolveAssetName returns '%s'
 PASS: Asset name ends with .tar.gz
 PASS: Asset name contains 'libzvec_ffi'
-PASS: Linux asset name contains distro identifier
-PASS: Linux asset name contains architecture
+PASS: Asset name contains platform identifier
+PASS: Asset name contains architecture
 PASS: All resolveAssetName tests completed

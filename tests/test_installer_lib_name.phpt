@@ -35,8 +35,8 @@ echo "PASS: libName has correct prefix\n";
 
 echo "PASS: All libName tests completed\n";
 ?>
---EXPECT--
-PASS: libName returns 'libzvec_ffi.so' (expected 'libzvec_ffi.so')
+--EXPECTF--
+PASS: libName returns '%s' (expected '%s')
 PASS: libName is a valid filename
 PASS: libName has correct prefix
 PASS: All libName tests completed
