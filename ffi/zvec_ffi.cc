@@ -109,9 +109,9 @@ const char* zvec_error_code_to_string(int error_code) {
 // Version information — sourced from zvec zvec_version.h (build-time generated)
 // When updating the zvec version, update these constants to match.
 static constexpr int kVersionMajor = 0;
-static constexpr int kVersionMinor = 4;
+static constexpr int kVersionMinor = 6;
 static constexpr int kVersionPatch = 0;
-static constexpr const char* kVersionString = "v0.4.0";
+static constexpr const char* kVersionString = "v0.6.0";
 
 const char* zvec_get_version(void) {
     return kVersionString;
@@ -1979,7 +1979,7 @@ zvec_status_t zvec_collection_delete_by_filter(zvec_collection_t coll, const cha
 // --- VectorQuery opaque object ---
 
 struct VectorQueryHolder {
-    VectorQuery query;
+    SearchQuery query;
     float radius_ = 0.0f;
     bool is_linear_ = false;
     bool is_using_refiner_ = false;
@@ -2004,7 +2004,7 @@ void zvec_vector_query_free(zvec_vector_query_t q) {
 
 void zvec_vector_query_set_field_name(zvec_vector_query_t q, const char* field_name) {
     if (!q) return;
-    static_cast<VectorQueryHolder*>(q)->query.field_name_ = field_name ? field_name : "";
+    static_cast<VectorQueryHolder*>(q)->query.target_.field_name_ = field_name ? field_name : "";
 }
 
 void zvec_vector_query_set_topk(zvec_vector_query_t q, int topk) {
@@ -2026,7 +2026,7 @@ void zvec_vector_query_set_filter(zvec_vector_query_t q, const char* filter) {
 
 void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fields, int count) {
     if (!q) return;
-    if (fields && count >= 0) {
+    if (fields && count > 0) {
         std::vector<std::string> field_vec;
         field_vec.reserve(count);
         for (int i = 0; i < count; i++) {
@@ -2039,27 +2039,27 @@ void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fie
 void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
-    holder->query.query_params_ = std::make_shared<HnswQueryParams>(ef);
+    holder->query.target_.query_params_ = std::make_shared<HnswQueryParams>(ef);
 }
 
 void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
-    holder->query.query_params_ = std::make_shared<IVFQueryParams>(nprobe);
+    holder->query.target_.query_params_ = std::make_shared<IVFQueryParams>(nprobe);
 }
 
 void zvec_vector_query_set_flat_mode(zvec_vector_query_t q) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
-    holder->query.query_params_ = std::make_shared<FlatQueryParams>();
+    holder->query.target_.query_params_ = std::make_shared<FlatQueryParams>();
 }
 
 void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->radius_ = radius;
-    if (holder->query.query_params_) {
-        holder->query.query_params_->set_radius(radius);
+    if (holder->query.target_.query_params_) {
+        holder->query.target_.query_params_->set_radius(radius);
     }
 }
 
@@ -2067,8 +2067,8 @@ void zvec_vector_query_set_is_linear(zvec_vector_query_t q, int is_linear) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->is_linear_ = (bool)is_linear;
-    if (holder->query.query_params_) {
-        holder->query.query_params_->set_is_linear((bool)is_linear);
+    if (holder->query.target_.query_params_) {
+        holder->query.target_.query_params_->set_is_linear((bool)is_linear);
     }
 }
 
@@ -2076,21 +2076,21 @@ void zvec_vector_query_set_using_refiner(zvec_vector_query_t q, int refiner) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->is_using_refiner_ = (bool)refiner;
-    if (holder->query.query_params_) {
-        holder->query.query_params_->set_is_using_refiner((bool)refiner);
+    if (holder->query.target_.query_params_) {
+        holder->query.target_.query_params_->set_is_using_refiner((bool)refiner);
     }
 }
 
 void zvec_vector_query_set_vector_fp32(zvec_vector_query_t q, const float* data, uint32_t dim) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
-    holder->query.query_vector_.assign(reinterpret_cast<const char*>(data), dim * sizeof(float));
+    holder->query.target_.set_vector(std::string(reinterpret_cast<const char*>(data), dim * sizeof(float)));
 }
 
 void zvec_vector_query_set_vector_fp64(zvec_vector_query_t q, const double* data, uint32_t dim) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
-    holder->query.query_vector_.assign(reinterpret_cast<const char*>(data), dim * sizeof(double));
+    holder->query.target_.set_vector(std::string(reinterpret_cast<const char*>(data), dim * sizeof(double)));
 }
 
 // GroupByVectorQuery
@@ -2107,13 +2107,13 @@ void zvec_group_by_vector_query_free(zvec_group_by_vector_query_t q) {
 
 void zvec_group_by_vector_query_set_field_name(zvec_group_by_vector_query_t q, const char* field_name) {
     if (!q) return;
-    static_cast<GroupByVectorQueryHolder*>(q)->query.field_name_ = field_name ? field_name : "";
+    static_cast<GroupByVectorQueryHolder*>(q)->query.target_.field_name_ = field_name ? field_name : "";
 }
 
 void zvec_group_by_vector_query_set_vector_fp32(zvec_group_by_vector_query_t q, const float* data, uint32_t dim) {
     if (!q) return;
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
-    holder->query.query_vector_.assign(reinterpret_cast<const char*>(data), dim * sizeof(float));
+    holder->query.target_.set_vector(std::string(reinterpret_cast<const char*>(data), dim * sizeof(float)));
 }
 
 void zvec_group_by_vector_query_set_group_by_field(zvec_group_by_vector_query_t q, const char* field) {
@@ -2128,7 +2128,7 @@ void zvec_group_by_vector_query_set_group_count(zvec_group_by_vector_query_t q, 
 
 void zvec_group_by_vector_query_set_group_topk(zvec_group_by_vector_query_t q, uint32_t topk) {
     if (!q) return;
-    static_cast<GroupByVectorQueryHolder*>(q)->query.group_topk_ = topk;
+    static_cast<GroupByVectorQueryHolder*>(q)->query.topk_per_group_ = topk;
 }
 
 void zvec_group_by_vector_query_set_include_vector(zvec_group_by_vector_query_t q, int include) {
@@ -2145,7 +2145,7 @@ void zvec_group_by_vector_query_set_filter(zvec_group_by_vector_query_t q, const
 
 void zvec_group_by_vector_query_set_output_fields(zvec_group_by_vector_query_t q, const char** fields, int count) {
     if (!q) return;
-    if (fields && count >= 0) {
+    if (fields && count > 0) {
         std::vector<std::string> field_vec;
         field_vec.reserve(count);
         for (int i = 0; i < count; i++) {
@@ -2159,8 +2159,8 @@ void zvec_group_by_vector_query_set_radius(zvec_group_by_vector_query_t q, float
     if (!q) return;
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
     holder->radius_ = radius;
-    if (holder->query.query_params_) {
-        holder->query.query_params_->set_radius(radius);
+    if (holder->query.target_.query_params_) {
+        holder->query.target_.query_params_->set_radius(radius);
     }
 }
 
@@ -2168,8 +2168,8 @@ void zvec_group_by_vector_query_set_is_linear(zvec_group_by_vector_query_t q, in
     if (!q) return;
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
     holder->is_linear_ = (bool)is_linear;
-    if (holder->query.query_params_) {
-        holder->query.query_params_->set_is_linear((bool)is_linear);
+    if (holder->query.target_.query_params_) {
+        holder->query.target_.query_params_->set_is_linear((bool)is_linear);
     }
 }
 
@@ -2177,8 +2177,8 @@ void zvec_group_by_vector_query_set_using_refiner(zvec_group_by_vector_query_t q
     if (!q) return;
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
     holder->is_using_refiner_ = (bool)refiner;
-    if (holder->query.query_params_) {
-        holder->query.query_params_->set_is_using_refiner((bool)refiner);
+    if (holder->query.target_.query_params_) {
+        holder->query.target_.query_params_->set_is_using_refiner((bool)refiner);
     }
 }
 
@@ -2186,37 +2186,37 @@ void zvec_group_by_vector_query_set_using_refiner(zvec_group_by_vector_query_t q
 
 static void fill_doc_list(const DocPtrList& doc_list, zvec_query_result_t* result);
 
-static void ensure_query_params_for_field(Collection* c, VectorQuery& query, const VectorQueryHolder* holder) {
+static void ensure_query_params_for_field(Collection* c, SearchQuery& query, const VectorQueryHolder* holder) {
     // If query_params_ already set (via setHnswParams, setIvfParams, etc.), keep it
-    if (query.query_params_) return;
+    if (query.target_.query_params_) return;
 
     // If radius, is_linear, or is_using_refiner has non-default value, create params
     if (holder->radius_ != 0.0f || holder->is_linear_ || holder->is_using_refiner_) {
         // Try to determine the field's index type from schema
         auto schema_res = c->Schema();
         if (schema_res.has_value()) {
-            const FieldSchema* field = schema_res.value().get_field(query.field_name_.c_str());
+            const FieldSchema* field = schema_res.value().get_field(query.target_.field_name_.c_str());
             if (field) {
                 IndexType idx_type = field->index_type();
                 switch (idx_type) {
                     case IndexType::HNSW:
-                        query.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        query.target_.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         return;
                     case IndexType::IVF:
-                        query.query_params_ = std::make_shared<IVFQueryParams>(10, holder->is_using_refiner_);
-                        query.query_params_->set_radius(holder->radius_);
-                        query.query_params_->set_is_linear(holder->is_linear_);
+                        query.target_.query_params_ = std::make_shared<IVFQueryParams>(10, holder->is_using_refiner_);
+                        query.target_.query_params_->set_radius(holder->radius_);
+                        query.target_.query_params_->set_is_linear(holder->is_linear_);
                         return;
                     case IndexType::FLAT:
-                        query.query_params_ = std::make_shared<FlatQueryParams>(holder->is_using_refiner_);
-                        query.query_params_->set_radius(holder->radius_);
-                        query.query_params_->set_is_linear(holder->is_linear_);
+                        query.target_.query_params_ = std::make_shared<FlatQueryParams>(holder->is_using_refiner_);
+                        query.target_.query_params_->set_radius(holder->radius_);
+                        query.target_.query_params_->set_is_linear(holder->is_linear_);
                         return;
                     case IndexType::HNSW_RABITQ:
-                        query.query_params_ = std::make_shared<HnswRabitqQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        query.target_.query_params_ = std::make_shared<HnswRabitqQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         return;
                     case IndexType::VAMANA:
-                        query.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        query.target_.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         return;
                     default:
                         break;
@@ -2224,7 +2224,7 @@ static void ensure_query_params_for_field(Collection* c, VectorQuery& query, con
             }
         }
         // Fallback: use HNSW params if can't determine index type
-        query.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+        query.target_.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
     }
 }
 
@@ -2261,34 +2261,34 @@ zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, cons
     auto* holder = static_cast<GroupByVectorQueryHolder*>(q);
 
     // Ensure query params match the field's index type if radius/linear/refiner are set
-    if (!holder->query.query_params_ && (holder->radius_ != 0.0f || holder->is_linear_ || holder->is_using_refiner_)) {
+    if (!holder->query.target_.query_params_ && (holder->radius_ != 0.0f || holder->is_linear_ || holder->is_using_refiner_)) {
         auto schema_res = c->Schema();
         if (schema_res.has_value()) {
-            const FieldSchema* field = schema_res.value().get_field(holder->query.field_name_.c_str());
+            const FieldSchema* field = schema_res.value().get_field(holder->query.target_.field_name_.c_str());
             if (field) {
                 IndexType idx_type = field->index_type();
                 switch (idx_type) {
                     case IndexType::HNSW:
-                        holder->query.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        holder->query.target_.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         break;
                     case IndexType::IVF:
-                        holder->query.query_params_ = std::make_shared<IVFQueryParams>(10, holder->is_using_refiner_);
-                        holder->query.query_params_->set_radius(holder->radius_);
-                        holder->query.query_params_->set_is_linear(holder->is_linear_);
+                        holder->query.target_.query_params_ = std::make_shared<IVFQueryParams>(10, holder->is_using_refiner_);
+                        holder->query.target_.query_params_->set_radius(holder->radius_);
+                        holder->query.target_.query_params_->set_is_linear(holder->is_linear_);
                         break;
                     case IndexType::FLAT:
-                        holder->query.query_params_ = std::make_shared<FlatQueryParams>(holder->is_using_refiner_);
-                        holder->query.query_params_->set_radius(holder->radius_);
-                        holder->query.query_params_->set_is_linear(holder->is_linear_);
+                        holder->query.target_.query_params_ = std::make_shared<FlatQueryParams>(holder->is_using_refiner_);
+                        holder->query.target_.query_params_->set_radius(holder->radius_);
+                        holder->query.target_.query_params_->set_is_linear(holder->is_linear_);
                         break;
                     case IndexType::HNSW_RABITQ:
-                        holder->query.query_params_ = std::make_shared<HnswRabitqQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        holder->query.target_.query_params_ = std::make_shared<HnswRabitqQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         break;
                     case IndexType::VAMANA:
-                        holder->query.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        holder->query.target_.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         break;
                     default:
-                        holder->query.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        holder->query.target_.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         break;
                 }
             }
@@ -2378,11 +2378,11 @@ zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_na
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = topk;
-    query.field_name_ = field_name;
+    query.target_.field_name_ = field_name;
     query.include_vector_ = (bool)include_vector;
-    query.query_vector_.assign(reinterpret_cast<const char*>(query_vector), dim * sizeof(float));
+    query.target_.set_vector(std::string(reinterpret_cast<const char*>(query_vector), dim * sizeof(float)));
     if (filter && filter[0] != '\0') {
         query.filter_ = filter;
     }
@@ -2425,11 +2425,11 @@ zvec_status_t zvec_collection_query_fp16(zvec_collection_t coll, const char* fie
         fp16_vec.push_back(ailego::FloatHelper::ToFP32(query_vector[i]));
     }
     
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = topk;
-    query.field_name_ = field_name;
+    query.target_.field_name_ = field_name;
     query.include_vector_ = (bool)include_vector;
-    query.query_vector_.assign(reinterpret_cast<const char*>(fp16_vec.data()), dim * sizeof(ailego::Float16));
+    query.target_.set_vector(std::string(reinterpret_cast<const char*>(fp16_vec.data()), dim * sizeof(ailego::Float16)));
     if (filter && filter[0] != '\0') {
         query.filter_ = filter;
     }
@@ -2470,11 +2470,11 @@ zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* fie
 
     std::vector<double> fp64_vec(query_vector, query_vector + dim);
 
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = topk;
-    query.field_name_ = field_name;
+    query.target_.field_name_ = field_name;
     query.include_vector_ = (bool)include_vector;
-    query.query_vector_.assign(reinterpret_cast<const char*>(fp64_vec.data()), dim * sizeof(double));
+    query.target_.set_vector(std::string(reinterpret_cast<const char*>(fp64_vec.data()), dim * sizeof(double)));
     if (filter && filter[0] != '\0') {
         query.filter_ = filter;
     }
@@ -2490,8 +2490,8 @@ zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* fie
     return ok_status();
 }
 
-static void apply_output_fields(VectorQuery& query, const char** output_fields, int count) {
-    if (output_fields && count >= 0) {
+static void apply_output_fields(SearchQuery& query, const char** output_fields, int count) {
+    if (output_fields && count > 0) {
         std::vector<std::string> fields;
         fields.reserve(count);
         for (int i = 0; i < count; i++) {
@@ -2551,26 +2551,26 @@ static zvec_status_t validate_query_param_type(Collection* c, const char* field_
     return ok_status();
 }
 
-static void apply_query_params(VectorQuery& query, int type, int hnsw_ef, int ivf_nprobe,
+static void apply_query_params(SearchQuery& query, int type, int hnsw_ef, int ivf_nprobe,
                                   float radius, int is_linear, int is_using_refiner) {
     if (type == 1) {
-        query.query_params_ = std::make_shared<HnswQueryParams>(
+        query.target_.query_params_ = std::make_shared<HnswQueryParams>(
             hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
     } else if (type == 2) {
         auto params = std::make_shared<IVFQueryParams>(ivf_nprobe, (bool)is_using_refiner);
         params->set_radius(radius);
         params->set_is_linear((bool)is_linear);
-        query.query_params_ = params;
+        query.target_.query_params_ = params;
     } else if (type == 3) {
         auto params = std::make_shared<FlatQueryParams>((bool)is_using_refiner);
         params->set_radius(radius);
         params->set_is_linear((bool)is_linear);
-        query.query_params_ = params;
+        query.target_.query_params_ = params;
     } else if (type == 4) {
-        query.query_params_ = std::make_shared<HnswRabitqQueryParams>(
+        query.target_.query_params_ = std::make_shared<HnswRabitqQueryParams>(
             hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
     } else if (type == 5) {
-        query.query_params_ = std::make_shared<VamanaQueryParams>(
+        query.target_.query_params_ = std::make_shared<VamanaQueryParams>(
             hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
     }
 }
@@ -2614,11 +2614,11 @@ zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field
         return validation_status;
     }
     
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = topk;
-    query.field_name_ = field_name;
+    query.target_.field_name_ = field_name;
     query.include_vector_ = (bool)include_vector;
-    query.query_vector_.assign(reinterpret_cast<const char*>(query_vector), dim * sizeof(float));
+    query.target_.set_vector(std::string(reinterpret_cast<const char*>(query_vector), dim * sizeof(float)));
     if (filter && filter[0] != '\0') {
         query.filter_ = filter;
     }
@@ -2663,11 +2663,11 @@ zvec_status_t zvec_collection_query_fp64_ex(zvec_collection_t coll, const char* 
 
     std::vector<double> fp64_vec(query_vector, query_vector + dim);
 
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = topk;
-    query.field_name_ = field_name;
+    query.target_.field_name_ = field_name;
     query.include_vector_ = (bool)include_vector;
-    query.query_vector_.assign(reinterpret_cast<const char*>(fp64_vec.data()), dim * sizeof(double));
+    query.target_.set_vector(std::string(reinterpret_cast<const char*>(fp64_vec.data()), dim * sizeof(double)));
     if (filter && filter[0] != '\0') {
         query.filter_ = filter;
     }
@@ -2692,7 +2692,7 @@ zvec_status_t zvec_collection_query_filter(zvec_collection_t coll, const char* f
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = topk;
     query.filter_ = filter;
 
@@ -2716,7 +2716,7 @@ zvec_status_t zvec_collection_query_filter_ex(zvec_collection_t coll, const char
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = topk;
     query.filter_ = filter;
     apply_output_fields(query, output_fields, output_fields_count);
@@ -2761,16 +2761,16 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
     }
     
     GroupByVectorQuery query;
-    query.field_name_ = field_name;
-    query.query_vector_.assign(reinterpret_cast<const char*>(query_vector), dim * sizeof(float));
+    query.target_.field_name_ = field_name;
+    query.target_.set_vector(std::string(reinterpret_cast<const char*>(query_vector), dim * sizeof(float)));
     query.group_by_field_name_ = group_by_field;
     query.group_count_ = group_count;
-    query.group_topk_ = group_topk;
+    query.topk_per_group_ = group_topk;
     query.include_vector_ = (bool)include_vector;
     if (filter && filter[0] != '\0') {
         query.filter_ = filter;
     }
-    if (output_fields && output_fields_count >= 0) {
+    if (output_fields && output_fields_count > 0) {
         std::vector<std::string> fields;
         fields.reserve(output_fields_count);
         for (int i = 0; i < output_fields_count; i++) {
@@ -2779,20 +2779,20 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
         query.output_fields_ = std::move(fields);
     }
     if (query_param_type == 1) {
-        query.query_params_ = std::make_shared<HnswQueryParams>(
+        query.target_.query_params_ = std::make_shared<HnswQueryParams>(
             hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
     } else if (query_param_type == 2) {
         auto params = std::make_shared<IVFQueryParams>(ivf_nprobe, (bool)is_using_refiner);
         params->set_radius(radius);
         params->set_is_linear((bool)is_linear);
-        query.query_params_ = params;
+        query.target_.query_params_ = params;
     } else if (query_param_type == 3) {
         auto params = std::make_shared<FlatQueryParams>((bool)is_using_refiner);
         params->set_radius(radius);
         params->set_is_linear((bool)is_linear);
-        query.query_params_ = params;
+        query.target_.query_params_ = params;
     } else if (query_param_type == 5) {
-        query.query_params_ = std::make_shared<VamanaQueryParams>(
+        query.target_.query_params_ = std::make_shared<VamanaQueryParams>(
             hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
     }
 

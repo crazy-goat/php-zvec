@@ -799,7 +799,7 @@ PHP_METHOD(ZVec, fetch) {
 
 // --- Query helpers ---
 
-static void apply_output_fields(VectorQuery &query, zval *output_fields) {
+static void apply_output_fields(SearchQuery &query, zval *output_fields) {
     if (!output_fields || Z_TYPE_P(output_fields) != IS_ARRAY) return;
     HashTable *ht = Z_ARRVAL_P(output_fields);
     std::vector<std::string> fields;
@@ -807,23 +807,25 @@ static void apply_output_fields(VectorQuery &query, zval *output_fields) {
     ZEND_HASH_FOREACH_VAL(ht, val) {
         fields.emplace_back(Z_STRVAL_P(val), Z_STRLEN_P(val));
     } ZEND_HASH_FOREACH_END();
-    query.output_fields_ = std::move(fields);
+    if (!fields.empty()) {
+        query.output_fields_ = std::move(fields);
+    }
 }
 
-static void apply_query_params(VectorQuery &query, int type, int hnsw_ef, int ivf_nprobe,
+static void apply_query_params(SearchQuery &query, int type, int hnsw_ef, int ivf_nprobe,
                                float radius, bool is_linear, bool is_using_refiner) {
     if (type == 1) {
-        query.query_params_ = std::make_shared<HnswQueryParams>(hnsw_ef, radius, is_linear, is_using_refiner);
+        query.target_.query_params_ = std::make_shared<HnswQueryParams>(hnsw_ef, radius, is_linear, is_using_refiner);
     } else if (type == 2) {
         auto params = std::make_shared<IVFQueryParams>(ivf_nprobe, is_using_refiner);
         params->set_radius(radius);
         params->set_is_linear(is_linear);
-        query.query_params_ = params;
+        query.target_.query_params_ = params;
     } else if (type == 3) {
         auto params = std::make_shared<FlatQueryParams>(is_using_refiner);
         params->set_radius(radius);
         params->set_is_linear(is_linear);
-        query.query_params_ = params;
+        query.target_.query_params_ = params;
     }
 }
 
@@ -959,11 +961,11 @@ PHP_METHOD(ZVec, query) {
                 RETURN_THROWS();
             }
 
-            VectorQuery query_fp64;
+            SearchQuery query_fp64;
             query_fp64.topk_ = static_cast<int>(fetch_topk_fp64);
-            query_fp64.field_name_ = field_name_str;
+            query_fp64.target_.field_name_ = field_name_str;
             query_fp64.include_vector_ = (bool)include_vector;
-            query_fp64.query_vector_.assign(reinterpret_cast<const char *>(fp64_vec.data()), dim * sizeof(double));
+            query_fp64.target_.set_vector(std::string(reinterpret_cast<const char *>(fp64_vec.data()), dim * sizeof(double)));
             if (filter && filter[0] != '\0') query_fp64.filter_ = std::string(filter, filter_len);
             if (output_fields) apply_output_fields(query_fp64, output_fields);
             if (query_param_type != 0) {
@@ -996,11 +998,11 @@ PHP_METHOD(ZVec, query) {
         RETURN_THROWS();
     }
 
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = static_cast<int>(fetch_topk);
-    query.field_name_ = field_name_str;
+    query.target_.field_name_ = field_name_str;
     query.include_vector_ = (bool)include_vector;
-    query.query_vector_.assign(reinterpret_cast<const char *>(vec_data.data()), vec_data.size() * sizeof(float));
+    query.target_.set_vector(std::string(reinterpret_cast<const char *>(vec_data.data()), vec_data.size() * sizeof(float)));
     if (filter && filter[0] != '\0') {
         query.filter_ = std::string(filter, filter_len);
     }
@@ -1080,11 +1082,11 @@ PHP_METHOD(ZVec, queryFp16) {
         fp16_vec.push_back(ailego::FloatHelper::ToFP32(static_cast<uint16_t>(zval_get_long(v))));
     } ZEND_HASH_FOREACH_END();
 
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = static_cast<int>(topk);
-    query.field_name_ = std::string(field, field_len);
+    query.target_.field_name_ = std::string(field, field_len);
     query.include_vector_ = (bool)include_vector;
-    query.query_vector_.assign(reinterpret_cast<const char *>(fp16_vec.data()), dim * sizeof(ailego::Float16));
+    query.target_.set_vector(std::string(reinterpret_cast<const char *>(fp16_vec.data()), dim * sizeof(ailego::Float16)));
     if (filter && filter[0] != '\0') query.filter_ = std::string(filter, filter_len);
 
     auto res = intern->collection->Query(query);
@@ -1123,11 +1125,11 @@ PHP_METHOD(ZVec, queryFp64) {
         fp64_vec.push_back(zval_get_double(v));
     } ZEND_HASH_FOREACH_END();
 
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = static_cast<int>(topk);
-    query.field_name_ = std::string(field, field_len);
+    query.target_.field_name_ = std::string(field, field_len);
     query.include_vector_ = (bool)include_vector;
-    query.query_vector_.assign(reinterpret_cast<const char *>(fp64_vec.data()), dim * sizeof(double));
+    query.target_.set_vector(std::string(reinterpret_cast<const char *>(fp64_vec.data()), dim * sizeof(double)));
     if (filter && filter[0] != '\0') query.filter_ = std::string(filter, filter_len);
 
     auto res = intern->collection->Query(query);
@@ -1192,11 +1194,11 @@ PHP_METHOD(ZVec, queryMulti) {
 
         zend_long fetch_topk = std::max(topk * 2, (zend_long)100);
 
-        VectorQuery query;
+        SearchQuery query;
         query.topk_ = static_cast<int>(fetch_topk);
-        query.field_name_ = field_name;
+        query.target_.field_name_ = field_name;
         query.include_vector_ = false;
-        query.query_vector_.assign(reinterpret_cast<const char *>(vec_data.data()), vec_data.size() * sizeof(float));
+        query.target_.set_vector(std::string(reinterpret_cast<const char *>(vec_data.data()), vec_data.size() * sizeof(float)));
         if (filter && filter[0] != '\0') query.filter_ = std::string(filter, filter_len);
         if (output_fields) apply_output_fields(query, output_fields);
         int pt = static_cast<int>(Z_LVAL_P(qpt));
@@ -1248,7 +1250,7 @@ PHP_METHOD(ZVec, queryByFilter) {
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
 
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = static_cast<int>(topk);
     query.filter_ = std::string(filter, filter_len);
     if (output_fields) apply_output_fields(query, output_fields);
@@ -1316,11 +1318,11 @@ PHP_METHOD(ZVec, queryById) {
         RETURN_THROWS();
     }
 
-    VectorQuery query;
+    SearchQuery query;
     query.topk_ = static_cast<int>(topk);
-    query.field_name_ = fname;
+    query.target_.field_name_ = fname;
     query.include_vector_ = (bool)include_vector;
-    query.query_vector_.assign(reinterpret_cast<const char *>(vec.data()), vec.size() * sizeof(float));
+    query.target_.set_vector(std::string(reinterpret_cast<const char *>(vec.data()), vec.size() * sizeof(float)));
     if (filter && filter[0] != '\0') query.filter_ = std::string(filter, filter_len);
     if (output_fields) apply_output_fields(query, output_fields);
     if (query_param_type != 0) {
@@ -1403,11 +1405,11 @@ PHP_METHOD(ZVec, groupByQuery) {
     }
 
     GroupByVectorQuery query;
-    query.field_name_ = field_name_str;
-    query.query_vector_.assign(reinterpret_cast<const char *>(vec_data.data()), vec_data.size() * sizeof(float));
+    query.target_.field_name_ = field_name_str;
+    query.target_.set_vector(std::string(reinterpret_cast<const char *>(vec_data.data()), vec_data.size() * sizeof(float)));
     query.group_by_field_name_ = std::string(group_by_field, group_by_field_len);
     query.group_count_ = static_cast<uint32_t>(group_count);
-    query.group_topk_ = static_cast<uint32_t>(group_topk);
+    query.topk_per_group_ = static_cast<uint32_t>(group_topk);
     query.include_vector_ = (bool)include_vector;
     if (filter && filter[0] != '\0') query.filter_ = std::string(filter, filter_len);
     if (output_fields) {
@@ -1417,7 +1419,9 @@ PHP_METHOD(ZVec, groupByQuery) {
         ZEND_HASH_FOREACH_VAL(ht, val) {
             fields.emplace_back(Z_STRVAL_P(val), Z_STRLEN_P(val));
         } ZEND_HASH_FOREACH_END();
-        query.output_fields_ = std::move(fields);
+        if (!fields.empty()) {
+            query.output_fields_ = std::move(fields);
+        }
     }
     if (query_param_type != 0) {
         if (!validate_query_param_type(intern->collection.get(), field_name_str, static_cast<int>(query_param_type))) {
@@ -1426,18 +1430,18 @@ PHP_METHOD(ZVec, groupByQuery) {
     }
 
     if (query_param_type == 1) {
-        query.query_params_ = std::make_shared<HnswQueryParams>(
+        query.target_.query_params_ = std::make_shared<HnswQueryParams>(
             static_cast<int>(hnsw_ef), static_cast<float>(radius), (bool)is_linear, (bool)is_using_refiner);
     } else if (query_param_type == 2) {
         auto params = std::make_shared<IVFQueryParams>(static_cast<int>(ivf_nprobe), (bool)is_using_refiner);
         params->set_radius(static_cast<float>(radius));
         params->set_is_linear((bool)is_linear);
-        query.query_params_ = params;
+        query.target_.query_params_ = params;
     } else if (query_param_type == 3) {
         auto params = std::make_shared<FlatQueryParams>((bool)is_using_refiner);
         params->set_radius(static_cast<float>(radius));
         params->set_is_linear((bool)is_linear);
-        query.query_params_ = params;
+        query.target_.query_params_ = params;
     }
 
     auto res = intern->collection->GroupByQuery(query);

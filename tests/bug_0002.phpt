@@ -1,7 +1,5 @@
 --TEST--
-Bug 0002: GroupByQuery does not return proper groups
---XFAIL--
-ZVec marks Grouped Query as "Coming Soon" - returns all docs in single group with empty group_by_value
+Bug 0002: GroupByQuery does not return proper groups (fixed in zvec v0.6.0)
 --SKIPIF--
 <?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-ZVEC_VERSION="${ZVEC_VERSION:-v0.4.0}"
+ZVEC_VERSION="${ZVEC_VERSION:-v0.6.0}"
 MARCH="${MARCH:-nehalem}"
 JOBS="${JOBS:-$(nproc)}"
 PLATFORM="${PLATFORM:-ubuntu24-x86_64}"

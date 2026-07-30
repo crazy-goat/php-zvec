@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 env:
-  ZVEC_VERSION: v0.4.0
-  ZVEC_BUILD_RELEASE: zvec-build-v0.4.0
+  ZVEC_VERSION: v0.6.0
+  ZVEC_BUILD_RELEASE: zvec-build-v0.6.0
 
 jobs:
   setup-zvec:
@@ -29,7 +29,7 @@ jobs:
         run: |
           PREBUILT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
           ./build_zvec_lib.sh "$ZVEC_VERSION" "$PREBUILT_URL"
-          test -f zvec/build/lib/libzvec_db.a
+          test -f zvec/build/lib/libzvec.a
           test -d zvec/src/include
           test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
 
@@ -73,7 +73,7 @@ jobs:
         run: |
           tar -xzf zvec-pkg.tar.gz
           rm zvec-pkg.tar.gz
-          test -f zvec/build/lib/libzvec_db.a
+          test -f zvec/build/lib/libzvec.a
           test -d zvec/src/include
           test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
 
@@ -107,7 +107,7 @@ jobs:
           g++ -shared -fPIC -DPIC \
             .libs/*.o \
             -Wl,--whole-archive \
-              $ZVEC_LIB/libzvec_db.a \
+              $ZVEC_LIB/libzvec.a \
               $ZVEC_LIB/libzvec_ailego.a \
               $ZVEC_LIB/libzvec_core.a \
               $ZVEC_LIB/libzvec_turbo.a \
@@ -156,7 +156,7 @@ jobs:
         run: |
           tar -xzf zvec-pkg.tar.gz
           rm zvec-pkg.tar.gz
-          test -f zvec/build/lib/libzvec_db.a
+          test -f zvec/build/lib/libzvec.a
           test -d zvec/src/include
           test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
 

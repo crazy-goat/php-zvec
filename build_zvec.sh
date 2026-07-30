@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-ZVEC_VERSION="${1:-v0.4.0}"
+ZVEC_VERSION="${1:-v0.6.0}"
 
 echo "=== Step 1/2: Build zvec library ${ZVEC_VERSION} ==="
 ./build_zvec_lib.sh "$ZVEC_VERSION"

@@ -44,13 +44,13 @@ zvec-php/
 ./build_zvec_lib.sh [version]
 ```
 
-Default version is `v0.4.0`. The script checks `zvec/build/.zvec_version` — if the
+Default version is `v0.6.0`. The script checks `zvec/build/.zvec_version` — if the
 stamp matches, the build is skipped. If the version changes, it auto-updates the
 git checkout and rebuilds.
 
 For CI with prebuilt download:
 ```bash
-./build_zvec_lib.sh v0.4.0 "https://url-to-prebuilt.tar.gz"
+./build_zvec_lib.sh v0.6.0 "https://url-to-prebuilt.tar.gz"
 ```
 
 ### Step 2: Build the FFI shared library (requires zvec already built)
@@ -125,8 +125,8 @@ Before marking any task as DONE:
 
 1. **Build the FFI library** (if C++ changes):
    ```bash
-   # If zvec version changed (e.g. new v0.5.0):
-   ./build_zvec_lib.sh v0.4.0
+   # If zvec version changed (e.g. new v0.7.0):
+   ./build_zvec_lib.sh v0.6.0
 
    # Rebuild FFI wrapper (always if ffi/*.cc or ffi/*.h changed):
    ./build_ffi.sh
