@@ -111,12 +111,15 @@ class ZVec
     /**
      * @internal
      * @param string[] $strings
-     * @return array{FFI\CData, int, FFI\CData[]}
+     * @return array{?FFI\CData, int, FFI\CData[]}
      */
     public static function toCStringArray(FFI $ffi, array $strings): array
     {
         $cStrings = [];
         $count = count($strings);
+        if ($count === 0) {
+            return [null, 0, $cStrings];
+        }
         $arr = $ffi->new("char*[$count]", false);
         foreach ($strings as $i => $s) {
             $len = strlen($s) + 1;

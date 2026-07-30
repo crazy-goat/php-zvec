@@ -127,7 +127,7 @@ Before opening a PR, verify that the project builds and all tests pass:
 
 ```bash
 # Build zvec C++ library (skips if already built for this version)
-./build_zvec_lib.sh v0.4.0
+./build_zvec_lib.sh v0.6.0
 
 # Build FFI shared library
 ./build_ffi.sh
@@ -309,7 +309,7 @@ git push origin feat/issue-<NUMBER>-<description>
 # ... fix issues ... (repeat until clean)
 
 # 6. Build and test locally
-./build_zvec_lib.sh v0.4.0
+./build_zvec_lib.sh v0.6.0
 ./build_ffi.sh
 php run-tests.php tests/
 
@@ -340,7 +340,7 @@ git checkout main && git pull origin main
 - The CI builds zvec from source only once per workflow run and caches it
   as an artifact for downstream jobs (ext + ffi).
 - Pre-built zvec artifacts are stored in GitHub Releases under the
-  `zvec-build-v0.4.0` release tag and downloaded by CI to avoid rebuilding
+  `zvec-build-v0.6.0` release tag and downloaded by CI to avoid rebuilding
   from source on every PR.
 - Test databases are created in `test_dbs/` (git-ignored). Always clean up
   after test runs: `rm -rf test_dbs/*/`

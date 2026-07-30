@@ -60,7 +60,7 @@ fi
 
 # --- Check if already built for this version ---
 if [ -f "$STAMP_FILE" ] && [ "$(cat "$STAMP_FILE")" = "$ZVEC_VERSION" ]; then
-    if [ -f zvec/build/lib/libzvec_db.a ]; then
+    if [ -f zvec/build/lib/libzvec.a ]; then
         echo "zvec ${ZVEC_VERSION} already built (stamp matches), skipping build"
         exit 0
     fi

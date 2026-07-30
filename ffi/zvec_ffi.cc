@@ -109,9 +109,9 @@ const char* zvec_error_code_to_string(int error_code) {
 // Version information — sourced from zvec zvec_version.h (build-time generated)
 // When updating the zvec version, update these constants to match.
 static constexpr int kVersionMajor = 0;
-static constexpr int kVersionMinor = 4;
+static constexpr int kVersionMinor = 6;
 static constexpr int kVersionPatch = 0;
-static constexpr const char* kVersionString = "v0.4.0";
+static constexpr const char* kVersionString = "v0.6.0";
 
 const char* zvec_get_version(void) {
     return kVersionString;
