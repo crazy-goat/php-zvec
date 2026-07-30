@@ -9,6 +9,7 @@ if (extension_loaded('zvec') && !extension_loaded('ffi')) die('skip FFI-based te
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../src/ZVec.php';
+set_error_handler(static fn(int $errno, string $message): bool => $errno === E_USER_DEPRECATED && str_contains($message, ' is deprecated, use createIndex()'));
 
 $path = __DIR__ . '/../test_dbs/docenh_' . uniqid();
 

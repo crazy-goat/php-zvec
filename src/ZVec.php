@@ -606,6 +606,7 @@ class ZVec
      */
     public function createHnswIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $m = self::DEFAULT_HNSW_M, int $efConstruction = self::DEFAULT_HNSW_EF_CONSTRUCTION, int $quantizeType = 0, int $concurrency = 0, bool $useContiguousMemory = false): void
     {
+        trigger_error('createHnswIndex() is deprecated, use createIndex() with ZVecIndexParams::forHnsw() instead', E_USER_DEPRECATED);
         $this->createIndex($fieldName, ZVecIndexParams::forHnsw($metricType, $m, $efConstruction, $quantizeType, $useContiguousMemory), $concurrency);
     }
 
@@ -614,6 +615,7 @@ class ZVec
      */
     public function createHnswRabitqIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $totalBits = 7, int $numClusters = 16, int $m = self::DEFAULT_HNSW_M, int $efConstruction = self::DEFAULT_HNSW_EF_CONSTRUCTION, int $sampleCount = 0, int $concurrency = 0): void
     {
+        trigger_error('createHnswRabitqIndex() is deprecated, use createIndex() with ZVecIndexParams::forHnswRabitq() instead', E_USER_DEPRECATED);
         $this->createIndex($fieldName, ZVecIndexParams::forHnswRabitq($metricType, $totalBits, $numClusters, $m, $efConstruction, $sampleCount), $concurrency);
     }
 
@@ -622,6 +624,7 @@ class ZVec
      */
     public function createFlatIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $quantizeType = 0, int $concurrency = 0): void
     {
+        trigger_error('createFlatIndex() is deprecated, use createIndex() with ZVecIndexParams::forFlat() instead', E_USER_DEPRECATED);
         $this->createIndex($fieldName, ZVecIndexParams::forFlat($metricType, $quantizeType), $concurrency);
     }
 
@@ -630,6 +633,7 @@ class ZVec
      */
     public function createIvfIndex(string $fieldName, int $metricType = ZVecSchema::METRIC_IP, int $nList = 1024, int $nIters = 10, bool $useSoar = false, int $quantizeType = 0, int $concurrency = 0): void
     {
+        trigger_error('createIvfIndex() is deprecated, use createIndex() with ZVecIndexParams::forIvf() instead', E_USER_DEPRECATED);
         $this->createIndex($fieldName, ZVecIndexParams::forIvf($metricType, $nList, $nIters, $useSoar, $quantizeType), $concurrency);
     }
 

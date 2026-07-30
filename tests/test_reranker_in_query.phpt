@@ -9,6 +9,7 @@ if (!method_exists('ZVec', 'queryWithReranker')) die('skip queryWithReranker() n
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';
+set_error_handler(static fn(int $errno, string $message): bool => $errno === E_USER_DEPRECATED && str_contains($message, ' is deprecated, use createIndex()'));
 require_once __DIR__ . '/../src/ZVecRrfReRanker.php';
 require_once __DIR__ . '/../src/ZVecWeightedReRanker.php';
 
