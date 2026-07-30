@@ -27,7 +27,6 @@ set(ZVEC_STATIC_LIBS
 set(ZVEC_EXTERNAL_LIBS
     ${ZVEC_LIB}/libFastPFOR.a
     ${ZVEC_LIB}/libsnowball.a
-    ${ZVEC_LIB}/libutf8proc.a
     ${ZVEC_EXTERNAL_LIB}/librocksdb.a
     ${ZVEC_EXTERNAL_LIB}/libarrow.a
     ${ZVEC_EXTERNAL_LIB}/libarrow_acero.a
