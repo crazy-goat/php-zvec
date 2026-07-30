@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-ZVEC_VERSION="${1:-v0.4.0}"
+ZVEC_VERSION="${1:-v0.6.0}"
 PREBUILT_URL="${2:-}"
 
 OS="$(uname -s)"

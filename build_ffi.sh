@@ -17,7 +17,7 @@ else
 fi
 
 # --- Check zvec is built ---
-if [ ! -f zvec/build/lib/libzvec_db.a ]; then
+if [ ! -f zvec/build/lib/libzvec.a ]; then
     echo "Error: zvec library not built. Run ./build_zvec_lib.sh first."
     exit 1
 fi
