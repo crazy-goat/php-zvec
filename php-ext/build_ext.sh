@@ -6,7 +6,7 @@ cd "$SCRIPT_DIR"
 
 echo "=== Building zvec PHP extension ==="
 
-if [ ! -f "../zvec/build/lib/libzvec_db.a" ]; then
+if [ ! -f "../zvec/build/lib/libzvec.a" ]; then
     echo "ERROR: zvec C++ library not built. Run ./build_zvec.sh first."
     exit 1
 fi

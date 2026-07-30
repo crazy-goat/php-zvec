@@ -44,6 +44,9 @@ if test "$PHP_ZVEC" != "no"; then
   case $host_os in
     darwin*)
       ZVEC_EXTERNAL_LIBS=" \
+        $ZVEC_LIB/libFastPFOR.a \
+        $ZVEC_LIB/libsnowball.a \
+        $ZVEC_LIB/libutf8proc.a \
         $ZVEC_EXTERNAL_LIB/librocksdb.a \
         $ZVEC_EXTERNAL_LIB/libarrow.a \
         $ZVEC_EXTERNAL_LIB/libarrow_acero.a \
@@ -52,6 +55,7 @@ if test "$PHP_ZVEC" != "no"; then
         $ZVEC_EXTERNAL_LIB/libarrow_bundled_dependencies.a \
         $ZVEC_EXTERNAL_LIB/libparquet.a \
         $ZVEC_EXTERNAL_LIB/libprotobuf.a \
+        $ZVEC_EXTERNAL_LIB/libprotoc.a \
         $ZVEC_EXTERNAL_LIB/libantlr4-runtime.a \
         $ZVEC_EXTERNAL_LIB/libglog.a \
         $ZVEC_EXTERNAL_LIB/libgflags_nothreads.a \
@@ -65,20 +69,10 @@ if test "$PHP_ZVEC" != "no"; then
   esac
 
   ZVEC_CORE_LIBS=" \
-    $ZVEC_LIB/libzvec_db.a \
+    $ZVEC_LIB/libzvec.a \
     $ZVEC_LIB/libzvec_ailego.a \
-    $ZVEC_LIB/libcore_metric.a \
-    $ZVEC_LIB/libcore_knn_hnsw.a \
-    $ZVEC_LIB/libcore_knn_hnsw_sparse.a \
-    $ZVEC_LIB/libcore_knn_flat.a \
-    $ZVEC_LIB/libcore_knn_flat_sparse.a \
-    $ZVEC_LIB/libcore_knn_ivf.a \
-    $ZVEC_LIB/libcore_knn_cluster.a \
-    $ZVEC_LIB/libcore_quantizer.a \
-    $ZVEC_LIB/libcore_utility.a \
-    $ZVEC_LIB/libcore_mix_reducer.a \
-    $ZVEC_LIB/libcore_framework.a \
-    $ZVEC_LIB/libcore_interface.a"
+    $ZVEC_LIB/libzvec_core.a \
+    $ZVEC_LIB/libzvec_turbo.a"
 
   case $host_os in
     darwin*)

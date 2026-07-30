@@ -121,5 +121,5 @@ Test 1 - Basic query: 10 results
 Test 2 - Linear search: 10 results
 Test 3 - IVF linear search: 10 results
 Test 4 - HNSW with ef=50: 10 results
-Test 5 - GroupBy with linear: 1 groups
+Test 5 - GroupBy with linear: 2 groups
 All tests passed!
