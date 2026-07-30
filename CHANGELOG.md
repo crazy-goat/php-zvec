@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-30
+
+### Fixed
+
+- **Platform-specific test failures on macOS**
+  - `test_installer_platform.phpt` — `platformLabel()` returns "macOS arm64" on Darwin; test now accepts the `macOS` prefix instead of requiring `PHP_OS_FAMILY` verbatim
+  - `test_installer_lib_name.phpt` — switched to `--EXPECTF--` with `%s` wildcards (`.dylib` vs `.so`)
+  - `test_installer_resolve_asset_name.phpt` — unified platform-identifier and architecture assertions to produce identical output on Linux and macOS
+  - `test_hnsw_rabitq_index.phpt` — now skips on non-Linux-x86_64 platforms (RaBitQ is supported on Linux x86_64 only)
+
 ### Added
 
 - **DOC-006: Complete README.md update with all missing features and sections** (#65)
@@ -1062,7 +1072,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/alibaba/zvec-php/compare/v0.4.11...HEAD
+[Unreleased]: https://github.com/crazy-goat/php-zvec/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/crazy-goat/php-zvec/compare/v0.4.10...v0.5.0
 [0.4.11]: https://github.com/crazy-goat/php-zvec/compare/v0.4.10...v0.4.11
 [0.4.10]: https://github.com/alibaba/zvec-php/compare/v0.4.9...v0.4.10
 [0.4.9]: https://github.com/alibaba/zvec-php/compare/v0.4.8...v0.4.9

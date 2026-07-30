@@ -1,7 +1,10 @@
 --TEST--
 HNSW RaBitQ index: create, insert with dim >= 64, optimize, query
 --SKIPIF--
-<?php if (!extension_loaded('ffi')) die('skip FFI extension not available'); ?>
+<?php
+if (!extension_loaded('ffi')) die('skip FFI extension not available');
+if (PHP_OS_FAMILY !== 'Linux' || php_uname('m') !== 'x86_64') die('skip RaBitQ supported on Linux x86_64 only');
+?>
 --FILE--
 <?php
 require_once __DIR__ . '/../src/ZVec.php';

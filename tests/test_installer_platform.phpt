@@ -9,7 +9,9 @@ use CrazyGoat\ZVec\Installer;
 
 $label = Installer::platformLabel();
 
-if (str_contains($label, PHP_OS_FAMILY)) {
+$osMatch = str_contains($label, PHP_OS_FAMILY)
+    || (PHP_OS_FAMILY === 'Darwin' && str_contains($label, 'macOS'));
+if ($osMatch) {
     echo "Platform label contains OS family: PASS\n";
 } else {
     echo "FAIL: Platform label missing OS family\n";
