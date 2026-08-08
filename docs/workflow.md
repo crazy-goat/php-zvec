@@ -2,25 +2,63 @@
 
 This document describes the complete workflow for handling issues in the
 [crazy-goat/php-zvec](https://github.com/crazy-goat/php-zvec) repository
-using `gh` and `git`.
+using `gh`, `git` and **Pi subagents**.
+
+The main agent acts as an **orchestrator**: it delegates issue triage,
+implementation and code review to subagents, then synthesizes the results,
+while the parent session keeps control of branching, committing, pushing
+and merging.
 
 ---
 
-## 1. Browse Open Issues
+## Subagent Selection
 
-```bash
-# List open issues (title, number, labels)
-gh issue list --state open --limit 30
+| Stage | Universal agent (default) | More specialized (task difficulty) |
+|-------|---------------------------|------------------------------------|
+| Issue triage | `explore` or `delegate` | — |
+| API research | `researcher` | `explore` / `context-builder` (repo-local) |
+| Planning (optional) | `planner` | `oracle` (challenge the direction) |
+| Implementation | `coder` | `coder-high`, `worker` (harder/riskier) |
+| Code review | `review` | `review-critical`, `reviewer` (risky/large) |
 
-# View a specific issue (description, labels, state)
-gh issue view <NUMBER> --json title,body,labels,state
-```
+**Rule of thumb:** always start with the universal agents (`explore`, `coder`,
+`review`). Pick a more specialized agent only when the task difficulty
+justifies it — e.g. `coder-high` for multi-file or risky changes, `worker`
+when following an approved plan, `review-critical` for security- or
+data-sensitive changes.
 
-**Criteria for selecting the most impactful issue:**
+Each subagent receives a **focused task** with: the exact goal, the scope
+(files/branch), constraints and the expected output shape. Subagents must
+**not commit or push** — that stays in the parent session.
+
+`coder` and `review` subagents also maintain the project knowledge base in
+`docs/helpers/` (FAQ, common mistakes, decisions) and collect out-of-scope
+findings as follow-up issue candidates — see sections 4, 5 and the
+"Knowledge Base" section below.
+
+---
+
+## 1. Browse Open Issues (subagent)
+
+Delegate issue triage to a subagent (`explore` or `delegate`):
+
+```text
+Task: "List ALL open issues — `--limit 30` is only `gh`'s default value,
+there may be more. Use `gh issue list --state open --limit 100 --json
+number,title,labels` (or paginate with `--page N`) until every open issue
+has been seen. Inspect the most promising ones with
+`gh issue view <NUMBER> --json title,body,labels,state`.
+Recommend the top 3 most impactful issues, each with a one-line
+justification. Do not modify anything."
+
+Criteria:
 - Issues labeled `enhancement`, `bug`, `good-first-issue`
 - Issues about stability, memory leaks, data correctness
 - Issues blocking other tasks
 - Issues most relevant to users (documentation, API coverage)
+```
+
+The parent picks one issue from the recommendation and proceeds.
 
 ---
 
@@ -43,21 +81,59 @@ git checkout -b feat/issue-<NUMBER>-<short-description>
 
 ---
 
-## 3. Research Before Implementation
+## 3. Research Before Implementation (subagent)
 
-Before coding, verify the API against reference implementations:
+Before coding, delegate API verification to a subagent (`researcher`, or
+`explore` for repository-local checks):
 
-1. **Check zvec documentation**: https://zvec.org/en/docs/
-2. **Check Node.js API**: https://zvec.org/api-reference/nodejs/ for reference
-3. **Check Python SDK** in `zvec/python/zvec/` for actual implementation details
-4. **Check C++ headers** in `zvec/src/include/zvec/db/` to verify what's supported
+```text
+Task: "Verify the API for issue #<NUMBER> against reference implementations:
+1. zvec documentation (https://zvec.org/en/docs/)
+2. Node.js API (https://zvec.org/api-reference/nodejs/) — exact enum values,
+   parameter names, defaults
+3. Python SDK in `zvec/python/zvec/` — actual implementation details
+4. C++ headers in `zvec/src/include/zvec/db/` — what the C++ layer supports
+Return a concise summary: enum values, signatures, defaults, and any
+intentional deviation the PHP binding must make. Do not modify files."
+```
 
 ---
 
-## 4. Implement the Change
+## 4. Implement the Change (subagent)
+
+Delegate implementation to a subagent. The universal agent is **`coder`**; for
+harder, multi-file or riskier changes use **`coder-high`** (or `worker` when
+following an approved plan).
+
+```text
+Task: "Implement issue #<NUMBER> on branch <branch>. Requirements: <summary>.
+Follow AGENTS.md conventions: PSR-4 structure, PHP 8.1+ with full type
+declarations, `checkStatus()` after every FFI call, free C strings, `.phpt`
+test with try-finally cleanup and uniqid() temp directory. Run the tests:
+`php run-tests.php -n tests/`. Do NOT commit or push."
+```
+
+**Follow-up candidates:** during implementation the `coder` subagent collects
+findings worth fixing later but out of scope for the current issue (tech
+debt, suspected bugs, API gaps). At the end it reports them to the user and
+asks whether to open them as GitHub issues — **it never creates issues
+without explicit user approval**:
+
+```text
+Final step: "List follow-up candidates found during implementation (out of
+scope, tech debt, potential bugs). For each: short title, one-line
+description, suggested label (e.g. `enhancement`, `bug`). Ask the user
+whether to create them with `gh issue create` and create only those the
+user approves."
+```
+
+**Knowledge base:** after implementation the `coder` subagent appends
+non-obvious findings to `docs/helpers/` (common mistakes, decisions, API
+details worth remembering) — see "Knowledge Base (docs/helpers/)" below.
+
+After the subagent finishes, the parent commits and pushes:
 
 ```bash
-# Edit files, then commit and push
 git add -A
 git commit -m "feat: implement <short description> (closes #<NUMBER>)"
 git push origin feat/issue-<NUMBER>-<description>
@@ -73,7 +149,12 @@ git push origin feat/issue-<NUMBER>-<description>
 ## 5. Code Review via Subagent
 
 After implementation, run a code review using a subagent (separate agent with
-its own context). The subagent checks:
+its own context). The universal agent is **`review`**; for security-sensitive,
+large or high-risk changes use **`review-critical`** instead. For very large
+changes you may split the review into parallel lanes (one subagent per
+concern: correctness, memory, tests) and aggregate the results.
+
+The review subagent checks:
 
 - Alignment with project structure (PSR-4, FFI patterns, class naming)
 - Type correctness and signatures (PHP 8.1+, full type declarations)
@@ -83,22 +164,39 @@ its own context). The subagent checks:
 - Test coverage (`.phpt` test required for every feature)
 - API compatibility with Node.js/Python SDKs
 
-```bash
-# The subagent receives a task like:
-# "Code review the changes in files: <list of files>.
-#  Check: type correctness, error handling, memory leaks,
-#  missing tests, outdated documentation.
-#  List all issues to fix."
+```text
+Task: "Code review the uncommitted/committed changes for issue #<NUMBER>
+(files: <list of files> or `git diff origin/main...HEAD`).
+Check: type correctness, error handling, memory leaks, missing tests,
+outdated documentation. List all issues to fix, ordered by severity.
+Do NOT modify files."
 ```
+
+**Follow-up candidates:** findings that are out of scope for the current
+issue (style debt, potential improvements, minor bugs) are reported back as
+follow-up issue candidates — at the end the subagent asks the user whether
+to create them with `gh issue create` and creates only those the user
+approves (same rule as for the `coder` subagent, section 4).
+
+**Knowledge base:** the `review` subagent also appends recurring mistakes and
+notable decisions to `docs/helpers/` (see "Knowledge Base (docs/helpers/)"
+below).
 
 ---
 
 ## 6. Fix Issues Found in Code Review
 
+For each problem found, either fix it directly in the parent or delegate the
+fixes back to the `coder` subagent:
+
+```text
+Task: "Apply the fixes from code review: <list of issues>. Follow AGENTS.md.
+Run `php run-tests.php -n tests/` after fixing. Do NOT commit or push."
+```
+
+Then commit and push:
+
 ```bash
-# For each problem found:
-# 1. Apply the fix
-# 2. Commit with a descriptive message
 git add -A
 git commit -m "fix: <description of fix>"
 git push origin feat/issue-<NUMBER>-<description>
@@ -110,7 +208,8 @@ git push origin feat/issue-<NUMBER>-<description>
 
 ## 7. Repeat Code Review
 
-After fixing, invoke the subagent for another code review.
+After fixing, invoke the review subagent (`review` / `review-critical`)
+again on the updated diff.
 
 Repeat steps 5→6 until the subagent reports no issues.
 
@@ -183,6 +282,9 @@ ls test_dbs/
 # - Include issue number, e.g. (#123)
 ```
 
+This can also be delegated to a `coder` subagent along with a final
+`review` pass over the docs change.
+
 ---
 
 ## 10. Create a Pull Request
@@ -249,18 +351,25 @@ gh pr checks
 
 # 2. View logs
 gh run view --log --job <job-name>
+```
 
-# 3. Fix the issues locally
-# 4. Run code review via subagent again (repeat steps 5-7)
-# 5. Run tests locally
+Then:
+
+3. Delegate investigation of the failure to an `explore` subagent (give it
+   the failing job name and log excerpt)
+4. Fix the issues — delegate to `coder` (or `coder-high` if complex)
+5. Run code review via subagent again (repeat steps 5-7)
+6. Run tests locally
+
+```bash
 php run-tests.php -n tests/
 
-# 6. Commit the fixes
+# 7. Commit the fixes
 git add -A
 git commit -m "fix: <description of CI fix>"
 git push origin feat/issue-<NUMBER>-<description>
 
-# 7. Wait for CI to re-run
+# 8. Wait for CI to re-run
 gh pr checks --watch
 ```
 
@@ -290,29 +399,49 @@ git pull origin main
 
 Done. Ready to start the next cycle from step 1.
 
+## Knowledge Base (docs/helpers/)
+
+`coder` and `review` subagents maintain a persistent knowledge base in
+`docs/helpers/` so that lessons learned carry over to future tasks:
+
+- `docs/helpers/faq.md` — frequently asked questions, recurring pitfalls
+  (FFI memory leaks, `test_dbs/` cleanup, the `-n` flag) and their solutions
+- `docs/helpers/decisions.md` — important decisions with rationale
+  (API compatibility with Node.js/Python SDKs, naming, deviations)
+- `docs/helpers/README.md` — structure and rules for the knowledge base
+
+Subagents **read** the knowledge base before starting a task and **append**
+short entries after finishing (one topic, the problem, the
+solution/decision, optionally an issue/commit reference). In doubt, ask the
+user before adding a new entry.
+
 ---
 
 ## Quick Reference – Full Cycle
 
-```bash
-# 1. Pick an issue
-gh issue list --state open --limit 30
-gh issue view <NUMBER>
+```text
+# 1. Pick an issue (subagent: explore/delegate)
+#    Task: "gh issue list --state open --limit 100 (or paginate — 30 is just
+#           the default limit), recommend top 3"
 
 # 2. Feature branch
 git checkout main && git pull origin main
 git checkout -b feat/issue-<NUMBER>-<description>
 
-# 3. Research API (Node.js, Python, C++)
-#    https://zvec.org/api-reference/nodejs/
+# 3. Research API (subagent: researcher)
+#    Node.js / Python SDK / C++ headers — https://zvec.org/api-reference/nodejs/
 
-# 4. Implementation
-# ... coding ...
+# 4. Implementation (subagent: coder, or coder-high for hard tasks)
+#    Task: "Implement #<NUMBER>, follow AGENTS.md, add .phpt test,
+#           run php run-tests.php -n tests/, do NOT commit"
 git add -A && git commit -m "feat: implement <desc> (closes #<NUMBER>)"
 git push origin feat/issue-<NUMBER>-<description>
 
-# 5. Code Review (subagent)
-# ... fix issues ... (repeat until clean)
+# 5. Code Review (subagent: review, or review-critical for risky changes)
+#    Task: "Review git diff origin/main...HEAD, list issues, do NOT modify"
+#    ... fix issues (coder) ... repeat until clean
+#    coder/review: collect follow-up issue candidates → ask user → gh issue create
+#    coder/review: append learnings to docs/helpers/ (faq.md, decisions.md)
 
 # 6. Build and test locally
 ./build_zvec_lib.sh v0.6.0
@@ -326,7 +455,8 @@ gh pr create --title "feat: <desc> (closes #<NUMBER>)" --body "..." --base main
 
 # 9. CI
 gh pr checks --watch
-# ... if failures → fix, code review, push → wait for CI (repeat)
+# ... if failures → investigate (explore), fix (coder), review (review),
+#     push → wait for CI (repeat)
 
 # 10. Merge
 gh pr merge --squash --delete-branch
@@ -343,6 +473,16 @@ git checkout main && git pull origin main
 - **gh** must be configured and authenticated (`gh auth status`).
 - This project has **no linting/static analysis pipeline** (no php-cs-fixer,
   phpstan, psalm). Follow conventions manually — see `AGENTS.md`.
+- Subagents do the heavy lifting (triage, research, coding, review); the
+  parent orchestrates, synthesizes and keeps authority over commits, pushes
+  and merges. Subagents must be told explicitly to **not commit or push**.
+- Follow-up issues: `coder`/`review` subagents collect out-of-scope
+  findings and only create GitHub issues after explicit user approval.
+- Knowledge base: FAQ, common mistakes and decisions live in
+  `docs/helpers/` (`faq.md`, `decisions.md`) — subagents read it before
+  starting and update it after each task.
+- Subagents run locally and have read/write/edit/bash access. Give them clear
+  instructions: goal, scope, constraints, expected output.
 - The CI builds zvec from source only once per workflow run and caches it
   as an artifact for downstream jobs (ext + ffi).
 - Pre-built zvec artifacts are stored in GitHub Releases under the
@@ -356,8 +496,6 @@ git checkout main && git pull origin main
   git rebase origin/main
   git push --force-with-lease origin feat/issue-<NUMBER>-<description>
   ```
-- Code review via subagent runs locally – the subagent has access to
-  read/write/edit/bash tools. Give it clear instructions on what to check.
 - For release workflow (tagging, CHANGELOG, version bump), see the
   "Release Workflow" section in `AGENTS.md`. Never push tags — user
   pushes manually.
