@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`queryVector()` honors radius/linear/refiner set before `set*Params()`** (#197)
+  - Calling `setRadius()`, `setLinear()`, or `setUsingRefiner()` on a `ZVecVectorQuery` *before* any `set*Params()` method previously dropped those settings silently (the param setters replaced `query_params_` wholesale) — queries ran with wrong settings (e.g. radius 0.0) and no error.
+  - FFI: `merge_stored_query_settings()` now applies stored radius/linear/refiner onto the params object right after each param setter (`set_hnsw_ef`, `set_hnsw_rabitq_ef`, `set_vamana_ef_search`, `set_ivf_nprobe`, `set_flat_mode`), so setter order no longer matters for HNSW, IVF, Vamana, RaBitQ and Flat.
+  - Note: a second `set*Params()` call no longer implicitly resets previously set radius/linear/refiner (merge semantics — set `setRadius(0.0)` to restore the default).
+  - Added regression test `test_query_params_order.phpt`.
+
+### Fixed
+
 - **Random rotation for INT8/INT4 quantization** (#177)
   - `ZVecIndexParams::setQuantizerEnableRotate(bool)` (fluent) enables random rotation before INT8/INT4 quantization for HNSW, Flat, IVF, and Vamana indexes — reduces quantization error and improves recall on quantized indexes.
   - Mirrors upstream zvec v0.6.0 `QuantizerParam(enable_rotate)` (C API: `zvec_index_params_set_quantizer_enable_rotate`).
