@@ -137,7 +137,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
     {
         $this->queryParamType = ZVec::QUERY_PARAM_HNSW_RABITQ;
         $this->hnswEf = $ef;
-        self::ffi()->zvec_vector_query_set_hnsw_ef($this->handle, $ef);
+        self::ffi()->zvec_vector_query_set_hnsw_rabitq_ef($this->handle, $ef);
         return $this;
     }
 
@@ -163,7 +163,7 @@ class ZVecVectorQuery implements ZVecQueryInterface
     {
         $this->queryParamType = ZVec::QUERY_PARAM_VAMANA;
         $this->hnswEf = $efSearch;
-        self::ffi()->zvec_vector_query_set_hnsw_ef($this->handle, $efSearch);
+        self::ffi()->zvec_vector_query_set_vamana_ef_search($this->handle, $efSearch);
         return $this;
     }
 

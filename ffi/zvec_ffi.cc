@@ -2067,6 +2067,18 @@ void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef) {
     holder->query.target_.query_params_ = std::make_shared<HnswQueryParams>(ef);
 }
 
+void zvec_vector_query_set_hnsw_rabitq_ef(zvec_vector_query_t q, int ef) {
+    if (!q) return;
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->query.target_.query_params_ = std::make_shared<HnswRabitqQueryParams>(ef);
+}
+
+void zvec_vector_query_set_vamana_ef_search(zvec_vector_query_t q, int ef_search) {
+    if (!q) return;
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->query.target_.query_params_ = std::make_shared<VamanaQueryParams>(ef_search);
+}
+
 void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);

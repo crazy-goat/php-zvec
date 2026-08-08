@@ -58,3 +58,22 @@ FFI call via `self::checkStatus()`.
 
 **Solution:** only `close()` if the collection may be reopened; never use
 an object after `destroy()`.
+
+---
+
+### queryVector() enforces query-param/index-type match
+
+**Problem:** `queryVector()` rejects a query when the params' index type
+(`HnswQueryParams`, `VamanaQueryParams`, ...) differs from the field's index
+type (validation in `zvec/src/db/index/common/query.cc`).
+`setVamanaParams()`/`setHnswRabitqParams()` used to call
+`zvec_vector_query_set_hnsw_ef` (HnswQueryParams), so queryVector() on
+Vamana/RaBitQ indexes always failed with INVALID_ARGUMENT.
+
+**Solution:** dedicated FFI setters create the matching params class:
+`zvec_vector_query_set_vamana_ef_search` → `VamanaQueryParams`,
+`zvec_vector_query_set_hnsw_rabitq_ef` → `HnswRabitqQueryParams`.
+The legacy `query()` path was never affected (it rebuilds params per
+`queryParamType`).
+
+**Reference:** issue #193.
