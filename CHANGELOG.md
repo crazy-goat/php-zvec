@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Deprecated index creation warnings** (#169)
   - The FFI bindings’ `createHnswIndex()`, `createHnswRabitqIndex()`, `createFlatIndex()`, and `createIvfIndex()` now emit `E_USER_DEPRECATED` before delegating to the unified `createIndex()` API.
+- **Regression gate against zvec v0.6.0** (#175)
+  - Full `.phpt` suite verified (FFI mode, `-n`): 0 failures, only expected XFAILs (VECTOR_FP64, upstream-blocked) and the expected RaBitQ platform SKIP (Linux x86_64 only)
+  - All 12 legacy `tests/bug_*.php` scripts pass against v0.6.0; cleaned-up statuses for `bug_0005_cleanup_after_failed_ops.php` and `bug_0006_rocksdb_lock.php` (no issues observed on v0.6.0)
+  - `test_buffer_retry.phpt` now actually runs (previously it always skipped: the SKIPIF checked `method_exists()` before loading the library — fixed by requiring `src/ZVec.php` first)
+  - Legacy `test_installer_platform.php` accepts the `macOS` label prefix on Darwin, matching its `.phpt` counterpart
+  - Documented the `-n` requirement (pre-installed legacy extension shadows FFI classes — #188) and the `run-tests.php` legacy-file deletion hazard (#187) in `AGENTS.md` / `README.md`
 
 ## [0.5.0] - 2026-07-30
 

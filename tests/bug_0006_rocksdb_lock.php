@@ -3,9 +3,9 @@
  * Bug reproduction: RocksDB lock handling after failures
  * 
  * Expected: No locks remain after proper cleanup
- * Actual: (To be determined - checking if lock issues exist)
+ * Actual: Destroy→recreate, rapid create/fail/destroy cycles, and close→reopen all succeed without lock-related errors on zvec v0.6.0
  * 
- * Status: Investigation in progress
+ * Status: No issue observed on zvec v0.6.0 (verified 2026-08-08) — no lock-related errors on destroy/recreate or close/reopen
  * Location: FFI layer - RocksDB lock management
  */
 

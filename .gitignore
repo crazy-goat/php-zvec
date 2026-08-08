@@ -19,6 +19,9 @@ tests/*.sh
 *.phar
 /.idea/
 
+# pi-subagents run artifacts
+.pi-subagents/
+
 # Local CI testing
 .act/
 
