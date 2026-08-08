@@ -127,6 +127,11 @@ whether to create them with `gh issue create` and create only those the
 user approves."
 ```
 
+**Verify every candidate first:** before reporting, each finding must be
+checked for technical truth (with file:line evidence) and for existing
+GitHub issues — see "Follow-up Candidate Verification" below. Drop findings
+that are FALSE or already tracked.
+
 **Knowledge base:** after implementation the `coder` subagent appends
 non-obvious findings to `docs/helpers/` (common mistakes, decisions, API
 details worth remembering) — see "Knowledge Base (docs/helpers/)" below.
@@ -176,7 +181,39 @@ Do NOT modify files."
 issue (style debt, potential improvements, minor bugs) are reported back as
 follow-up issue candidates — at the end the subagent asks the user whether
 to create them with `gh issue create` and creates only those the user
-approves (same rule as for the `coder` subagent, section 4).
+approves (same rule as for the `coder` subagent, section 4). Each candidate
+is verified before reporting (technical truth + duplicate check) — see
+"Follow-up Candidate Verification" below.
+
+### Follow-up Candidate Verification
+
+Before any follow-up candidate is reported to the user, the subagent
+verifies it:
+
+1. **Technical truth** — check the actual source code; cite file:line
+evidence. Verdicts: `CONFIRMED` / `PARTIALLY TRUE` / `FALSE`. Drop FALSE
+findings.
+2. **Duplicate check on GitHub** — list EVERY issue, open and closed:
+   there may be more than 30 (`--limit 30` is only `gh`'s default):
+   ```bash
+   gh issue list --state all --limit 100 --json number,title,state
+   # if exactly 100 are returned, paginate until a page returns fewer:
+   gh issue list --state all --limit 100 --page 2 --json number,title,state
+   ```
+   plus keyword search: `gh search issues "<keywords>"`. If an existing
+   issue already covers the finding → verdict `ALREADY TRACKED` with the
+   issue number; do not propose a new issue (unless the overlap is only
+   tangential — then say so explicitly and reference the existing issue).
+3. **Report** — one line per finding: verdict, one-line evidence (file:line),
+   suggested label.
+
+Example report line:
+
+```text
+CONFIRMED (not tracked): src/ZVecVectorQuery.php:136,162 —
+setVamanaParams()/setHnswRabitqParams() create HnswQueryParams →
+queryVector() rejected by engine (query.cc:173) — label: bug, priority:high
+```
 
 **Knowledge base:** the `review` subagent also appends recurring mistakes and
 notable decisions to `docs/helpers/` (see "Knowledge Base (docs/helpers/)"
@@ -440,7 +477,9 @@ git push origin feat/issue-<NUMBER>-<description>
 # 5. Code Review (subagent: review, or review-critical for risky changes)
 #    Task: "Review git diff origin/main...HEAD, list issues, do NOT modify"
 #    ... fix issues (coder) ... repeat until clean
-#    coder/review: collect follow-up issue candidates → ask user → gh issue create
+#    coder/review: collect follow-up candidates → verify (truth + gh
+#                  duplicate check: --state all --limit 100, PAGINATE)
+#                  → ask user → gh issue create
 #    coder/review: append learnings to docs/helpers/ (faq.md, decisions.md)
 
 # 6. Build and test locally
@@ -477,7 +516,10 @@ git checkout main && git pull origin main
   parent orchestrates, synthesizes and keeps authority over commits, pushes
   and merges. Subagents must be told explicitly to **not commit or push**.
 - Follow-up issues: `coder`/`review` subagents collect out-of-scope
-  findings and only create GitHub issues after explicit user approval.
+  findings, verify each one (technical truth + duplicate check against ALL
+  issues — `--limit 30` is just `gh`'s default, there may be more, so use
+  `--limit 100` and paginate) and only create GitHub issues after explicit
+  user approval.
 - Knowledge base: FAQ, common mistakes and decisions live in
   `docs/helpers/` (`faq.md`, `decisions.md`) — subagents read it before
   starting and update it after each task.
