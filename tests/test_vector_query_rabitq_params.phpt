@@ -62,4 +62,3 @@ try {
 %AqueryVector with HNSW RaBitQ params returned %d results, top: doc0
 %AHNSW params on RaBitQ index correctly rejected: INVALID_ARGUMENT
 %APASS: queryVector with setHnswRabitqParams works
-%A
