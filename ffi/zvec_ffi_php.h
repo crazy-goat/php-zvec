@@ -340,6 +340,8 @@ void zvec_vector_query_set_include_vector(zvec_vector_query_t q, int include);
 void zvec_vector_query_set_filter(zvec_vector_query_t q, const char* filter);
 void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fields, int count);
 void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef);
+void zvec_vector_query_set_hnsw_rabitq_ef(zvec_vector_query_t q, int ef);
+void zvec_vector_query_set_vamana_ef_search(zvec_vector_query_t q, int ef_search);
 void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe);
 void zvec_vector_query_set_flat_mode(zvec_vector_query_t q);
 void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius);

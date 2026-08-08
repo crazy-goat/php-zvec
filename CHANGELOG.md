@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`queryVector()` with Vamana / HNSW RaBitQ query params** (#193)
+  - `ZVecVectorQuery::setVamanaParams()` and `setHnswRabitqParams()` previously created an `HnswQueryParams` object, so `queryVector()` on Vamana/RaBitQ indexes was always rejected by the engine (`query params type does not match the index type of vector field`).
+  - FFI: added `zvec_vector_query_set_vamana_ef_search()` (`VamanaQueryParams`) and `zvec_vector_query_set_hnsw_rabitq_ef()` (`HnswRabitqQueryParams`), mirroring `apply_query_params`; the legacy `query()` path was unaffected.
+  - Added regression tests `test_vector_query_vamana_params.phpt` and `test_vector_query_rabitq_params.phpt` (RaBitQ runs on Linux x86_64 only).
+
+### Fixed
+
 - **Deprecated index creation warnings** (#169)
   - The FFI bindings’ `createHnswIndex()`, `createHnswRabitqIndex()`, `createFlatIndex()`, and `createIvfIndex()` now emit `E_USER_DEPRECATED` before delegating to the unified `createIndex()` API.
 - **Regression gate against zvec v0.6.0** (#175)
