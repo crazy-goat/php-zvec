@@ -73,8 +73,11 @@ This will:
 ### 3. Verify installation (FFI mode)
 
 ```bash
-php run-tests.php tests/
+php run-tests.php -n tests/
 ```
+
+> **Note:** The `-n` flag (no php.ini) is required to avoid a legacy
+> pre-installed `zvec` PHP extension shadowing the FFI classes (#188).
 
 ### Alternative: Build the native PHP extension
 
@@ -727,14 +730,17 @@ $rerankedDoc->getSourceScores(): array       // ['fieldName' => score, ...]
 
 ## Running Tests
 
-### .phpt test suite (works with both FFI and native extension)
+### .phpt test suite (FFI mode)
 ```bash
-php run-tests.php tests/
+php run-tests.php -n tests/
 ```
+
+> **Note:** Run with `-n` (no php.ini). A legacy pre-installed `zvec` PHP
+> extension (v0.4.10) shadows the FFI classes and breaks the suite (#188).
 
 ### Integration tests
 ```bash
-php run-tests.php tests/
+php run-tests.php -n tests/
 ```
 
 ## Project Structure

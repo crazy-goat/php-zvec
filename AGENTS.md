@@ -76,20 +76,27 @@ This calls `build_zvec_lib.sh` then `build_ffi.sh`.
 ### Run the integration test suite
 
 ```bash
-php run-tests.php tests/
+php run-tests.php -n tests/
 ```
+
+> **Note:** Always run the suite with `-n` (no php.ini). Machines with the
+> legacy `zvec` PHP extension (v0.4.10, `php-ext/`) installed in `php.ini`
+> shadow the FFI classes: `src/ZVec.php` bails out early
+> (`if (extension_loaded('zvec')) return;`) and FFI-only classes like
+> `ZVecIndexParams` never load, causing widespread test failures (#188).
+> The `-n` flag disables the extension in the child PHP processes.
 
 ### Run .phpt tests (standard PHP test format)
 
 ```bash
 # Run all phpt tests
-php run-tests.php tests/
+php run-tests.php -n tests/
 
 # Run single phpt test
-php run-tests.php tests/test_error_handling.phpt
+php run-tests.php -n tests/test_error_handling.phpt
 
 # Run with verbose output
-php run-tests.php -v tests/
+php run-tests.php -n -v tests/
 ```
 
 The `run-tests.php` script is bundled with this project (from php-src).
@@ -97,13 +104,22 @@ It parses `.phpt` files and executes the PHP code within `--FILE--` sections.
 
 ### Run legacy PHP test scripts
 
+Legacy scripts must also be run with `-n` so they test the FFI bindings
+instead of a pre-installed `zvec` extension (#188):
+
 ```bash
 # Run a single test
-php tests/test_error_handling.php
+php -n tests/test_error_handling.php
 
 # Run all tests (old format)
-for f in tests/*.php; do php "$f"; done
+for f in tests/*.php; do php -n "$f"; done
 ```
+
+> **Warning:** `run-tests.php` derives the executable path from the `.phpt`
+> basename in the same directory and **unlinks it unconditionally** — running
+> the suite deletes legacy tracked `tests/<name>.php` files that share a
+> basename with a `.phpt` file (#187). Back them up first, or restore with
+> `git checkout -- tests/` after the run.
 
 ### Run all tests (both formats)
 
@@ -111,8 +127,11 @@ for f in tests/*.php; do php "$f"; done
 # Build first if needed
 ./build_zvec.sh
 
-# Run all tests
-php run-tests.php tests/
+# Run all tests (phpt suite)
+php run-tests.php -n tests/
+
+# Run legacy scripts (restore deleted tests/*.php first, see warning above)
+for f in tests/*.php; do php -n "$f"; done
 ```
 
 ## Testing Requirements
@@ -137,12 +156,13 @@ Before marking any task as DONE:
 
 2. **Run all .phpt tests**:
    ```bash
-   php run-tests.php tests/
+   php run-tests.php -n tests/
    ```
 
 3. **Run all tests**:
    ```bash
-   php run-tests.php tests/
+   php run-tests.php -n tests/
+   for f in tests/*.php; do php -n "$f"; done   # legacy scripts (restore deleted files first, see #187)
    ```
 
 4. **Verify test databases cleaned up:**
@@ -345,7 +365,7 @@ require_once __DIR__ . '/../src/ZVec.php';
 **Current format (.phpt):**
 - Test files use `.phpt` format in `tests/` directory
 - Each test uses `--TEST--`, `--SKIPIF--`, `--FILE--`, `--EXPECT--` sections
-- Run via `php run-tests.php tests/`
+- Run via `php run-tests.php -n tests/` (the `-n` flag avoids a legacy pre-installed `zvec` extension shadowing the FFI classes — see "Run the integration test suite")
 - Each test creates unique temp directory with `uniqid()` and cleans up with `try-finally`
 - **Test naming:**
   - `tests/bug_NNNN.php` (zero-padded 4-digit number) - bug reproduction scripts  

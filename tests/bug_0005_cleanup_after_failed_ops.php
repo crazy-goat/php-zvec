@@ -3,9 +3,9 @@
  * Bug reproduction: Cleanup safety after failed operations
  * 
  * Expected: Collection can be safely closed/destroyed after failed operations
- * Actual: (To be determined - checking if issues exist)
+ * Actual: All scenarios (failed insert → close/destroy, failed insert + DDL → close, mixed failures) pass on zvec v0.6.0
  * 
- * Status: Investigation in progress
+ * Status: No issue observed on zvec v0.6.0 (verified 2026-08-08) — close/destroy/DDL stay safe after failed ops
  * Location: php/ZVec.php - cleanup logic
  */
 
@@ -96,6 +96,7 @@ try {
         echo "  DDL after failed insert: OK\n";
     } catch (Throwable $e) {
         echo "  DDL failed: " . $e->getMessage() . "\n";
+        $success = false;
     }
     
     try {

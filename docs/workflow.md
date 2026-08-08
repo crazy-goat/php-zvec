@@ -140,15 +140,21 @@ The FFI shared library must already exist. If not, run `./build_zvec.sh`.
 ### Run all tests:
 
 ```bash
-# Run all .phpt tests
-php run-tests.php tests/
+# Run all .phpt tests (always with -n: a legacy pre-installed zvec PHP extension
+# shadows the FFI classes and breaks the suite — see issue #188)
+php run-tests.php -n tests/
 
 # Run specific test file
-php run-tests.php tests/test_<feature>.phpt
+php run-tests.php -n tests/test_<feature>.phpt
 
 # Run with verbose output
-php run-tests.php -v tests/
+php run-tests.php -n -v tests/
 ```
+
+> **Warning:** `run-tests.php` unlinks legacy tracked `tests/<name>.php` files
+> that share a basename with a `.phpt` file (issue #187). Back them up first
+> or restore with `git checkout -- tests/` after a run. Conversely the same
+> restore reverts any local edits to those files — keep fixes re-applied.
 
 > **Note:** If you see database errors, clean up stale test directories:
 > ```bash
@@ -247,7 +253,7 @@ gh run view --log --job <job-name>
 # 3. Fix the issues locally
 # 4. Run code review via subagent again (repeat steps 5-7)
 # 5. Run tests locally
-php run-tests.php tests/
+php run-tests.php -n tests/
 
 # 6. Commit the fixes
 git add -A
@@ -311,7 +317,7 @@ git push origin feat/issue-<NUMBER>-<description>
 # 6. Build and test locally
 ./build_zvec_lib.sh v0.6.0
 ./build_ffi.sh
-php run-tests.php tests/
+php run-tests.php -n tests/
 
 # 7. Update CHANGELOG.md
 

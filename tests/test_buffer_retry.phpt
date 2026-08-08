@@ -3,6 +3,7 @@ Buffer retry logic: getArrayString, fieldNames, vectorNames, getArrayBool, schem
 --SKIPIF--
 <?php
 if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available');
+require_once __DIR__ . '/../src/ZVec.php';
 if (!method_exists('ZVecSchema', 'addArrayString')) die('skip addArrayString not available');
 ?>
 --FILE--
