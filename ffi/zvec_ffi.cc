@@ -904,6 +904,7 @@ struct IndexParamsHolder {
     int rabitq_num_clusters_;
     int rabitq_sample_count_;
     bool hnsw_use_contiguous_memory_;
+    bool quantizer_enable_rotate_;
     int vamana_max_degree_;
     int vamana_search_list_size_;
     float vamana_alpha_;
@@ -918,26 +919,43 @@ struct IndexParamsHolder {
           invert_enable_range_(true), invert_enable_wildcard_(false),
           rabitq_total_bits_(7), rabitq_num_clusters_(16), rabitq_sample_count_(0),
           hnsw_use_contiguous_memory_(false),
+          quantizer_enable_rotate_(false),
           vamana_max_degree_(64), vamana_search_list_size_(100), vamana_alpha_(1.2f),
           vamana_saturate_graph_(false), vamana_use_contiguous_memory_(false), vamana_use_id_map_(false) {}
 
     IndexParams::Ptr build() const {
+        IndexParams::Ptr params;
         switch (type_) {
             case IndexType::HNSW:
-                return std::make_shared<HnswIndexParams>(metric_type_, hnsw_m_, hnsw_ef_construction_, quantize_type_, hnsw_use_contiguous_memory_);
+                params = std::make_shared<HnswIndexParams>(metric_type_, hnsw_m_, hnsw_ef_construction_, quantize_type_, hnsw_use_contiguous_memory_);
+                break;
             case IndexType::HNSW_RABITQ:
-                return std::make_shared<HnswRabitqIndexParams>(metric_type_, rabitq_total_bits_, rabitq_num_clusters_, hnsw_m_, hnsw_ef_construction_, rabitq_sample_count_);
+                params = std::make_shared<HnswRabitqIndexParams>(metric_type_, rabitq_total_bits_, rabitq_num_clusters_, hnsw_m_, hnsw_ef_construction_, rabitq_sample_count_);
+                break;
             case IndexType::FLAT:
-                return std::make_shared<FlatIndexParams>(metric_type_, quantize_type_);
+                params = std::make_shared<FlatIndexParams>(metric_type_, quantize_type_);
+                break;
             case IndexType::IVF:
-                return std::make_shared<IVFIndexParams>(metric_type_, ivf_n_list_, ivf_n_iters_, ivf_use_soar_, quantize_type_);
+                params = std::make_shared<IVFIndexParams>(metric_type_, ivf_n_list_, ivf_n_iters_, ivf_use_soar_, quantize_type_);
+                break;
             case IndexType::INVERT:
-                return std::make_shared<InvertIndexParams>(invert_enable_range_, invert_enable_wildcard_);
+                params = std::make_shared<InvertIndexParams>(invert_enable_range_, invert_enable_wildcard_);
+                break;
             case IndexType::VAMANA:
-                return std::make_shared<VamanaIndexParams>(metric_type_, vamana_max_degree_, vamana_search_list_size_, vamana_alpha_, vamana_saturate_graph_, vamana_use_contiguous_memory_, vamana_use_id_map_, quantize_type_);
+                params = std::make_shared<VamanaIndexParams>(metric_type_, vamana_max_degree_, vamana_search_list_size_, vamana_alpha_, vamana_saturate_graph_, vamana_use_contiguous_memory_, vamana_use_id_map_, quantize_type_);
+                break;
             default:
                 return nullptr;
         }
+        if (quantizer_enable_rotate_) {
+            // Rotation applies only to vector index types; non-vector types (INVERT)
+            // silently skip it (upstream C API rejects with INVALID_ARGUMENT instead).
+            auto* vector_params = dynamic_cast<VectorIndexParams*>(params.get());
+            if (vector_params) {
+                vector_params->set_quantizer_param(QuantizerParam(true));
+            }
+        }
+        return params;
     }
 };
 
@@ -1020,6 +1038,12 @@ void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantiz
     if (!params) return;
     auto* h = static_cast<IndexParamsHolder*>(params);
     h->quantize_type_ = to_quantize_type(quantize_type);
+}
+
+void zvec_index_params_set_quantizer_enable_rotate(zvec_index_params_t params, int enable_rotate) {
+    if (!params) return;
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->quantizer_enable_rotate_ = (bool)enable_rotate;
 }
 
 void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type) {

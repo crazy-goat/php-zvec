@@ -144,6 +144,21 @@ class ZVecIndexParams
         return new self($handle);
     }
 
+    /**
+     * Enable/disable random rotation before INT8/INT4 quantization.
+     *
+     * Only effective with QUANTIZE_INT8 or QUANTIZE_INT4 quantize types.
+     * When enabled, vectors are randomly rotated before quantization to
+     * reduce quantization error (improves recall for quantized indexes).
+     *
+     * @throws ZVecException On FFI error
+     */
+    public function setQuantizerEnableRotate(bool $enableRotate): self
+    {
+        self::ffi()->zvec_index_params_set_quantizer_enable_rotate($this->handle, $enableRotate ? 1 : 0);
+        return $this;
+    }
+
     private static function ffi(): FFI
     {
         return ZVec::ffi();
