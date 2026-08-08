@@ -2017,6 +2017,18 @@ struct GroupByVectorQueryHolder {
     bool is_using_refiner_ = false;
 };
 
+// Merge radius/is_linear/is_using_refiner set before a set*Params() call into
+// the newly created params so setter ordering does not matter (#197).
+// Constructor defaults for these fields are 0.0f/false/false, so an
+// unconditional merge is a no-op when they were never set.
+static void merge_stored_query_settings(const VectorQueryHolder* holder) {
+    auto& params = holder->query.target_.query_params_;
+    if (!params) return;
+    params->set_radius(holder->radius_);
+    params->set_is_linear(holder->is_linear_);
+    params->set_is_using_refiner(holder->is_using_refiner_);
+}
+
 zvec_vector_query_t zvec_vector_query_create(void) {
     auto* holder = new VectorQueryHolder();
     return static_cast<zvec_vector_query_t>(holder);
@@ -2065,30 +2077,35 @@ void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.target_.query_params_ = std::make_shared<HnswQueryParams>(ef);
+    merge_stored_query_settings(holder);
 }
 
 void zvec_vector_query_set_hnsw_rabitq_ef(zvec_vector_query_t q, int ef) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.target_.query_params_ = std::make_shared<HnswRabitqQueryParams>(ef);
+    merge_stored_query_settings(holder);
 }
 
 void zvec_vector_query_set_vamana_ef_search(zvec_vector_query_t q, int ef_search) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.target_.query_params_ = std::make_shared<VamanaQueryParams>(ef_search);
+    merge_stored_query_settings(holder);
 }
 
 void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.target_.query_params_ = std::make_shared<IVFQueryParams>(nprobe);
+    merge_stored_query_settings(holder);
 }
 
 void zvec_vector_query_set_flat_mode(zvec_vector_query_t q) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.target_.query_params_ = std::make_shared<FlatQueryParams>();
+    merge_stored_query_settings(holder);
 }
 
 void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius) {
