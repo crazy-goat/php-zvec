@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -2351,7 +2352,9 @@ zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, cons
 
 // --- Fetch ---
 
-zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result) {
+zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count,
+                                     const char** output_fields, int output_field_count,
+                                     zvec_query_result_t* result) {
     if (!coll) {
         zvec_status_t st = {1, "null handle"};
         SET_FFI_ERROR(st);
@@ -2363,7 +2366,21 @@ zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, in
     for (int i = 0; i < count; i++) {
         pk_vec.emplace_back(pks[i]);
     }
-    auto res = c->Fetch(pk_vec);
+    std::optional<std::vector<std::string>> cpp_output_fields;
+    if (output_fields && output_field_count > 0) {
+        std::vector<std::string> fields;
+        fields.reserve(output_field_count);
+        for (int i = 0; i < output_field_count; i++) {
+            if (!output_fields[i]) {
+                zvec_status_t st = {1, "null output field"};
+                SET_FFI_ERROR(st);
+                return st;
+            }
+            fields.emplace_back(output_fields[i]);
+        }
+        cpp_output_fields = std::move(fields);
+    }
+    auto res = c->Fetch(pk_vec, cpp_output_fields);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;

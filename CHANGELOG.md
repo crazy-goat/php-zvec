@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`fetch()` with `outputFields` parameter** (#176)
+  - `ZVecCollection::fetch()` now accepts an optional output-fields array to select which scalar columns are returned: `fetch(['pk1', 'pk2'], ['name', 'score'])`.
+  - BC-compatible: the legacy variadic form `fetch('pk1', 'pk2')` (all fields) still works unchanged.
+  - Mirrors upstream zvec C API `zvec_collection_fetch` output-fields semantics (v0.5.0+, alibaba/zvec#358): unknown field names are silently ignored; vector fields are always included.
+  - FFI: `zvec_collection_fetch` extended with `output_fields` / `output_field_count` parameters (empty → all fields, matching upstream `std::nullopt` semantics).
+
+### Fixed
+
 - **Random rotation for INT8/INT4 quantization** (#177)
   - `ZVecIndexParams::setQuantizerEnableRotate(bool)` (fluent) enables random rotation before INT8/INT4 quantization for HNSW, Flat, IVF, and Vamana indexes — reduces quantization error and improves recall on quantized indexes.
   - Mirrors upstream zvec v0.6.0 `QuantizerParam(enable_rotate)` (C API: `zvec_index_params_set_quantizer_enable_rotate`).

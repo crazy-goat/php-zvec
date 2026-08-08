@@ -327,7 +327,9 @@ void zvec_group_by_vector_query_set_is_linear(zvec_group_by_vector_query_t q, in
 void zvec_group_by_vector_query_set_using_refiner(zvec_group_by_vector_query_t q, int refiner);
 
 // Fetch
-zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result);
+zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count,
+                                     const char** output_fields, int output_field_count,
+                                     zvec_query_result_t* result);
 
 // Query
 zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_name,

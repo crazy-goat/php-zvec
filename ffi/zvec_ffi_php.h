@@ -251,7 +251,9 @@ zvec_status_t zvec_collection_upsert_batch(zvec_collection_t coll, zvec_doc_t* d
 zvec_status_t zvec_collection_update_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result);
 void zvec_batch_result_free(zvec_batch_result_t* result);
 
-zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count, zvec_query_result_t* result);
+zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count,
+                                     const char** output_fields, int output_field_count,
+                                     zvec_query_result_t* result);
 
 zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_name,
                                      const float* query_vector, uint32_t dim,

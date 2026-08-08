@@ -739,24 +739,57 @@ class ZVec
     }
 
     /**
+     * Fetch documents by PK. Accepts variadic PK strings (fetch('a', 'b')) or
+     * an array form with optional output fields (fetch(['a', 'b'], ['name'])).
+     *
      * @return ZVecDoc[]
      * @throws ZVecException On FFI error
      */
-    public function fetch(string ...$pks): array
+    public function fetch(array|string ...$args): array
     {
         $this->checkClosed();
+        if (empty($args)) {
+            throw new ZVecException('At least one PK is required');
+        }
+        if (is_array($args[0])) {
+            if (count($args) > 2) {
+                throw new ZVecException('Unexpected extra arguments: expected pks array and optional outputFields');
+            }
+            $pks = $args[0];
+            $outputFields = $args[1] ?? null;
+        } else {
+            $pks = $args;
+            $outputFields = null;
+        }
         if (empty($pks)) {
             throw new ZVecException('At least one PK is required');
         }
+        foreach ($pks as $pk) {
+            if (!is_string($pk) || $pk === '') {
+                throw new ZVecException('PKs must be non-empty strings');
+            }
+        }
+        if ($outputFields !== null) {
+            if (!is_array($outputFields)) {
+                throw new ZVecException('outputFields must be an array of non-empty strings');
+            }
+            foreach ($outputFields as $field) {
+                if (!is_string($field) || $field === '') {
+                    throw new ZVecException('outputFields must contain only non-empty strings');
+                }
+            }
+        }
         $ffi = self::ffi();
         [$arr, $count, $cStrings] = self::toCStringArray($ffi, $pks);
+        [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields ?? []);
 
         $result = $ffi->new('zvec_query_result_t');
         try {
-            $status = $ffi->zvec_collection_fetch($this->handle, $arr, $count, FFI::addr($result));
+            $status = $ffi->zvec_collection_fetch($this->handle, $arr, $count, $ofArr, $ofCount, FFI::addr($result));
             self::checkStatus($status);
         } finally {
             self::freeCStringArray($cStrings);
+            self::freeCStringArray($ofCStrings);
         }
 
         return self::parseQueryResult($result);
