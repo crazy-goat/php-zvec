@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Random rotation for INT8/INT4 quantization** (#177)
+  - `ZVecIndexParams::setQuantizerEnableRotate(bool)` (fluent) enables random rotation before INT8/INT4 quantization for HNSW, Flat, IVF, and Vamana indexes — reduces quantization error and improves recall on quantized indexes.
+  - Mirrors upstream zvec v0.6.0 `QuantizerParam(enable_rotate)` (C API: `zvec_index_params_set_quantizer_enable_rotate`).
+
 ### Fixed
 
 - **Deprecated index creation warnings** (#169)

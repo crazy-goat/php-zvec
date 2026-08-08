@@ -158,6 +158,7 @@ void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_ite
 void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, int search_list_size, float alpha, int saturate_graph, int use_contiguous_memory, int use_id_map, int quantize_type);
 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard);
 void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantize_type);
+void zvec_index_params_set_quantizer_enable_rotate(zvec_index_params_t params, int enable_rotate);
 void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type);
 zvec_status_t zvec_collection_create_index(zvec_collection_t coll, const char* field_name, zvec_index_params_t params, uint32_t concurrency);
 

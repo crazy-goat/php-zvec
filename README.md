@@ -471,6 +471,11 @@ $params = ZVecIndexParams::forInvert(
     bool $enableWildcard = false
 ): self
 
+// Random rotation before INT8/INT4 quantization (reduces quantization error,
+// improves recall; only effective with QUANTIZE_INT8 / QUANTIZE_INT4).
+$params = ZVecIndexParams::forHnsw(ZVecSchema::METRIC_IP, quantizeType: ZVec::QUANTIZE_INT8)
+    ->setQuantizerEnableRotate(true);
+
 // Usage:
 $collection->createIndex('embedding', ZVecIndexParams::forHnsw(ZVecSchema::METRIC_IP, quantizeType: ZVec::QUANTIZE_FP16));
 ```
