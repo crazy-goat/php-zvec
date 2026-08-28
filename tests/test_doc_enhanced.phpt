@@ -125,7 +125,7 @@ echo "\nPASS: All enhanced doc API tests passed\n";
 before null: isFieldNull('name')=0
 after null: isFieldNull('name')=1
 hasField('name')=1
-retrieved: hasField('name')=0
+retrieved: hasField('name')=1
 
 === removeField ===
 before remove: hasField('name')=1

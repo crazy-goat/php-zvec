@@ -32,8 +32,8 @@ try {
     }
     echo "Inserted 3 documents\n";
 
-    // outputFields subset: only requested scalar fields returned (vector always
-    // included because include_vector is not exposed and defaults to true)
+    // outputFields subset: only requested scalar fields returned (vector
+    // included by default, pass includeVector: false to omit it)
     $fetched = $c->fetch(['doc1', 'doc2'], ['name']);
     assert(count($fetched) === 2, 'Should fetch 2 documents');
     foreach ($fetched as $d) {

@@ -741,13 +741,19 @@ class ZVec
     /**
      * Fetch documents by PK. Accepts variadic PK strings (fetch('a', 'b')) or
      * an array form with optional output fields (fetch(['a', 'b'], ['name'])).
+     * Pass includeVector: false to omit vector data from the result.
      *
      * @return ZVecDoc[]
      * @throws ZVecException On FFI error
      */
-    public function fetch(array|string ...$args): array
+    public function fetch(array|string|bool ...$args): array
     {
         $this->checkClosed();
+        $includeVector = $args['includeVector'] ?? true;
+        unset($args['includeVector']);
+        if (!is_bool($includeVector)) {
+            throw new ZVecException('includeVector must be a bool');
+        }
         if (empty($args)) {
             throw new ZVecException('At least one PK is required');
         }
@@ -785,7 +791,7 @@ class ZVec
 
         $result = $ffi->new('zvec_query_result_t');
         try {
-            $status = $ffi->zvec_collection_fetch($this->handle, $arr, $count, $ofArr, $ofCount, FFI::addr($result));
+            $status = $ffi->zvec_collection_fetch($this->handle, $arr, $count, $ofArr, $ofCount, $includeVector ? 1 : 0, FFI::addr($result));
             self::checkStatus($status);
         } finally {
             self::freeCStringArray($cStrings);
