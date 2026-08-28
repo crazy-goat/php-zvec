@@ -77,3 +77,35 @@ The legacy `query()` path was never affected (it rebuilds params per
 `queryParamType`).
 
 **Reference:** issue #193.
+
+---
+
+### PHP forbids parameters after a variadic — capture named args instead
+
+**Problem:** adding an option to a variadic API as
+`fetch(...$args, ?bool $includeVector = true)` is a parse error
+("Only the last parameter can be variadic"), and under
+`array|string ...$args` a bool named arg is silently string-coerced
+(`includeVector: false` → `""`) before it reaches the method body in
+weak-mode callers; `strict_types=1` callers get a `TypeError` instead.
+
+**Solution:** widen the variadic (`array|string|bool ...$args`), extract
+the named key (`$args['includeVector'] ?? true`), `unset()` it **before**
+any arg-count validation, then validate with `is_bool()`.
+
+**Reference:** issue #192.
+
+---
+
+### Call `close()`/`destroy()` before deleting the collection directory
+
+**Problem:** if the collection directory is `rm -rf`'d while the
+collection handle is still open (e.g. only in test `finally`), RocksDB
+flushes at process shutdown fail and spew ~10 lines of console ERROR
+output (rocksdb_context.cc, inverted_indexer.cc, id_map.cc) — failing
+`.phpt` output comparison.
+
+**Solution:** call `$c->close()` (or `destroy()`) inside the test `try`
+block, before the `finally` cleanup removes the directory.
+
+**Reference:** issue #192 (new test initially failed on shutdown noise).

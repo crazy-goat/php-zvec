@@ -2381,8 +2381,32 @@ zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, cons
 
 // --- Fetch ---
 
+static void normalize_nullable_fields_for_fetch(const CollectionSchema& schema, DocPtrMap& doc_map) {
+    std::vector<std::string> nullable_fields;
+    nullable_fields.reserve(schema.fields().size());
+    for (const auto& field : schema.fields()) {
+        if (field && field->nullable()) {
+            nullable_fields.push_back(field->name());
+        }
+    }
+    if (nullable_fields.empty()) {
+        return;
+    }
+    for (auto& [_, doc_ptr] : doc_map) {
+        if (!doc_ptr) {
+            continue;
+        }
+        for (const auto& field_name : nullable_fields) {
+            if (!doc_ptr->has(field_name)) {
+                doc_ptr->set_null(field_name);
+            }
+        }
+    }
+}
+
 zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count,
                                      const char** output_fields, int output_field_count,
+                                     int include_vector,
                                      zvec_query_result_t* result) {
     if (!coll) {
         zvec_status_t st = {1, "null handle"};
@@ -2409,13 +2433,17 @@ zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, in
         }
         cpp_output_fields = std::move(fields);
     }
-    auto res = c->Fetch(pk_vec, cpp_output_fields);
+    auto res = c->Fetch(pk_vec, cpp_output_fields, (bool)include_vector);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
         return MAKE_STATUS(res.error());
     }
     auto& doc_map = res.value();
+    auto schema_res = c->Schema();
+    if (schema_res.has_value()) {
+        normalize_nullable_fields_for_fetch(schema_res.value(), doc_map);
+    }
     int found = 0;
     for (auto& [k, v] : doc_map) {
         if (v) found++;

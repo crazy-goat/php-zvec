@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Mirrors upstream zvec C API `zvec_collection_fetch` output-fields semantics (v0.5.0+, alibaba/zvec#358): unknown field names are silently ignored; vector fields are always included.
   - FFI: `zvec_collection_fetch` extended with `output_fields` / `output_field_count` parameters (empty → all fields, matching upstream `std::nullopt` semantics).
 
+- **`fetch()` with `includeVector` parameter** (#192)
+  - `ZVecCollection::fetch()` now accepts a named argument `includeVector: bool = true`; pass `includeVector: false` to omit vector data from fetched documents (BC-compatible: default `true` keeps the previous behavior).
+  - Mirrors upstream zvec C API `zvec_collection_fetch` (`bool include_vector = true`, v0.6.0+).
+  - FFI: `zvec_collection_fetch` extended with an `include_vector` parameter.
+
+### Changed
+
+- **`fetch()` returns absent nullable fields as explicit null** (#192)
+  - Fetched documents now carry unset *nullable* fields as present-with-null (`hasField()` → `true`, `isFieldNull()` → `true`, typed getters → `null`) instead of omitting the key entirely — mirroring upstream `zvec_collection_fetch` nullable normalization (`normalize_nullable_fields_for_fetch`).
+  - Non-nullable absent fields continue to be omitted.
+
 ### Fixed
 
 - **`queryVector()` honors radius/linear/refiner set before `set*Params()`** (#197)

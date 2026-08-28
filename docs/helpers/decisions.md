@@ -50,3 +50,26 @@ type change cannot be combined in one call.
 
 **Rationale:** limitation of the underlying C++ layer — verify in
 `zvec/src/include/zvec/db/` before extending.
+
+---
+
+### fetch(): `includeVector` is a named argument captured from the variadic
+
+**Decision:** `fetch(array|string|bool ...$args)` — `includeVector:` is
+read from the variadic as a named argument (default `true`), not declared
+as a positional parameter. Positional bools are rejected with
+`ZVecException`. Additionally, fetch mirrors upstream
+`normalize_nullable_fields_for_fetch` (c_api.cc): absent **nullable**
+fields are returned as present-with-null after fetch (`hasField()` true,
+`isFieldNull()` true); non-nullable absent fields stay absent.
+
+**Rationale:** PHP grammar forbids parameters after a variadic, and the
+declared variadic type must include `bool` or named bools are coerced to
+strings in weak-mode callers (`TypeError` under `strict_types=1`). The
+normalization matches the upstream C API byte-for-byte
+(zvec/src/binding/c/c_api.cc:7024-7050) — one nullable-absent field
+round-trips differently than before issue #192 (was: absent; now:
+present-null). Note: the Python SDK (pybind `Fetch`) does **not** apply
+this normalization — PHP intentionally follows the C API here.
+
+**Reference:** issue #192.

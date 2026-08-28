@@ -253,6 +253,7 @@ void zvec_batch_result_free(zvec_batch_result_t* result);
 
 zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, int count,
                                      const char** output_fields, int output_field_count,
+                                     int include_vector,
                                      zvec_query_result_t* result);
 
 zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_name,
