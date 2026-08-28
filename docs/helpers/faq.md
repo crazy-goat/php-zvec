@@ -86,7 +86,8 @@ The legacy `query()` path was never affected (it rebuilds params per
 `fetch(...$args, ?bool $includeVector = true)` is a parse error
 ("Only the last parameter can be variadic"), and under
 `array|string ...$args` a bool named arg is silently string-coerced
-(`includeVector: false` → `""`) before it reaches the method body.
+(`includeVector: false` → `""`) before it reaches the method body in
+weak-mode callers; `strict_types=1` callers get a `TypeError` instead.
 
 **Solution:** widen the variadic (`array|string|bool ...$args`), extract
 the named key (`$args['includeVector'] ?? true`), `unset()` it **before**

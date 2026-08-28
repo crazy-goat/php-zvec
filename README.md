@@ -236,7 +236,7 @@ $collection->upsertBatch(ZVecDoc ...$docs): array     // Returns per-doc status 
 $collection->updateBatch(ZVecDoc ...$docs): array     // Returns per-doc status array
 $collection->delete(string ...$pks): void
 $collection->deleteByFilter(string $filter): void
-$collection->fetch(string ...$pks): ZVecDoc[]        // also fetch(array $pks, ?array $outputFields = null)
+$collection->fetch(string ...$pks): ZVecDoc[]        // also fetch(array $pks, ?array $outputFields = null, includeVector: bool = true)
 
 // Search
 $collection->query(string|ZVecVectorQuery $fieldName, array $queryVector = [], int $topk = 10, ...): ZVecDoc[]

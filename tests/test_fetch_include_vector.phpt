@@ -126,6 +126,21 @@ try {
         echo "positional includeVector array form throws OK\n";
     }
 
+    // non-bool includeVector is rejected (guards the widened variadic type)
+    try {
+        $c->fetch('doc1', includeVector: 'yes');
+        assert(false, 'Should throw ZVecException for non-bool includeVector');
+    } catch (ZVecException $e) {
+        echo "non-bool includeVector throws OK\n";
+    }
+
+    // array form without outputFields + includeVector: false
+    $fetched = $c->fetch(['doc1'], includeVector: false);
+    assert(count($fetched) === 1, 'Should fetch 1 document');
+    assert($fetched[0]->getVectorFp32('embedding') === null, 'vector should be omitted');
+    assert($fetched[0]->getString('name') === 'User1', 'name should be present');
+    echo "array form without outputFields OK\n";
+
     $c->close();
 } finally {
     exec("rm -rf " . escapeshellarg($path));
@@ -144,3 +159,5 @@ array form includeVector false OK
 missing PK omitted OK
 positional includeVector scalar form throws OK
 positional includeVector array form throws OK
+non-bool includeVector throws OK
+array form without outputFields OK

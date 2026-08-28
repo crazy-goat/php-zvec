@@ -65,7 +65,8 @@ fields are returned as present-with-null after fetch (`hasField()` true,
 
 **Rationale:** PHP grammar forbids parameters after a variadic, and the
 declared variadic type must include `bool` or named bools are coerced to
-strings. The normalization matches the upstream C API byte-for-byte
+strings in weak-mode callers (`TypeError` under `strict_types=1`). The
+normalization matches the upstream C API byte-for-byte
 (zvec/src/binding/c/c_api.cc:7024-7050) — one nullable-absent field
 round-trips differently than before issue #192 (was: absent; now:
 present-null).
