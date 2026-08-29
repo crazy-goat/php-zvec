@@ -237,6 +237,7 @@ $collection->updateBatch(ZVecDoc ...$docs): array     // Returns per-doc status 
 $collection->delete(string ...$pks): void
 $collection->deleteByFilter(string $filter): void
 $collection->fetch(string ...$pks): ZVecDoc[]        // also fetch(array $pks, ?array $outputFields = null, includeVector: bool = true)
+                                                     // named `outputFields:` supported; named-arg `pks:` and mixing scalar PKs with an array are rejected with a hint
 
 // Search
 $collection->query(string|ZVecVectorQuery $fieldName, array $queryVector = [], int $topk = 10, ...): ZVecDoc[]

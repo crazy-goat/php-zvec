@@ -28,6 +28,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`fetch()` no longer emits a PHP warning for named-argument forms** (#205)
+  - `fetch(pks: ['doc1'])` previously triggered `Undefined array key 0` before the validation error — `is_array($args[0])` is now guarded with `isset()`.
+  - The named-argument form `pks:` is now rejected with a clear `ZVecException` in all forms, including next to a positional array (`fetch(['doc1'], pks: [...])` previously silently ignored the named argument).
+  - Added regression test `test_fetch_validation.phpt`.
+
+- **`fetch()` rejects mixing scalar PKs with an outputFields array** (#206)
+  - `fetch('doc1', ['name'])` previously failed with the confusing `PKs must be non-empty strings`; it now throws with a hint to use `fetch(['doc1'], ['name'])` instead (DX part of #206; accepting the form outright is left as a separate enhancement).
+  - Covered in `test_fetch_validation.phpt`.
+
+- **`fetch()` hardening: string-keyed arrays and unknown named arguments** (review of #205)
+  - String-keyed arrays (`fetch(['a' => 'pk1', 'b' => 'pk2'])`) previously corrupted memory and segfaulted — `toCStringArray()` now reindexes with `array_values()` and rejects non-string elements (protects all FFI string-array call sites).
+  - Unknown named arguments (`fetch('pk1', foo: 'bar')`) previously segfaulted the same way; they now throw with a hint listing supported named arguments.
+  - `outputFields:` is now accepted as a named argument in both forms (`fetch('pk1', outputFields: ['name'])`, `fetch(['pk1'], outputFields: ['name'])`) instead of being silently ignored.
+  - Note: `fetch()` result order is not guaranteed by the engine, even for positional PK arrays.
+
 - **`queryVector()` honors radius/linear/refiner set before `set*Params()`** (#197)
   - Calling `setRadius()`, `setLinear()`, or `setUsingRefiner()` on a `ZVecVectorQuery` *before* any `set*Params()` method previously dropped those settings silently (the param setters replaced `query_params_` wholesale) — queries ran with wrong settings (e.g. radius 0.0) and no error.
   - FFI: `merge_stored_query_settings()` now applies stored radius/linear/refiner onto the params object right after each param setter (`set_hnsw_ef`, `set_hnsw_rabitq_ef`, `set_vamana_ef_search`, `set_ivf_nprobe`, `set_flat_mode`), so setter order no longer matters for HNSW, IVF, Vamana, RaBitQ and Flat.
