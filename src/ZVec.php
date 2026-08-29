@@ -121,7 +121,10 @@ class ZVec
             return [null, 0, $cStrings];
         }
         $arr = $ffi->new("char*[$count]", false);
-        foreach ($strings as $i => $s) {
+        foreach (array_values($strings) as $i => $s) {
+            if (!is_string($s)) {
+                throw new ZVecException('String arrays must contain only strings');
+            }
             $len = strlen($s) + 1;
             $cStr = $ffi->new("char[$len]", false);
             FFI::memcpy($cStr, $s, strlen($s));
@@ -757,15 +760,29 @@ class ZVec
         if (empty($args)) {
             throw new ZVecException('At least one PK is required');
         }
-        if (is_array($args[0])) {
+        if (array_key_exists('pks', $args)) {
+            throw new ZVecException('Named argument pks: is not supported — use fetch(\'pk1\', \'pk2\') or fetch([\'pk1\', \'pk2\'])');
+        }
+        if (isset($args[0]) && is_array($args[0])) {
+            if (isset($args[1]) && array_key_exists('outputFields', $args)) {
+                throw new ZVecException('outputFields passed both positionally and as a named argument');
+            }
             if (count($args) > 2) {
                 throw new ZVecException('Unexpected extra arguments: expected pks array and optional outputFields');
             }
-            $pks = $args[0];
-            $outputFields = $args[1] ?? null;
+            $pks = array_values($args[0]);
+            $outputFields = $args[1] ?? $args['outputFields'] ?? null;
         } else {
-            $pks = $args;
-            $outputFields = null;
+            $outputFields = $args['outputFields'] ?? null;
+            $pks = array_diff_key($args, ['outputFields' => true]);
+            foreach ($pks as $key => $pk) {
+                if (!is_int($key)) {
+                    throw new ZVecException(sprintf('Unknown named argument $%s — supported named arguments: outputFields, includeVector', $key));
+                }
+            }
+            if (in_array(true, array_map(is_array(...), $pks), true)) {
+                throw new ZVecException('Mixing scalar PKs with an outputFields array is not supported — use fetch([\'pk1\', \'pk2\'], [\'name\']) instead');
+            }
         }
         if (empty($pks)) {
             throw new ZVecException('At least one PK is required');
