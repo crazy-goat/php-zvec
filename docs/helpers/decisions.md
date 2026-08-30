@@ -73,3 +73,24 @@ present-null). Note: the Python SDK (pybind `Fetch`) does **not** apply
 this normalization — PHP intentionally follows the C API here.
 
 **Reference:** issue #192.
+
+---
+
+### resetRadiusThreshold(): caller-driven purge instead of automatic mitigation
+
+**Decision:** issue #200 (radius threshold leak) is mitigated with an
+explicit `ZVecCollection::resetRadiusThreshold(string $fieldName, array
+$vector)` + `ZVec::RADIUS_THRESHOLD_RESET` (3.4028235e38) constant, not by
+transparently fixing every radius-less query in the bindings.
+
+**Rationale:** the leak lives in the upstream zvec core (thread-local
+context, no-op Flat/IVF reset); hiding it in `queryVector()` would need
+per-call purge queries (cost) and could change result semantics. The
+explicit call documents the upstream bug at the API surface, costs one
+topk-1 query, and is a no-op where the leak cannot occur (IP metrics).
+Denormalization detail: `set_threshold()` denormalizes before storing
+(`index_context.h:235-241`), so the purge value must survive sign-flip
+(IP: -FLT_MAX is still ≥ every IP score) and MipsL2 (-1) — FLT_MAX does;
+`reset_threshold()`'s raw FLT_MAX is unreachable from the C API.
+
+**Reference:** issue #200.
