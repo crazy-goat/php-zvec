@@ -87,10 +87,15 @@ transparently fixing every radius-less query in the bindings.
 context, no-op Flat/IVF reset); hiding it in `queryVector()` would need
 per-call purge queries (cost) and could change result semantics. The
 explicit call documents the upstream bug at the API surface, costs one
-topk-1 query, and is a no-op where the leak cannot occur (IP metrics).
-Denormalization detail: `set_threshold()` denormalizes before storing
-(`index_context.h:235-241`), so the purge value must survive sign-flip
-(IP: -FLT_MAX is still ≥ every IP score) and MipsL2 (-1) — FLT_MAX does;
-`reset_threshold()`'s raw FLT_MAX is unreachable from the C API.
+topk-1 query. Empirically verified against the built library for L2, IVF,
+COSINE, MIPSL2 and IP (incl. negative-similarity docs): the purge restores
+unfiltered results on every metric; it is a no-op only when no doc's
+similarity is below `-radius`. For IP, radius filters docs with similarity
+< `-radius` (sign-flip denormalization: engine converts radius to internal
+distance, `set_threshold()` denormalizes it back — `index_context.h:235-
+241`), so with opposite vectors the leak occurs there too.
+`RADIUS_THRESHOLD_RESET` survives every metric's denormalization (sign
+flip → -FLT_MAX, cosine `-= 1` → FLT_MAX in float32) and mirrors
+`reset_threshold()` (FLT_MAX), which is unreachable from the C API.
 
 **Reference:** issue #200.

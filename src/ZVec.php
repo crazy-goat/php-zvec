@@ -1080,9 +1080,10 @@ class ZVec
      * Radius used by resetRadiusThreshold() to overwrite a stale threshold
      * leaked into the thread-local Flat/IVF search context (issue #200).
      *
-     * Maximum finite float, chosen over PHP_FLOAT_MAX: denormalization for
-     * normalizing metrics (IP: sign flip, MipsL2: -1) must not produce
-     * inf/NaN, and `score <= threshold` must filter nothing.
+     * Maximum finite float (what upstream's reset_threshold() itself uses),
+     * chosen over PHP_FLOAT_MAX: the latter overflows to inf in float32,
+     * and it must survive every metric's denormalization (sign flip for
+     * IP → -FLT_MAX, cosine `-= 1` → FLT_MAX) and filter nothing.
      *
      * Value: 3.4028235e38 (FLT_MAX)
      */
@@ -1679,8 +1680,12 @@ class ZVec
      * leak; a throwaway topk-1 query with a maximum radius overwrites the
      * leaked threshold with the neutral FLT_MAX. Its result is meaningless
      * and is discarded. For metrics that denormalize with a sign flip (IP)
-     * radius never filters, so the leak cannot occur there and the call is
-     * a harmless no-op.
+     * radius filters docs with similarity below -radius (e.g. opposite
+     * vectors), so the leak can occur there too — verified: this call
+     * restores the missing negative-similarity docs.
+     *
+     * Dense vector fields only: the purge query is always issued as a dense
+     * fp32 vector; sparse fields cannot be purged through this method.
      *
      * @param float[]|int[] $vector The query vector of the leaking radius query
      * @throws ZVecException On FFI error
