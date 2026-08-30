@@ -109,3 +109,28 @@ output (rocksdb_context.cc, inverted_indexer.cc, id_map.cc) — failing
 block, before the `finally` cleanup removes the directory.
 
 **Reference:** issue #192 (new test initially failed on shutdown noise).
+
+---
+
+### Radius query poisons later queries on the same thread (Flat/IVF)
+
+**Problem:** one `setRadius(>0)` query makes every later radius-less query
+on the same thread (refiner, plain, any field with the same index type,
+even other collections) return only the radius-filtered subset — silently.
+Upstream caches the threshold on a `thread_local` context shared per index
+type (`zvec/src/core/interface/index.cc:33-35`) and Flat/IVF `reset()` is
+a no-op; the `if (radius > 0.0f)` gate in `flat_index.cc:63` blocks
+resetting it to 0.
+
+**Solution:** call `$c->resetRadiusThreshold($field, $queryVector)` after
+radius-filtered queries. It runs a throwaway topk-1 query with
+`radius = FLT_MAX`, which overwrites the stale threshold. Use the
+`ZVec::RADIUS_THRESHOLD_RESET` constant, not `PHP_FLOAT_MAX` — the latter
+overflows to `inf` in float32 (untested upstream semantics); FLT_MAX is
+what upstream's own `reset_threshold()` uses. For IP metrics radius
+filters docs with similarity below `-radius` (e.g. opposite vectors), so
+the leak CAN occur there too — verified: `resetRadiusThreshold()` restores
+the missing negative-similarity docs. With corpora where every similarity
+is ≥ `-radius`, the call is a harmless no-op.
+
+**Reference:** issue #200, `tests/test_radius_threshold_leak.phpt`.

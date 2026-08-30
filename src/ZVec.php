@@ -1077,6 +1077,19 @@ class ZVec
     public const BYTES_PER_MB = 1048576;
 
     /**
+     * Radius used by resetRadiusThreshold() to overwrite a stale threshold
+     * leaked into the thread-local Flat/IVF search context (issue #200).
+     *
+     * Maximum finite float (what upstream's reset_threshold() itself uses),
+     * chosen over PHP_FLOAT_MAX: the latter overflows to inf in float32,
+     * and it must survive every metric's denormalization (sign flip for
+     * IP → -FLT_MAX, cosine `-= 1` → FLT_MAX) and filter nothing.
+     *
+     * Value: 3.4028235e38 (FLT_MAX)
+     */
+    public const RADIUS_THRESHOLD_RESET = 3.4028235e38;
+
+    /**
      * Default HNSW parameter: M (max connections per node).
      *
      * Controls the trade-off between recall and memory usage.
@@ -1651,6 +1664,39 @@ class ZVec
         self::checkStatus($status);
 
         return self::parseQueryResult($result);
+    }
+
+    /**
+     * Clear a stale radius threshold leaked into the thread-local search
+     * context by an earlier radius-filtered Flat/IVF query (issue #200).
+     *
+     * Upstream zvec caches the threshold on a thread-local context shared by
+     * every index of the same type in the process, and its Flat/IVF context
+     * reset() is a no-op — so one setRadius() > 0 query makes all later
+     * radius-less queries on that thread (refiner, plain, any field with the
+     * same index type) return only the radius-filtered subset.
+     *
+     * Pass the field and query vector of the radius query that caused the
+     * leak; a throwaway topk-1 query with a maximum radius overwrites the
+     * leaked threshold with the neutral FLT_MAX. Its result is meaningless
+     * and is discarded. For metrics that denormalize with a sign flip (IP)
+     * radius filters docs with similarity below -radius (e.g. opposite
+     * vectors), so the leak can occur there too — verified: this call
+     * restores the missing negative-similarity docs.
+     *
+     * Dense vector fields only: the purge query is always issued as a dense
+     * fp32 vector; sparse fields cannot be purged through this method.
+     *
+     * @param float[]|int[] $vector The query vector of the leaking radius query
+     * @throws ZVecException On FFI error
+     */
+    public function resetRadiusThreshold(string $fieldName, array $vector): void
+    {
+        $this->checkClosed();
+
+        $query = new ZVecVectorQuery($fieldName, $vector);
+        $query->setTopk(1)->setRadius(self::RADIUS_THRESHOLD_RESET);
+        $this->queryVector($query);
     }
 
     /**

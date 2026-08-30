@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`resetRadiusThreshold()` workaround for the radius threshold leak** (#200)
+  - A radius-filtered Flat/IVF query poisons the thread-local search context: subsequent radius-less queries (refiner, plain, any field with the same index type) return only the radius-filtered subset, with no error. Upstream zvec caches the threshold on a `thread_local` context (`zvec/src/core/interface/index.cc`) and its Flat/IVF `reset()` is a no-op; radius is gated by `if (radius > 0.0f)` in `flat_index.cc`/`ivf_index.cc`.
+  - **`ZVec::resetRadiusThreshold(string $fieldName, array $vector)`** runs a throwaway topk-1 query with `radius = FLT_MAX` (`ZVec::RADIUS_THRESHOLD_RESET`) on the same field, which overwrites the leaked threshold and restores unfiltered behavior for later queries on that thread.
+  - Works for all metrics: for normalizing metrics (IP, sign-flip denormalization) radius filters docs with similarity below `-radius` (e.g. opposite vectors), so the leak can occur there too — verified: `resetRadiusThreshold()` restores the missing negative-similarity docs. For corpora where every similarity is ≥ `-radius`, the call is a harmless no-op.
+  - Regression test `test_radius_threshold_leak.phpt` documents the leak and the recovery.
+
 - **`fetch()` with `outputFields` parameter** (#176)
   - `ZVecCollection::fetch()` now accepts an optional output-fields array to select which scalar columns are returned: `fetch(['pk1', 'pk2'], ['name', 'score'])`.
   - BC-compatible: the legacy variadic form `fetch('pk1', 'pk2')` (all fields) still works unchanged.

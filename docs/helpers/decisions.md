@@ -73,3 +73,29 @@ present-null). Note: the Python SDK (pybind `Fetch`) does **not** apply
 this normalization — PHP intentionally follows the C API here.
 
 **Reference:** issue #192.
+
+---
+
+### resetRadiusThreshold(): caller-driven purge instead of automatic mitigation
+
+**Decision:** issue #200 (radius threshold leak) is mitigated with an
+explicit `ZVecCollection::resetRadiusThreshold(string $fieldName, array
+$vector)` + `ZVec::RADIUS_THRESHOLD_RESET` (3.4028235e38) constant, not by
+transparently fixing every radius-less query in the bindings.
+
+**Rationale:** the leak lives in the upstream zvec core (thread-local
+context, no-op Flat/IVF reset); hiding it in `queryVector()` would need
+per-call purge queries (cost) and could change result semantics. The
+explicit call documents the upstream bug at the API surface, costs one
+topk-1 query. Empirically verified against the built library for L2, IVF,
+COSINE, MIPSL2 and IP (incl. negative-similarity docs): the purge restores
+unfiltered results on every metric; it is a no-op only when no doc's
+similarity is below `-radius`. For IP, radius filters docs with similarity
+< `-radius` (sign-flip denormalization: engine converts radius to internal
+distance, `set_threshold()` denormalizes it back — `index_context.h:235-
+241`), so with opposite vectors the leak occurs there too.
+`RADIUS_THRESHOLD_RESET` survives every metric's denormalization (sign
+flip → -FLT_MAX, cosine `-= 1` → FLT_MAX in float32) and mirrors
+`reset_threshold()` (FLT_MAX), which is unreachable from the C API.
+
+**Reference:** issue #200.
