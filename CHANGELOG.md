@@ -95,6 +95,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Legacy `test_installer_platform.php` accepts the `macOS` label prefix on Darwin, matching its `.phpt` counterpart
   - Documented the `-n` requirement (pre-installed legacy extension shadows FFI classes — #188) and the `run-tests.php` legacy-file deletion hazard (#187) in `AGENTS.md` / `README.md`
 
+## [0.6.0] - 2026-07-30
+
+Adapter-only release: the zvec dependency moved from v0.5.x to v0.6.0. **The
+public PHP API is unchanged** — no method was added, removed or retyped. Every
+change is internal to the FFI adapter (`ffi/zvec_ffi.*`) and the PHP extension
+(`php-ext/*`).
+
+### Changed
+
+- **zvec dependency bumped to v0.6.0** (#170, #171)
+  - Version pins updated in `build_zvec.sh`, `build_zvec_lib.sh`,
+    `docker/build-zvec.sh`, `.github/workflows/{build,release}.yml`, `AGENTS.md`
+    and `docs/workflow.md`. The prebuilt artifact release `zvec-build-v0.6.0`
+    carries `zvec-v0.6.0-ubuntu24-x86_64.tar.gz` for CI.
+  - Rebuilding from source on every PR was no longer necessary.
+
+- **FFI: `VectorQuery` migrated to `SearchQuery` + `QueryTarget`** (#171)
+  - Upstream replaced the flat query struct with a target that carries a
+    variant of vector / sparse-vector / FTS clauses, plus per-target
+    `QueryParams`. The adapter now writes through `target_`.
+  - `GroupByVectorQuery` adapted to the v0.6.0 structure (#173); `MultiQuery`
+    structure verified against upstream (#174).
+  - `zvec_collection_fetch()` gained `output_fields` / `output_field_count`,
+    which upstream changed to `std::optional`: an **empty** vector now means
+    "select no fields" rather than "select all" (#172). The PHP layer keeps its
+    previous behaviour by mapping "all fields" to `std::nullopt`.
+
+- **`ffi/CMakeLists.txt`: duplicate utf8proc symbols** (#170)
+  - utf8proc is pulled in through two archives in the FFI link line, producing
+    duplicate symbols at link time on some toolchains. One entry removed.
+
+- **Test suite retested against zvec v0.6.0** (#175)
+  - All 12 legacy `tests/bug_*.php` scripts pass; `bug_0005` and `bug_0006`
+    statuses updated (no issues observed on v0.6.0).
+  - `test_buffer_retry.phpt` now actually runs — its SKIPIF checked
+    `method_exists()` before loading the library, so it always skipped.
+  - Added `test_query_output_fields_semantics.phpt` covering the new
+    empty-vs-nullopt output-fields behaviour from #172.
+  - The `-n` requirement (a pre-installed legacy extension shadows the FFI
+    classes, #188) and the `run-tests.php` legacy-file deletion hazard (#187)
+    were documented in `AGENTS.md` and `README.md` — the latter later fixed in
+    #211.
+
 ## [0.5.0] - 2026-07-30
 
 ### Fixed
@@ -470,6 +513,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - GCC 15 workaround: `-include stdint.h` for RocksDB 8.1.1 `uint64_t` compatibility
   - CI now builds zvec from source when pre-built tarball not available
   - All 54 tests pass (53 PASS + 1 XFAIL), all example scripts verified
+
+## [0.4.9] - 2026-03-15
+
+### Fixed
+
+- **Release workflow now builds the FFI shared library** (#115)
+  - `release.yml` gained a `release-ffi` job, so a `v*` tag publishes
+    `libzvec_ffi-<platform>.tar.gz` alongside the PHP extension. The workflow
+    previously only built the extension, leaving the Composer-installed FFI
+    library with no release artifact.
 
 ## [0.4.8] - 2026-03-15
 
@@ -1160,7 +1213,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/crazy-goat/php-zvec/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/crazy-goat/php-zvec/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/crazy-goat/php-zvec/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/crazy-goat/php-zvec/compare/v0.4.10...v0.5.0
 [0.4.11]: https://github.com/crazy-goat/php-zvec/compare/v0.4.10...v0.4.11
 [0.4.10]: https://github.com/alibaba/zvec-php/compare/v0.4.9...v0.4.10

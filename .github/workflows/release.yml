@@ -101,7 +101,10 @@ jobs:
           gh release create "$BUILD_RELEASE" \
             --repo "${{ github.repository }}" \
             --title "zvec ${ZVEC_VERSION} build artifacts" \
-            --notes "Pre-built zvec ${ZVEC_VERSION} library for ubuntu-24.04. Used by CI to avoid rebuilding zvec from source on every PR." \
+            --prerelease \
+            --notes "$(printf '%s\n\n%s' \
+              "Pre-built zvec ${ZVEC_VERSION} library for ubuntu-24.04. Used by CI to avoid rebuilding zvec from source on every PR." \
+              '**This is a CI build cache, not a product release.** It is marked prerelease so that GitHub does not surface it as the repository Latest release, which would otherwise hide the actual v-prefixed release from anyone visiting the releases page. Do not install from here -- use the matching v-prefixed release instead.')" \
             || echo "Release ${BUILD_RELEASE} already exists"
           gh release upload "$BUILD_RELEASE" "$TARBALL" --clobber
 

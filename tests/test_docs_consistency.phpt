@@ -31,6 +31,76 @@ foreach (['README.md', 'CHANGELOG.md', 'MIGRATION.md', 'AGENTS.md'] as $f) {
         }
     }
 }
+// 1b. Changelog section/link self-consistency. Deliberately hermetic: an
+//     earlier revision of this test shelled out to `gh` and read the GitHub
+//     API, which made it pass locally (authenticated) and fail in CI (not
+//     authenticated, empty result read as "no releases"). Everything below
+//     needs only the file itself.
+$changelog = file_get_contents("$root/CHANGELOG.md");
+preg_match_all('/^## \[(\d+\.\d+\.\d+)\]/m', $changelog, $sections);
+$documented = $sections[1];
+
+preg_match_all('/^\[(\d+\.\d+\.\d+)\]: (\S+)$/m', $changelog, $l, PREG_SET_ORDER);
+$linked = [];
+foreach ($l as [, $ver, $url]) {
+    $linked[$ver] = $url;
+}
+
+// 0.3.9 has a compare link but no section. It was tagged and never published as
+// a release, predating the changelog discipline; the orphan link still resolves
+// to a valid compare view, so it is not treated as a defect here.
+$knownOrphans = ['0.3.9'];
+
+$semver = array_values(array_filter(
+    array_keys($linked),
+    fn($v) => (bool) preg_match('/^\d+\.\d+\.\d+$/', $v)
+));
+$semver = array_values(array_diff($semver, $knownOrphans));
+usort($semver, 'version_compare');
+usort($documented, 'version_compare');
+usort($documented, fn($a, $b) => version_compare($b, $a));
+echo 'linked versions checked: ' . count($semver) . "\n";
+
+// Every linked version must also have a section: a compare link pointing at a
+// version nobody documented is as wrong as a section without a link.
+$orphanLinks = array_values(array_diff($semver, $documented));
+echo 'compare link without a section: ' . ($orphanLinks === [] ? 'none' : implode(',', $orphanLinks)) . "\n";
+if ($orphanLinks !== []) {
+    $failures++;
+}
+
+// The linked+documented versions must descend from the top of the file.
+$linkedInFile = array_values(array_intersect($documented, $semver));
+$sortedCheck = $linkedInFile;
+usort($sortedCheck, 'version_compare');
+$sortedCheck = array_reverse($sortedCheck);
+echo 'linked sections in descending order: ' . ($linkedInFile === $sortedCheck ? 'yes' : 'NO') . "\n";
+if ($linkedInFile !== $sortedCheck) {
+    $failures++;
+}
+
+// [Unreleased] must compare against the newest linked version, otherwise every
+// link in the file is off by one.
+$newest = $sortedCheck[0] ?? '';
+$hasUnreleased = $newest !== ''
+    && str_contains($changelog, "[Unreleased]: https://github.com/crazy-goat/php-zvec/compare/v$newest...HEAD");
+echo 'unreleased link: ' . ($hasUnreleased ? "points at v$newest" : "STALE (expected v$newest)") . "\n";
+if (!$hasUnreleased) {
+    $failures++;
+}
+
+// The newest section's compare link must span the version before it, not an
+// unrelated one -- this is what was off before: v0.5.0's link jumped to the
+// 0.4.10 that happened to be newest when it was written.
+$idx = array_search($newest, $sortedCheck, true);
+$prev = $sortedCheck[$idx + 1] ?? null;
+$newestLink = $linked[$newest] ?? '';
+echo 'newest section link spans: ' . ($prev !== null && str_contains($newestLink, "v$prev...v$newest") ? "v$prev...v$newest" : "UNEXPECTED ($newestLink)") . "\n";
+if ($prev !== null && !str_contains($newestLink, "v$prev...v$newest")) {
+    $failures++;
+}
+
+
 echo "conflict markers: " . ($markers === 0 ? "none" : "$markers found") . "\n";
 
 // 2. Every milestone v0.6.0 public API entry is documented in README exactly once
@@ -106,6 +176,11 @@ foreach ($consts as [, $name, $value]) {
 echo $failures === 0 ? "PASS\n" : "FAIL ($failures)\n";
 ?>
 --EXPECT--
+linked versions checked: 29
+compare link without a section: none
+linked sections in descending order: yes
+unreleased link: points at v0.6.0
+newest section link spans: v0.5.0...v0.6.0
 conflict markers: none
 ZVecIndexParams::forDiskAnn   1
 ZVecIndexParams::forFts       1
