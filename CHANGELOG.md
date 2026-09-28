@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-<<<<<<< HEAD
 - **Full-Text Search (FTS) support** (#180)
   - `ZVecIndexParams::forFts(tokenizer, filters, extraParams)` builds a full-text index over a STRING column; mirrors the official Go SDK `NewFTSIndexParams`. Defaults to the `standard` tokenizer with the `lowercase` filter.
   - `ZVecVectorQuery::setFts(fieldName, queryString, matchString, defaultOperator)` runs an FTS query. `defaultOperator` accepts `ZVec::FTS_OPERATOR_OR` (default) or `FTS_OPERATOR_AND`, case-insensitively.
@@ -19,8 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Test: `tests/test_fts.phpt` (index creation, OR/AND semantics, lowercase folding, no-match, input validation).
   - Hybrid dense + FTS retrieval through `MultiQuery`, and stemming filters beyond the tested defaults, are not covered yet.
 
-=======
->>>>>>> d9a2f7d (feat(index): add DiskANN index type and query params (#179))
 - **DiskANN index type and query params** (#179)
   - `ZVecIndexParams::forDiskAnn(metricType, maxDegree, listSize, pqChunkNum, quantizeType)` — the disk-based graph index, previously missing because only the in-memory Vamana variant was exposed. Mirrors the official Go SDK `NewDiskANNIndexParams`.
   - `ZVecVectorQuery::setDiskAnnParams(listSize)` sets the search frontier size; mirrors Go `NewDiskANNQueryParams`.

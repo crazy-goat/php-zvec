@@ -303,3 +303,135 @@ Full list of renamed methods:
 | `addFieldArrayUint64()` | `addArrayUint64()` |
 | `addFieldArrayFloat()` | `addArrayFloat()` |
 | `addFieldArrayDouble()` | `addArrayDouble()` |
+
+---
+
+# Migration Guide: v0.5.x → v0.6.0
+
+**There is no action required.** The public PHP API is fully backward
+compatible: nothing was renamed, removed, or retyped. Every change listed
+below is additive.
+
+All breaking changes for zvec v0.6.0 were confined to the C++ FFI layer
+(`ffi/zvec_ffi.*`), which is internal. If you build the FFI library yourself,
+the one thing that matters is the `ffi/CMakeLists.txt` change noted at the
+end — nothing to do in your own code.
+
+## New features
+
+All of these are additions to an existing class; you only adopt them if you
+want the capability.
+
+### `fetch()` — select fields and skip vectors
+
+```php
+// NEW in v0.6.0 — no prior equivalent:
+$docs = $collection->fetch(['pk1', 'pk2'], ['name', 'score']);
+$docs = $collection->fetch('pk1', includeVector: false);
+```
+
+BC: the legacy variadic form `fetch('pk1', 'pk2')` still returns every field.
+Mixing scalar PKs with an output-fields array is rejected with a hint.
+
+### Random rotation for INT8/INT4 quantization
+
+```php
+// NEW in v0.6.0:
+$params = ZVecIndexParams::forHnsw(
+    metricType: ZVecSchema::METRIC_IP,
+    quantizeType: ZVec::QUANTIZE_INT8,
+);
+$params->setQuantizerEnableRotate(true);
+```
+
+Rotation is applied before quantization and reduces quantization error.
+
+### `include_doc_id` — return the internal document id
+
+```php
+// NEW in v0.6.0:
+$query = new ZVecVectorQuery('embedding', $vector);
+$query->setIncludeDocId(true);
+foreach ($collection->queryVector($query) as $doc) {
+    echo $doc->getDocId() . ': ' . $doc->getPk() . "\n";
+}
+```
+
+Read-only: ranking, filtering and match sets are unaffected. `getDocId()`
+returns `0` unless the query enabled the flag. Ids are 0-based upstream —
+treat the base as an implementation detail, not a contract.
+
+### DiskANN index and query params
+
+`Vamana` is the in-memory graph of the DiskANN family; `DiskANN` is the
+distinct disk-based index for billion-scale corpora.
+
+```php
+// NEW in v0.6.0:
+$collection->createIndex('embedding', ZVecIndexParams::forDiskAnn(
+    metricType: ZVecSchema::METRIC_COSINE,
+    maxDegree: 100,
+    listSize: 50,
+    pqChunkNum: 0,
+));
+
+$query = new ZVecVectorQuery('embedding', $vector);
+$query->setDiskAnnParams(listSize: 200);
+```
+
+New constants: `ZVec::INDEX_TYPE_DISKANN` and `ZVec::QUERY_PARAM_DISKANN`, both `6`.
+
+### Full-Text Search
+
+```php
+// NEW in v0.6.0:
+$collection->createIndex('body', ZVecIndexParams::forFts(
+    tokenizer: 'standard',
+    filters: ['lowercase'],
+));
+
+$query = new ZVecVectorQuery('body', []);
+$query->setTopk(10)->setFts('body', 'fox rabbit');
+$results = $collection->queryVector($query);
+```
+
+Pass either `queryString` or `matchString` to `setFts()`, not both and not
+neither — upstream accepts exactly one, and the PHP layer rejects the other
+two cases up front. `setFts()` replaces the query's vector clause, so it must
+not be combined with a dense query vector.
+
+New constants: `ZVec::INDEX_TYPE_FTS` and `ZVec::QUERY_PARAM_FTS` (both `11`),
+plus `ZVec::FTS_OPERATOR_OR` and `ZVec::FTS_OPERATOR_AND`.
+
+Not yet covered: hybrid dense + FTS retrieval through `queryMulti()`, and
+stemming filters beyond those passed to `forFts()`.
+
+### HNSW search prefetch
+
+```php
+// NEW in v0.6.0:
+$query->setHnswPrefetch(prefetchOffset: 256, prefetchLines: 4);
+```
+
+Order-independent with respect to `setHnswParams()` — both are remembered by
+the query. `0` disables prefetching; negative values throw.
+
+## Not available
+
+Two knobs from the same feature request are **not** exposed, because the zvec
+v0.6.0 C++ and C APIs do not surface them: mmap copy-on-write configuration
+and index dirty status. `CollectionOptions` still carries only `read_only`,
+`enable_mmap` and `max_buffer_size`, and `is_dirty` exists only on an internal
+buffer struct. These will appear if and when upstream exposes them.
+
+## For maintainers: FFI build
+
+zvec v0.6.0 builds its DiskANN algorithm as a separate `core_knn_diskann`
+library and deliberately filters those sources out of `libzvec_core`, so the
+`INDEX_FACTORY_REGISTER_*` statics never reach `libzvec_core.a`. Linking
+`libcore_knn_diskann.a` in `ffi/CMakeLists.txt` is required, otherwise index
+creation fails at runtime with `DiskAnn factory entries are not registered`.
+
+`core_framework` and `core_knn_cluster` are deliberately *not* listed:
+`libzvec_core.a` already contains those objects and naming them duplicates
+every shared symbol.
