@@ -46,15 +46,6 @@ jobs:
         if: matrix.libc == 'glibc'
         run: .github/scripts/run-tests.sh
 
-      - name: DEBUG backtrace
-        if: failure() && matrix.libc == 'glibc'
-        run: |
-          sudo apt-get install -y -qq gdb >/dev/null
-          php -v; php -n -m; ldd $(which php); nproc; lscpu | head -20
-          sed -n '/--FILE--/,/--EXPECT--/p' tests/test_collection_create.phpt | sed '1d;$d' > tests/dbg_cc.php
-          gdb -batch -ex run -ex bt -ex 'info sharedlibrary' --args php -n -d extension=ffi tests/dbg_cc.php || true
-          gdb -batch -ex run -ex bt --args php -n tests/dbg_cc.php || true
-
       - name: Run tests (Alpine)
         if: matrix.libc == 'musl'
         run: .github/scripts/test-ffi-musl.sh
