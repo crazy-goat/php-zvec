@@ -145,7 +145,7 @@ Before marking any task as DONE:
 1. **Build the FFI library** (if C++ changes):
    ```bash
    # If zvec version changed (e.g. new v0.7.0):
-   ./build_zvec_lib.sh v0.6.0
+   ./build_zvec_lib.sh v0.7.0
 
    # Rebuild FFI wrapper (always if ffi/*.cc or ffi/*.h changed):
    ./build_ffi.sh
@@ -370,6 +370,14 @@ require_once __DIR__ . '/../src/ZVec.php';
 - **Test naming:**
   - `tests/bug_NNNN.php` (zero-padded 4-digit number) - bug reproduction scripts  
   - `tests/test_*.phpt` - feature/functionality tests (e.g., `test_alter_column.phpt`)
+
+**A `.phpt` and a hand-written `.php` may share a base name.** Both are valid
+tests. `run-tests.php` extracts each `.phpt` body to
+`tests/<name>.php.tmp-extract` (never `tests/<name>.php`) precisely so the
+hand-written file cannot be clobbered or deleted — see issue #187. Do not
+"clean up" `tests/*.php.tmp-extract` with `git add -A`; they are gitignored.
+Beware of `git add -A` in general here: the directory holds both tracked tests
+and runner output.
 
 **Legacy format (being migrated):**
 - Old tests use standalone PHP scripts with `PASS:/FAIL:` output

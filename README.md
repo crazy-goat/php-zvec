@@ -356,7 +356,7 @@ $doc->clear(): self
 
 // Scalar getters (each returns ?type, null if field missing)
 $doc->getPk(): string
-$doc->getDocId(): int        // Internal numeric id; needs setIncludeDocId(true)
+$doc->getDocId(): int        // Internal numeric id; 0 unless the query enabled it
 $doc->getScore(): float
 $doc->getInt64(string $field): ?int
 $doc->getString(string $field): ?string
@@ -479,16 +479,6 @@ $params = ZVecIndexParams::forDiskAnn(
     int $quantizeType = QUANTIZE_UNDEFINED
 ): self
 
-<<<<<<< HEAD
-// DiskANN — disk-based graph for billion-scale corpora
-$params = ZVecIndexParams::forDiskAnn(
-    int $metricType = METRIC_IP,
-    int $maxDegree = 100,
-    int $listSize = 50,
-    int $pqChunkNum = 0,
-    int $quantizeType = QUANTIZE_UNDEFINED
-): self
-
 // Full-Text Search — inverted index over a STRING column
 $params = ZVecIndexParams::forFts(
     string $tokenizer = 'standard',
@@ -496,8 +486,6 @@ $params = ZVecIndexParams::forFts(
     string $extraParams = ''
 ): self
 
-=======
->>>>>>> d9a2f7d (feat(index): add DiskANN index type and query params (#179))
 // Invert — keyword-based inverted index
 $params = ZVecIndexParams::forInvert(
     bool $enableRange = true,
@@ -589,17 +577,13 @@ $query->setIvfParams(int $nprobe): self              // IVF nprobe
 $query->setFlatParams(): self                        // Brute force mode
 $query->setVamanaParams(int $efSearch): self         // Vamana ef_search
 $query->setDiskAnnParams(int $listSize): self        // DiskANN search list size
-<<<<<<< HEAD
 $query->setFts(string $fieldName, string $queryString = '', string $matchString = '', string $defaultOperator = FTS_OPERATOR_OR): self
-=======
->>>>>>> d9a2f7d (feat(index): add DiskANN index type and query params (#179))
 $query->setRadius(float $radius): self               // Range search radius
 $query->setLinear(bool $linear): self                // Linear scan
 $query->setUsingRefiner(bool $refiner): self         // Two-stage refine
 $query->setTopk(int $topk): self
 $query->setIncludeVector(bool $include): self
 $query->setIncludeDocId(bool $include): self  // Also return internal numeric doc id
-$query->setHnswPrefetch(int $prefetchOffset, int $prefetchLines): self  // HNSW prefetch, 0 disables
 $query->setFilter(string $filter): self
 $query->setOutputFields(array $fields): self
 
@@ -744,8 +728,10 @@ $rerankedDoc->getSourceScores(): array       // ['fieldName' => score, ...]
 | `INDEX_TYPE_IVF` | 2 | Inverted File — partition-based, good for large-scale |
 | `INDEX_TYPE_FLAT` | 3 | Brute force exact search — no index structure |
 | `INDEX_TYPE_HNSW_RABITQ` | 4 | HNSW + RaBitQ quantization — memory-efficient |
-| `INDEX_TYPE_VAMANA` | 5 | DiskANN — disk-based graph for 10K+ documents |
+| `INDEX_TYPE_VAMANA` | 5 | Vamana — in-memory graph, the DiskANN family for 10K+ documents |
+| `INDEX_TYPE_DISKANN` | 6 | DiskANN — disk-based graph for billion-scale corpora |
 | `INDEX_TYPE_INVERT` | 10 | Keyword-based inverted index |
+| `INDEX_TYPE_FTS` | 11 | Full-Text Search over a STRING column |
 
 ### Metric Types
 
@@ -765,6 +751,29 @@ $rerankedDoc->getSourceScores(): array       // ['fieldName' => score, ...]
 | `QUANTIZE_INT8` | 2 | 8-bit integer (4x memory reduction) |
 | `QUANTIZE_INT4` | 3 | 4-bit integer (8x memory reduction) |
 | `QUANTIZE_RABITQ` | 4 | RaBitQ for HNSW-RaBitQ index |
+
+### Query Param Types
+
+Returned by the `set*Params()` / `setFts()` methods on `ZVecVectorQuery` via its
+`queryParamType` property.
+
+| Constant | Value | Set by |
+|---|---|---|
+| `QUERY_PARAM_NONE` | 0 | default, no index-specific tuning |
+| `QUERY_PARAM_HNSW` | 1 | `setHnswParams()`, `setHnswPrefetch()` |
+| `QUERY_PARAM_IVF` | 2 | `setIvfParams()` |
+| `QUERY_PARAM_FLAT` | 3 | `setFlatParams()` |
+| `QUERY_PARAM_HNSW_RABITQ` | 4 | `setHnswRabitqParams()` |
+| `QUERY_PARAM_VAMANA` | 5 | `setVamanaParams()` |
+| `QUERY_PARAM_DISKANN` | 6 | `setDiskAnnParams()` |
+| `QUERY_PARAM_FTS` | 11 | `setFts()` |
+
+### FTS Constants
+
+| Constant | Value | Description |
+|---|---|---|
+| `FTS_OPERATOR_OR` | `'OR'` | A document may contain any of the terms (default) |
+| `FTS_OPERATOR_AND` | `'AND'` | A document must contain every term |
 
 ## Running Tests
 
