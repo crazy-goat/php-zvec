@@ -58,11 +58,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: ffi
+      # setup-php hangs in Homebrew on macos-14; Homebrew's php has FFI built in.
+      - name: Install PHP
+        run: brew install php && php -v && php -n -m | grep -x FFI
 
       - name: Build FFI adapter
         run: ./build_zvec.sh "$ZVEC_VERSION"
