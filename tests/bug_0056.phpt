@@ -16,7 +16,7 @@ require_once __DIR__ . '/../src/ZVec.php';
 $status = ZVec::ffi()->zvec_ffi_initialize(null);
 echo "initialize(null): code=" . $status->code . "\n";
 
-ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN, queryThreads: 7, optimizeThreads: 3);
+ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN, queryThreads: 2, optimizeThreads: 1);
 
 $path = __DIR__ . '/../test_dbs/bug_0056_' . uniqid();
 try {
