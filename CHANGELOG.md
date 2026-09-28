@@ -57,6 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`fetch_zvec_sdk.sh` picked the musl SDK on glibc hosts** (#215)
+  - The musl check was `ls /lib/ld-musl-*.so.1`, which also succeeds on a glibc machine that merely has `musl-tools` installed. The musl SDK was then unpacked and every test failed at `ZVec::ffi()` with `libc.musl-x86_64.so.1: cannot open shared object file`.
+  - The detection now inspects the loader of the binary that will actually load the SDK (`ldd $(command -v php)`), falling back to `/bin/sh`, and assumes glibc when neither marker is present. Override the probe with `PHP_BINARY`.
+
 - **Crash at exit and lost `ZVec::init()` settings with a shared libzvec** (#215)
   - libzvec exports the `GlobalConfig` singleton but keeps its init guard local, so calling the inline `GlobalConfig::Instance()` from our module built a second copy: `init()` settings were silently reset and the object was destroyed twice at exit (`free(): chunks in smallbin corrupted`, SIGABRT). The FFI adapter and the extension now resolve the instance from libzvec via `dlsym`. Test: `tests/bug_0056.phpt`.
   - Release builds of the Linux FFI adapter embed libstdc++; its symbols are now kept private (`-Wl,--exclude-libs,ALL`). Before, the dynamic linker bound part of them to the system libstdc++ that PHP already loads through libxml2/libicu, and `schema()` segfaulted inside `IndexParams::to_string()`.
