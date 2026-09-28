@@ -31,6 +31,53 @@ foreach (['README.md', 'CHANGELOG.md', 'MIGRATION.md', 'AGENTS.md'] as $f) {
         }
     }
 }
+// 1b. Every *release* must have a CHANGELOG section. Tags are a much wider net
+//     than releases here (40 of them, from 0.1.0 up, many never published and
+//     several with no section at all), so scope this to what GitHub actually
+//     publishes. 0.4.9, 0.3.9 and 0.1.1 are tags without releases, which is
+//     why they are legitimately absent from the changelog.
+$changelog = file_get_contents("$root/CHANGELOG.md");
+preg_match_all('/^## \[(\d+\.\d+\.\d+)\]/m', $changelog, $sections);
+$documented = $sections[1];
+
+$published = [];
+$out = (string) @shell_exec(
+    'gh release list --repo crazy-goat/php-zvec --limit 100 --json tagName 2>/dev/null'
+);
+if (trim($out) === '') {
+    $json = @file_get_contents('https://api.github.com/repos/crazy-goat/php-zvec/releases?per_page=100');
+    $decoded = $json === false ? [] : json_decode($json, true);
+    foreach (is_array($decoded) as $r) {
+        $published[] = $r['tag_name'];
+    }
+} else {
+    foreach (json_decode($out, true) ?: [] as $r) {
+        $published[] = $r['tagName'];
+    }
+}
+$product = array_values(array_filter($published, fn($t) => (bool) preg_match('/^v\d+\.\d+\.\d+$/', $t)));
+sort($product);
+$missing = [];
+foreach ($product as $t) {
+    if (!in_array(ltrim($t, 'v'), $documented, true)) {
+        $missing[] = $t;
+    }
+}
+echo 'published release without a CHANGELOG section: ' . ($missing === [] ? 'none' : implode(',', $missing)) . "\n";
+if ($missing !== []) {
+    $failures++;
+}
+
+// The [Unreleased] compare link must point at the newest published release,
+// otherwise every link in the file is off by one version.
+$newest = $product === [] ? '' : 'v' . ltrim((string) end($product), 'v');
+if ($newest !== '' && str_contains($changelog, "compare/$newest...HEAD")) {
+    echo "unreleased link: points at $newest\n";
+} else {
+    echo "unreleased link: STALE (expected $newest)\n";
+    $failures++;
+}
+
 echo "conflict markers: " . ($markers === 0 ? "none" : "$markers found") . "\n";
 
 // 2. Every milestone v0.6.0 public API entry is documented in README exactly once
@@ -106,6 +153,8 @@ foreach ($consts as [, $name, $value]) {
 echo $failures === 0 ? "PASS\n" : "FAIL ($failures)\n";
 ?>
 --EXPECT--
+published release without a CHANGELOG section: none
+unreleased link: points at v0.6.0
 conflict markers: none
 ZVecIndexParams::forDiskAnn   1
 ZVecIndexParams::forFts       1
