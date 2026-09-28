@@ -97,7 +97,7 @@ jobs:
 
   release-ffi-macos:
     needs: create-release
-    runs-on: macos-14
+    runs-on: macos-15
     name: Build & Release FFI (darwin-aarch64)
 
     permissions:
@@ -106,7 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # setup-php hangs in Homebrew on macos-14; Homebrew's php has FFI built in.
+      # setup-php hangs in Homebrew on macOS runners; Homebrew's php has FFI built in.
       - name: Install PHP
         run: brew install php && php -v && php -n -m | grep -x FFI
 

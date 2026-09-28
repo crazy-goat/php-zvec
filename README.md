@@ -51,7 +51,7 @@ specify it explicitly: `vendor/bin/zvec-install v0.4.10`.
 Supported platforms (all pre-built):
 - **Linux x86_64 / aarch64 (glibc 2.28+)** — `libzvec_ffi-linux-{x86_64,aarch64}.tar.gz`
 - **Linux x86_64 / aarch64 (musl, e.g. Alpine)** — `libzvec_ffi-linux-musl-{x86_64,aarch64}.tar.gz`
-- **macOS arm64** — `libzvec_ffi-darwin-aarch64.tar.gz`
+- **macOS arm64 (macOS 15+)** — `libzvec_ffi-darwin-aarch64.tar.gz`
 
 ### Manual build (all platforms)
 
@@ -935,7 +935,7 @@ For production deployments, build the FFI adapter yourself with `./build_zvec.sh
 ## Known Limitations
 
 - **GroupByQuery**: The C++ API has this method but it returns all documents in a single group with empty group value. This is a known issue in upstream zvec (marked as "Coming Soon" in zvec docs).
-- **Platform**: Pre-built for Linux x86_64/aarch64 (glibc and musl) and macOS arm64. No macOS x86_64 build (upstream ships no SDK for it).
+- **Platform**: Pre-built for Linux x86_64/aarch64 (glibc and musl) and macOS arm64 (macOS 15 or newer — the upstream SDK is built for 15.0). No macOS x86_64 build (upstream ships no SDK for it).
 - **alterColumn()**: Requires `nullable` to be explicitly specified when changing data type. Cannot rename AND change type in one call. Only scalar numeric types (INT32, INT64, UINT32, UINT64, FLOAT, DOUBLE) are supported for type changes.
 - **GroupByVectorQuery**: Does not support HNSW, IVF, Flat, or Vamana query parameters (`setTopk()`, `setHnswParams()`, etc. throw ZVecException).
 - **queryById()**: Uses `fetch()` internally to get the source vector, then performs a second query. Not a single round-trip to the C++ layer.
