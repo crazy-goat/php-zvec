@@ -356,6 +356,7 @@ $doc->clear(): self
 
 // Scalar getters (each returns ?type, null if field missing)
 $doc->getPk(): string
+$doc->getDocId(): int        // Internal numeric id; needs setIncludeDocId(true)
 $doc->getScore(): float
 $doc->getInt64(string $field): ?int
 $doc->getString(string $field): ?string
@@ -469,6 +470,34 @@ $params = ZVecIndexParams::forVamana(
     int $quantizeType = QUANTIZE_UNDEFINED
 ): self
 
+// DiskANN — disk-based graph for billion-scale corpora
+$params = ZVecIndexParams::forDiskAnn(
+    int $metricType = METRIC_IP,
+    int $maxDegree = 100,
+    int $listSize = 50,
+    int $pqChunkNum = 0,
+    int $quantizeType = QUANTIZE_UNDEFINED
+): self
+
+<<<<<<< HEAD
+// DiskANN — disk-based graph for billion-scale corpora
+$params = ZVecIndexParams::forDiskAnn(
+    int $metricType = METRIC_IP,
+    int $maxDegree = 100,
+    int $listSize = 50,
+    int $pqChunkNum = 0,
+    int $quantizeType = QUANTIZE_UNDEFINED
+): self
+
+// Full-Text Search — inverted index over a STRING column
+$params = ZVecIndexParams::forFts(
+    string $tokenizer = 'standard',
+    string[] $filters = ['lowercase'],
+    string $extraParams = ''
+): self
+
+=======
+>>>>>>> d9a2f7d (feat(index): add DiskANN index type and query params (#179))
 // Invert — keyword-based inverted index
 $params = ZVecIndexParams::forInvert(
     bool $enableRange = true,
@@ -554,15 +583,23 @@ $query = ZVecVectorQuery::fromId('embedding', 'doc_1');
 // Query parameters
 $query->setFp64(bool $fp64 = true): self            // Use FP64 precision
 $query->setHnswParams(int $ef): self                 // HNSW ef_search
+$query->setHnswPrefetch(int $prefetchOffset, int $prefetchLines): self  // HNSW prefetch, 0 disables
 $query->setHnswRabitqParams(int $ef): self           // HNSW-RaBitQ ef_search
 $query->setIvfParams(int $nprobe): self              // IVF nprobe
 $query->setFlatParams(): self                        // Brute force mode
 $query->setVamanaParams(int $efSearch): self         // Vamana ef_search
+$query->setDiskAnnParams(int $listSize): self        // DiskANN search list size
+<<<<<<< HEAD
+$query->setFts(string $fieldName, string $queryString = '', string $matchString = '', string $defaultOperator = FTS_OPERATOR_OR): self
+=======
+>>>>>>> d9a2f7d (feat(index): add DiskANN index type and query params (#179))
 $query->setRadius(float $radius): self               // Range search radius
 $query->setLinear(bool $linear): self                // Linear scan
 $query->setUsingRefiner(bool $refiner): self         // Two-stage refine
 $query->setTopk(int $topk): self
 $query->setIncludeVector(bool $include): self
+$query->setIncludeDocId(bool $include): self  // Also return internal numeric doc id
+$query->setHnswPrefetch(int $prefetchOffset, int $prefetchLines): self  // HNSW prefetch, 0 disables
 $query->setFilter(string $filter): self
 $query->setOutputFields(array $fields): self
 

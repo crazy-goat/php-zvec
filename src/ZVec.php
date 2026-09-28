@@ -879,6 +879,18 @@ class ZVec
     public const INDEX_TYPE_VAMANA = 5;
 
     /**
+     * Index type: DISKANN (DiskANN).
+     *
+     * Disk-based graph index, distinct from VAMANA (which is the in-memory
+     * graph variant). Targets billion-scale corpora.
+     *
+     * Value: 6 — matches zvec::IndexType::DISKANN
+     *
+     * @see ZVecIndexParams::forDiskAnn()
+     */
+    public const INDEX_TYPE_DISKANN = 6;
+
+    /**
      * Index type: INVERT (Inverted Index).
      *
      * Keyword-based inverted index for sparse vector search.
@@ -946,6 +958,42 @@ class ZVec
      * Value: 5
      */
     public const QUERY_PARAM_VAMANA = 5;
+
+    /**
+     * Query parameter preset: FTS.
+     *
+     * Enables the FTS default boolean operator.
+     *
+     * Value: 11
+     */
+    public const QUERY_PARAM_FTS = 11;
+
+    /**
+     * Index type: FTS (Full-Text Search).
+     *
+     * Inverted index over a STRING column with tokenization, token filters and
+     * optional stemming.
+     *
+     * Value: 11 — matches zvec::IndexType::FTS
+     *
+     * @see ZVecIndexParams::forFts()
+     */
+    public const INDEX_TYPE_FTS = 11;
+
+    /** FTS default boolean operator: a document may contain any of the terms. */
+    public const FTS_OPERATOR_OR = 'OR';
+
+    /** FTS default boolean operator: a document must contain every term. */
+    public const FTS_OPERATOR_AND = 'AND';
+
+    /**
+     * Query parameter preset: DiskANN.
+     *
+     * Enables DiskANN-specific search parameters (search list size).
+     *
+     * Value: 6
+     */
+    public const QUERY_PARAM_DISKANN = 6;
 
     /**
      * Log destination: Console (stderr).

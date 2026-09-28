@@ -512,6 +512,22 @@ class ZVecDoc
     /**
      * @throws ZVecException On FFI error
      */
+    /**
+     * Internal numeric document id assigned by the collection.
+     *
+     * Only populated on documents returned by a query created with
+     * {@see ZVecVectorQuery::setIncludeDocId(true)}; otherwise 0.
+     *
+     * @throws ZVecException On FFI error
+     */
+    public function getDocId(): int
+    {
+        return self::ffi()->zvec_doc_get_doc_id($this->handle);
+    }
+
+    /**
+     * @throws ZVecException On FFI error
+     */
     public function getScore(): float
     {
         return self::ffi()->zvec_doc_get_score($this->handle);

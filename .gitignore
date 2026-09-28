@@ -16,6 +16,11 @@ tests/*.exp
 tests/*.log
 tests/*.out
 tests/*.sh
+# Scratch written while running the suite. The runner extracts each .phpt body
+# to tests/<name>.php.tmp-extract and keeps it, so it is never deleted (that
+# was the bug in issue 187) and must never be committed.
+tests/*.php.tmp-extract
+zvec.bak-*/
 *.phar
 /.idea/
 

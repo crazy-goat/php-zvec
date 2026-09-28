@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+<<<<<<< HEAD
+- **Full-Text Search (FTS) support** (#180)
+  - `ZVecIndexParams::forFts(tokenizer, filters, extraParams)` builds a full-text index over a STRING column; mirrors the official Go SDK `NewFTSIndexParams`. Defaults to the `standard` tokenizer with the `lowercase` filter.
+  - `ZVecVectorQuery::setFts(fieldName, queryString, matchString, defaultOperator)` runs an FTS query. `defaultOperator` accepts `ZVec::FTS_OPERATOR_OR` (default) or `FTS_OPERATOR_AND`, case-insensitively.
+  - Upstream requires exactly one of `queryString` / `matchString`, so the PHP layer rejects both-at-once and neither up front instead of surfacing a raw upstream error.
+  - New constants `ZVec::INDEX_TYPE_FTS`, `ZVec::QUERY_PARAM_FTS` (both `11`) plus `FTS_OPERATOR_OR` / `FTS_OPERATOR_AND`.
+  - FFI: `zvec_index_params_set_fts()`, `zvec_vector_query_set_fts()`, and `IndexType::FTS` handling in the params factory and `to_index_type()`.
+  - Test: `tests/test_fts.phpt` (index creation, OR/AND semantics, lowercase folding, no-match, input validation).
+  - Hybrid dense + FTS retrieval through `MultiQuery`, and stemming filters beyond the tested defaults, are not covered yet.
+
+=======
+>>>>>>> d9a2f7d (feat(index): add DiskANN index type and query params (#179))
+- **DiskANN index type and query params** (#179)
+  - `ZVecIndexParams::forDiskAnn(metricType, maxDegree, listSize, pqChunkNum, quantizeType)` — the disk-based graph index, previously missing because only the in-memory Vamana variant was exposed. Mirrors the official Go SDK `NewDiskANNIndexParams`.
+  - `ZVecVectorQuery::setDiskAnnParams(listSize)` sets the search frontier size; mirrors Go `NewDiskANNQueryParams`.
+  - New constants `ZVec::INDEX_TYPE_DISKANN` and `ZVec::QUERY_PARAM_DISKANN`, both `6`.
+  - FFI: `zvec_index_params_set_diskann()`, `zvec_vector_query_set_diskann_list_size()`, plus `IndexType::DISKANN` handling in the params factory.
+  - Test: `tests/test_diskann_index.phpt` (creation, insert, optimize, query, and rejection of DiskANN params on a Vamana index).
+
 - **`resetRadiusThreshold()` workaround for the radius threshold leak** (#200)
   - A radius-filtered Flat/IVF query poisons the thread-local search context: subsequent radius-less queries (refiner, plain, any field with the same index type) return only the radius-filtered subset, with no error. Upstream zvec caches the threshold on a `thread_local` context (`zvec/src/core/interface/index.cc`) and its Flat/IVF `reset()` is a no-op; radius is gated by `if (radius > 0.0f)` in `flat_index.cc`/`ivf_index.cc`.
   - **`ZVec::resetRadiusThreshold(string $fieldName, array $vector)`** runs a throwaway topk-1 query with `radius = FLT_MAX` (`ZVec::RADIUS_THRESHOLD_RESET`) on the same field, which overwrites the leaked threshold and restores unfiltered behavior for later queries on that thread.
