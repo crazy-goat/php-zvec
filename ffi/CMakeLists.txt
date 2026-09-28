@@ -22,6 +22,19 @@ set(ZVEC_STATIC_LIBS
     ${ZVEC_LIB}/libzvec_ailego.a
     ${ZVEC_LIB}/libzvec_core.a
     ${ZVEC_LIB}/libzvec_turbo.a
+    # Upstream ships the DiskANN algorithm as a separate core_knn_* library
+    # (see src/core/algorithm/diskann/CMakeLists.txt) and deliberately excludes
+    # its sources from libzvec_core to avoid duplicate symbols. Its
+    # INDEX_FACTORY_REGISTER_* statics therefore never make it into
+    # libzvec_core.a, so index creation fails at runtime with
+    # "DiskAnn factory entries are not registered" unless we link it here.
+    #
+    # core_framework and core_knn_cluster are NOT listed: their object files are
+    # already pulled in by libzvec_core.a, and naming them here would duplicate
+    # every shared symbol (multiple definition of IndexFactory::*, IndexCluster::*).
+    # The static .a resolves against the whole-archive of libzvec_core.a, so the
+    # diskann objects that need them link fine.
+    ${ZVEC_LIB}/libcore_knn_diskann.a
 )
 
 set(ZVEC_EXTERNAL_LIBS

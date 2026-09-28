@@ -132,10 +132,78 @@ class ZVecIndexParams
     }
 
     /**
+     * Create DiskANN index params
+     *
+     * Disk-based graph index for billion-scale corpora, distinct from the
+     * in-memory Vamana graph. Mirrors the official Go SDK signature
+     * NewDiskANNIndexParams(metric, maxDegree, listSize, pqChunkNum).
+     *
+     * @param int $maxDegree    Maximum out-degree of the graph
+     * @param int $listSize     Search list size used at build time
+     * @param int $pqChunkNum   PQ chunks for on-disk compression, 0 disables PQ
+     * @param int $quantizeType Vector quantization type
+     *
+     * @throws ZVecException On FFI error
+     */
+    public static function forDiskAnn(int $metricType, int $maxDegree = 100, int $listSize = 50, int $pqChunkNum = 0, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
+    {
+        if ($maxDegree <= 0) {
+            throw new ZVecException("maxDegree must be a positive integer, got: {$maxDegree}");
+        }
+        if ($listSize <= 0) {
+            throw new ZVecException("listSize must be a positive integer, got: {$listSize}");
+        }
+        if ($pqChunkNum < 0) {
+            throw new ZVecException("pqChunkNum must be >= 0, got: {$pqChunkNum}");
+        }
+        $ffi = self::ffi();
+        $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_DISKANN, $metricType);
+        $ffi->zvec_index_params_set_diskann($handle, $maxDegree, $listSize, $pqChunkNum);
+        if ($quantizeType !== ZVec::QUANTIZE_UNDEFINED) {
+            $ffi->zvec_index_params_set_quantize_type($handle, $quantizeType);
+        }
+        return new self($handle);
+    }
+
+    /**
      * Create Invert index params
      *
      * @throws ZVecException On FFI error
      */
+    /**
+     * Create Full-Text Search index params
+     *
+     * Inverted index over a STRING column. Mirrors the official Go SDK
+     * NewFTSIndexParams(tokenizerName, filters, extraParams).
+     *
+     * @param string   $tokenizer   Tokenizer name ("standard", …)
+     * @param string[] $filters     Token filters, e.g. ["lowercase", "stemmer_en"]
+     * @param string   $extraParams Extra params, e.g. "stemmer_lang=en"
+     *
+     * @throws ZVecException On FFI error
+     */
+    public static function forFts(string $tokenizer = 'standard', array $filters = ['lowercase'], string $extraParams = ''): self
+    {
+        if ($tokenizer === '') {
+            throw new ZVecException('tokenizer must be a non-empty string');
+        }
+        foreach ($filters as $filter) {
+            if (!is_string($filter) || $filter === '') {
+                throw new ZVecException('each FTS filter must be a non-empty string');
+            }
+        }
+        $ffi = self::ffi();
+        $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_FTS, ZVecSchema::METRIC_IP);
+
+        [$arr, $count, $cStrings] = ZVec::toCStringArray($ffi, $filters);
+        try {
+            $ffi->zvec_index_params_set_fts($handle, $tokenizer, $arr, $count, $extraParams);
+        } finally {
+            ZVec::freeCStringArray($cStrings);
+        }
+        return new self($handle);
+    }
+
     public static function forInvert(bool $enableRange = true, bool $enableWildcard = false): self
     {
         $ffi = self::ffi();

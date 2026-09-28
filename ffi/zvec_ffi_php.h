@@ -156,7 +156,9 @@ void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bit
 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
 void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, int search_list_size, float alpha, int saturate_graph, int use_contiguous_memory, int use_id_map, int quantize_type);
+void zvec_index_params_set_diskann(zvec_index_params_t params, int max_degree, int list_size, int pq_chunk_num);
 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard);
+void zvec_index_params_set_fts(zvec_index_params_t params, const char* tokenizer_name, const char** filters, int filter_count, const char* extra_params);
 void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantize_type);
 void zvec_index_params_set_quantizer_enable_rotate(zvec_index_params_t params, int enable_rotate);
 void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type);
@@ -193,6 +195,7 @@ void zvec_doc_set_array_string(zvec_doc_t doc, const char* field, const char** s
 void zvec_doc_set_array_bool(zvec_doc_t doc, const char* field, const uint8_t* data, uint32_t count);
 
 const char* zvec_doc_get_pk(zvec_doc_t doc);
+uint64_t zvec_doc_get_doc_id(zvec_doc_t doc);
 float zvec_doc_get_score(zvec_doc_t doc);
 int zvec_doc_get_int64(zvec_doc_t doc, const char* field, int64_t* out);
 int zvec_doc_get_bool(zvec_doc_t doc, const char* field, int* out);
@@ -338,11 +341,15 @@ void zvec_vector_query_free(zvec_vector_query_t q);
 void zvec_vector_query_set_field_name(zvec_vector_query_t q, const char* field_name);
 void zvec_vector_query_set_topk(zvec_vector_query_t q, int topk);
 void zvec_vector_query_set_include_vector(zvec_vector_query_t q, int include);
+void zvec_vector_query_set_include_doc_id(zvec_vector_query_t q, int include);
 void zvec_vector_query_set_filter(zvec_vector_query_t q, const char* filter);
 void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fields, int count);
 void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef);
+void zvec_vector_query_set_hnsw_prefetch(zvec_vector_query_t q, int prefetch_offset, int prefetch_lines);
 void zvec_vector_query_set_hnsw_rabitq_ef(zvec_vector_query_t q, int ef);
 void zvec_vector_query_set_vamana_ef_search(zvec_vector_query_t q, int ef_search);
+void zvec_vector_query_set_fts(zvec_vector_query_t q, const char* field_name, const char* query_string, const char* match_string, const char* default_operator);
+void zvec_vector_query_set_diskann_list_size(zvec_vector_query_t q, int list_size);
 void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe);
 void zvec_vector_query_set_flat_mode(zvec_vector_query_t q);
 void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius);

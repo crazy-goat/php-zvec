@@ -912,6 +912,12 @@ struct IndexParamsHolder {
     bool vamana_saturate_graph_;
     bool vamana_use_contiguous_memory_;
     bool vamana_use_id_map_;
+    std::string fts_tokenizer_name_;
+    std::vector<std::string> fts_filters_;
+    std::string fts_extra_params_;
+    int diskann_max_degree_;
+    int diskann_list_size_;
+    int diskann_pq_chunk_num_;
 
     IndexParamsHolder(IndexType type, MetricType metric_type)
         : type_(type), metric_type_(metric_type), quantize_type_(QuantizeType::UNDEFINED),
@@ -922,7 +928,10 @@ struct IndexParamsHolder {
           hnsw_use_contiguous_memory_(false),
           quantizer_enable_rotate_(false),
           vamana_max_degree_(64), vamana_search_list_size_(100), vamana_alpha_(1.2f),
-          vamana_saturate_graph_(false), vamana_use_contiguous_memory_(false), vamana_use_id_map_(false) {}
+          vamana_saturate_graph_(false), vamana_use_contiguous_memory_(false), vamana_use_id_map_(false),
+          // Upstream DiskAnnIndexParams defaults: max_degree 100, list_size 50, pq_chunk_num 0.
+          diskann_max_degree_(100), diskann_list_size_(50), diskann_pq_chunk_num_(0),
+          fts_tokenizer_name_("standard"), fts_filters_({"lowercase"}), fts_extra_params_() {}
 
     IndexParams::Ptr build() const {
         IndexParams::Ptr params;
@@ -944,6 +953,12 @@ struct IndexParamsHolder {
                 break;
             case IndexType::VAMANA:
                 params = std::make_shared<VamanaIndexParams>(metric_type_, vamana_max_degree_, vamana_search_list_size_, vamana_alpha_, vamana_saturate_graph_, vamana_use_contiguous_memory_, vamana_use_id_map_, quantize_type_);
+                break;
+            case IndexType::DISKANN:
+                params = std::make_shared<DiskAnnIndexParams>(metric_type_, diskann_max_degree_, diskann_list_size_, diskann_pq_chunk_num_, quantize_type_);
+                break;
+            case IndexType::FTS:
+                params = std::make_shared<FtsIndexParams>(fts_tokenizer_name_, fts_filters_, fts_extra_params_);
                 break;
             default:
                 return nullptr;
@@ -967,7 +982,9 @@ static IndexType to_index_type(int v) {
         case 3: return IndexType::FLAT;
         case 4: return IndexType::HNSW_RABITQ;
         case 5: return IndexType::VAMANA;
+        case 6: return IndexType::DISKANN;
         case 10: return IndexType::INVERT;
+        case 11: return IndexType::FTS;
         default: return IndexType::UNDEFINED;
     }
 }
@@ -1026,6 +1043,31 @@ void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, in
     h->vamana_use_contiguous_memory_ = (bool)use_contiguous_memory;
     h->vamana_use_id_map_ = (bool)use_id_map;
     h->quantize_type_ = to_quantize_type(quantize_type);
+}
+
+void zvec_index_params_set_diskann(zvec_index_params_t params, int max_degree, int list_size, int pq_chunk_num) {
+    if (!params) return;
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->diskann_max_degree_ = max_degree;
+    h->diskann_list_size_ = list_size;
+    h->diskann_pq_chunk_num_ = pq_chunk_num;
+}
+
+void zvec_index_params_set_fts(zvec_index_params_t params, const char* tokenizer_name, const char** filters, int filter_count, const char* extra_params) {
+    if (!params) return;
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    if (tokenizer_name && tokenizer_name[0] != '\0') {
+        h->fts_tokenizer_name_ = tokenizer_name;
+    }
+    h->fts_filters_.clear();
+    for (int i = 0; filters && i < filter_count; i++) {
+        if (filters[i] && filters[i][0] != '\0') {
+            h->fts_filters_.emplace_back(filters[i]);
+        }
+    }
+    if (extra_params) {
+        h->fts_extra_params_ = extra_params;
+    }
 }
 
 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard) {
@@ -1346,6 +1388,11 @@ const char* zvec_doc_get_pk(zvec_doc_t doc) {
     if (!doc) return nullptr;
     g_pk_buf = static_cast<Doc*>(doc)->pk();
     return g_pk_buf.c_str();
+}
+
+uint64_t zvec_doc_get_doc_id(zvec_doc_t doc) {
+    if (!doc) return 0;
+    return static_cast<Doc*>(doc)->doc_id();
 }
 
 float zvec_doc_get_score(zvec_doc_t doc) {
@@ -2008,6 +2055,10 @@ struct VectorQueryHolder {
     float radius_ = 0.0f;
     bool is_linear_ = false;
     bool is_using_refiner_ = false;
+    // HNSW prefetch, stored so it survives the query_params_ replacement that
+    // every set*Params() call performs.
+    uint32_t prefetch_offset_ = core_interface::kDefaultPrefetchOffset;
+    uint32_t prefetch_lines_ = core_interface::kDefaultPrefetchLines;
 };
 
 struct GroupByVectorQueryHolder {
@@ -2027,6 +2078,12 @@ static void merge_stored_query_settings(const VectorQueryHolder* holder) {
     params->set_radius(holder->radius_);
     params->set_is_linear(holder->is_linear_);
     params->set_is_using_refiner(holder->is_using_refiner_);
+    // Prefetch only exists on HnswQueryParams; re-apply so it is not lost when
+    // a set*Params() call rebuilt query_params_ after setHnswPrefetch().
+    if (auto* hnsw = dynamic_cast<HnswQueryParams*>(params.get())) {
+        hnsw->set_prefetch_offset(holder->prefetch_offset_);
+        hnsw->set_prefetch_lines(holder->prefetch_lines_);
+    }
 }
 
 zvec_vector_query_t zvec_vector_query_create(void) {
@@ -2073,10 +2130,27 @@ void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fie
     }
 }
 
+void zvec_vector_query_set_include_doc_id(zvec_vector_query_t q, int include) {
+    if (!q) return;
+    static_cast<VectorQueryHolder*>(q)->query.include_doc_id_ = (bool)include;
+}
+
 void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.target_.query_params_ = std::make_shared<HnswQueryParams>(ef);
+    merge_stored_query_settings(holder);
+}
+
+void zvec_vector_query_set_hnsw_prefetch(zvec_vector_query_t q, int prefetch_offset, int prefetch_lines) {
+    if (!q) return;
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->prefetch_offset_ = prefetch_offset < 0 ? 0 : static_cast<uint32_t>(prefetch_offset);
+    holder->prefetch_lines_ = prefetch_lines < 0 ? 0 : static_cast<uint32_t>(prefetch_lines);
+    // If no params exist yet, create HNSW ones so the values are actually used.
+    if (!holder->query.target_.query_params_) {
+        holder->query.target_.query_params_ = std::make_shared<HnswQueryParams>();
+    }
     merge_stored_query_settings(holder);
 }
 
@@ -2087,10 +2161,37 @@ void zvec_vector_query_set_hnsw_rabitq_ef(zvec_vector_query_t q, int ef) {
     merge_stored_query_settings(holder);
 }
 
+void zvec_vector_query_set_fts(zvec_vector_query_t q, const char* field_name, const char* query_string, const char* match_string, const char* default_operator) {
+    if (!q) return;
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    if (field_name && field_name[0] != '\0') {
+        holder->query.target_.field_name_ = field_name;
+    }
+    // FTS replaces the vector clause in the target variant; query_string is the
+    // Lucene-style side, match_string the natural-language alternative.
+    FtsClause fts;
+    if (query_string) fts.query_string_ = query_string;
+    if (match_string) fts.match_string_ = match_string;
+    holder->query.target_.clause_ = fts;
+    if (default_operator && default_operator[0] != '\0') {
+        auto params = std::make_shared<FtsQueryParams>();
+        params->set_default_operator(default_operator);
+        holder->query.target_.query_params_ = params;
+    }
+    merge_stored_query_settings(holder);
+}
+
 void zvec_vector_query_set_vamana_ef_search(zvec_vector_query_t q, int ef_search) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
     holder->query.target_.query_params_ = std::make_shared<VamanaQueryParams>(ef_search);
+    merge_stored_query_settings(holder);
+}
+
+void zvec_vector_query_set_diskann_list_size(zvec_vector_query_t q, int list_size) {
+    if (!q) return;
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->query.target_.query_params_ = std::make_shared<DiskAnnQueryParams>(list_size);
     merge_stored_query_settings(holder);
 }
 

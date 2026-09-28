@@ -1949,7 +1949,9 @@ TEST $file
     $memcheck_filename = $temp_dir . DIRECTORY_SEPARATOR . $main_file_name . 'mem';
     $sh_filename = $temp_dir . DIRECTORY_SEPARATOR . $main_file_name . 'sh';
     $temp_file = $temp_dir . DIRECTORY_SEPARATOR . $main_file_name . 'php';
-    $test_file = $test_dir . DIRECTORY_SEPARATOR . $main_file_name . 'php';
+    // Extract to a distinct suffix so a hand-written tests/<name>.php that
+    // shares a base name with a .phpt is never overwritten (issue 187).
+    $test_file = $test_dir . DIRECTORY_SEPARATOR . $main_file_name . 'php.tmp-extract';
     $temp_skipif = $temp_dir . DIRECTORY_SEPARATOR . $main_file_name . 'skip.php';
     $test_skipif = $test_dir . DIRECTORY_SEPARATOR . $main_file_name . 'skip.php';
     $temp_clean = $temp_dir . DIRECTORY_SEPARATOR . $main_file_name . 'clean.php';

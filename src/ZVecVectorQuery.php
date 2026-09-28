@@ -46,6 +46,14 @@ class ZVecVectorQuery implements ZVecQueryInterface
     public bool $useFp64 = false;
     public ?int $topk = null;
     public ?bool $includeVector = null;
+    public ?bool $includeDocId = null;
+    public ?int $prefetchOffset = null;
+    public ?int $prefetchLines = null;
+    public ?int $diskAnnListSize = null;
+    public ?string $ftsField = null;
+    public ?string $ftsQueryString = null;
+    public ?string $ftsMatchString = null;
+    public ?string $ftsDefaultOperator = null;
     public ?string $filter = null;
 
     /**
@@ -133,6 +141,61 @@ class ZVecVectorQuery implements ZVecQueryInterface
     }
 
     /** @throws ZVecException */
+    /**
+     * Request the internal numeric document id alongside the primary key.
+     *
+     * Only populated on documents returned by a query that enabled this flag;
+     * read it back with {@see ZVecDoc::getDocId()}.
+     *
+     * @throws ZVecException
+     */
+    public function setIncludeDocId(bool $include): self
+    {
+        $this->includeDocId = $include;
+        self::ffi()->zvec_vector_query_set_include_doc_id($this->handle, $include ? 1 : 0);
+        return $this;
+    }
+
+    /**
+     * Tune HNSW search-time software prefetch.
+     *
+     * Only meaningful for HNSW indexes. Both values are remembered by the query,
+     * so the call order relative to {@see setHnswParams()} does not matter.
+     *
+     * @throws ZVecException
+     */
+    public function setHnswPrefetch(int $prefetchOffset, int $prefetchLines): self
+    {
+        if ($prefetchOffset < 0) {
+            throw new ZVecException('prefetchOffset must be >= 0');
+        }
+        if ($prefetchLines < 0) {
+            throw new ZVecException('prefetchLines must be >= 0');
+        }
+        $this->prefetchOffset = $prefetchOffset;
+        $this->prefetchLines = $prefetchLines;
+        self::ffi()->zvec_vector_query_set_hnsw_prefetch($this->handle, $prefetchOffset, $prefetchLines);
+        return $this;
+    }
+
+    /**
+     * Set DiskANN query params.
+     *
+     * Only valid on a DISKANN index (see {@see ZVecIndexParams::forDiskAnn()}).
+     *
+     * @param int $listSize Search frontier size — larger trades latency for recall
+     *
+     * @throws ZVecException
+     */
+    public function setDiskAnnParams(int $listSize): self
+    {
+        $this->queryParamType = ZVec::QUERY_PARAM_DISKANN;
+        $this->diskAnnListSize = $listSize;
+        self::ffi()->zvec_vector_query_set_diskann_list_size($this->handle, $listSize);
+        return $this;
+    }
+
+    /** @throws ZVecException */
     public function setHnswRabitqParams(int $ef): self
     {
         $this->queryParamType = ZVec::QUERY_PARAM_HNSW_RABITQ;
@@ -155,6 +218,46 @@ class ZVecVectorQuery implements ZVecQueryInterface
     {
         $this->queryParamType = ZVec::QUERY_PARAM_FLAT;
         self::ffi()->zvec_vector_query_set_flat_mode($this->handle);
+        return $this;
+    }
+
+    /**
+     * Run a full-text search against a FTS-indexed STRING field.
+     * Set DiskANN query params.
+     *
+     * Replaces the vector clause of this query, so it must not be combined with
+     * a dense query vector.
+     * Only valid on a DISKANN index (see {@see ZVecIndexParams::forDiskAnn()}).
+     *
+     * Upstream accepts exactly one of the two sides, so pass either
+     * $queryString or $matchString, not both. $defaultOperator controls how
+     * adjacent bare terms combine.
+     *
+     * @param string $fieldName       Field carrying the FTS index
+     * @param string $queryString     Lucene-style query terms
+     * @param string $matchString     Alternative natural-language terms
+     * @param string $defaultOperator ZVec::FTS_OPERATOR_OR (default) or FTS_OPERATOR_AND
+     *
+     * @throws ZVecException
+     */
+    public function setFts(string $fieldName, string $queryString = '', string $matchString = '', string $defaultOperator = ZVec::FTS_OPERATOR_OR): self
+    {
+        if ($fieldName === '') {
+            throw new ZVecException('fieldName must be a non-empty string');
+        }
+        if (($queryString === '') === ($matchString === '')) {
+            throw new ZVecException('provide exactly one of queryString or matchString, not both and not neither');
+        }
+        $operator = strtoupper($defaultOperator);
+        if (!in_array($operator, [ZVec::FTS_OPERATOR_OR, ZVec::FTS_OPERATOR_AND], true)) {
+            throw new ZVecException("defaultOperator must be 'OR' or 'AND', got: {$defaultOperator}");
+        }
+        $this->queryParamType = ZVec::QUERY_PARAM_FTS;
+        $this->ftsField = $fieldName;
+        $this->ftsQueryString = $queryString;
+        $this->ftsMatchString = $matchString;
+        $this->ftsDefaultOperator = $operator;
+        self::ffi()->zvec_vector_query_set_fts($this->handle, $fieldName, $queryString, $matchString, $operator);
         return $this;
     }
 
