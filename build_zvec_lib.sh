@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-ZVEC_VERSION="${1:-v0.6.0}"
+ZVEC_VERSION="${1:-v0.7.0}"
 PREBUILT_URL="${2:-}"
 
 OS="$(uname -s)"
@@ -42,7 +42,80 @@ echo "CPUs: ${CPUS}"
 
 STAMP_FILE="zvec/build/.zvec_version"
 
-# --- Try prebuilt if URL provided (CI flow) ---
+# --- Platform mapping for the official zvec SDK prebuilt ---
+# The SDK is published per OS+arch; these are the asset name fragments.
+if [ "$OS" = "Darwin" ]; then
+    SDK_PLATFORM="osx"
+elif [ "$OS" = "Linux" ]; then
+    SDK_PLATFORM="linux"
+else
+    SDK_PLATFORM=""
+fi
+
+ARCH="$(uname -m)"
+case "$ARCH" in
+    x86_64|amd64)  SDK_ARCH="amd64" ;;
+    aarch64|arm64) SDK_ARCH="arm64" ;;
+    *)            SDK_ARCH="" ;;
+esac
+
+# Official SDKs are published as .tar.gz on unix and .zip on windows.
+if [ "$OS" = "Darwin" ] || [ "$OS" = "Linux" ]; then
+    SDK_EXT="tar.gz"
+else
+    SDK_EXT="zip"
+fi
+
+SDK_URL="https://github.com/alibaba/zvec/releases/download/${ZVEC_VERSION}/zvec-sdk-${SDK_PLATFORM}-${SDK_ARCH}.${SDK_EXT}"
+
+# --- Download the official zvec SDK prebuilt ---
+# Upstream publishes prebuilt SDKs from v0.7.0 onwards. Using them skips
+# compiling Arrow and RocksDB from source, which dominates build time.
+# Set ZVEC_NO_SDK=1 to force a source build.
+download_sdk() {
+    local url="$1"
+    [ -z "$SDK_PLATFORM" ] || [ -z "$SDK_ARCH" ] && return 1
+    echo "Trying official zvec SDK ${ZVEC_VERSION}: ${url}"
+    local tmp
+    tmp="$(mktemp -d)"
+    if ! curl -fL --connect-timeout 15 "$url" -o "${tmp}/zvec-sdk.${SDK_EXT}" 2>/dev/null; then
+        rm -rf "$tmp"
+        return 1
+    fi
+    rm -rf zvec
+    mkdir -p zvec
+    if [ "$SDK_EXT" = "zip" ]; then
+        unzip -q "${tmp}/zvec-sdk.zip" -d zvec || { rm -rf "$tmp" zvec; return 1; }
+    else
+        tar -xzf "${tmp}/zvec-sdk.${SDK_EXT}" -C zvec || { rm -rf "$tmp" zvec; return 1; }
+    fi
+    rm -rf "$tmp"
+    # The SDK unpacks to ./include ./lib ./data; ffi/CMakeLists.txt expects
+    # them under zvec/src/include and zvec/build/lib.
+    if [ -d zvec/include ]; then
+        mkdir -p zvec/src
+        mv zvec/include zvec/src/include
+    fi
+    if [ -d zvec/lib ]; then
+        mkdir -p zvec/build
+        mv zvec/lib zvec/build/lib
+    fi
+    # The FFI build also puts sparsehash headers on the include path.
+    mkdir -p zvec/thirdparty/sparsehash/sparsehash-2.0.4
+    return 0
+}
+
+if [ -z "${ZVEC_NO_SDK:-}" ]; then
+    if download_sdk "$SDK_URL"; then
+        mkdir -p zvec/build
+        echo "$ZVEC_VERSION" > "$STAMP_FILE"
+        echo "zvec ${ZVEC_VERSION} ready (official SDK prebuilt)"
+        exit 0
+    fi
+    echo "Official SDK unavailable for ${ZVEC_VERSION} on ${SDK_PLATFORM}-${SDK_ARCH}, building from source..."
+fi
+
+# --- Legacy prebuilt (CI flow) ---
 if [ -n "$PREBUILT_URL" ]; then
     echo "Trying prebuilt zvec ${ZVEC_VERSION} from ${PREBUILT_URL}..."
     if curl -fL --connect-timeout 10 "$PREBUILT_URL" -o /tmp/zvec.tar.gz 2>/dev/null; then

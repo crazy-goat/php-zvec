@@ -1,5 +1,7 @@
 #include "zvec_ffi.h"
 
+#include <dlfcn.h>
+
 #include <array>
 #include <cstring>
 #include <optional>
@@ -172,6 +174,40 @@ struct ConfigDataHolder {
     GlobalConfig::ConfigData config;
 };
 
+// --- GlobalConfig singleton access (do not call Instance() directly) ---
+//
+// zvec::ailego::Singleton<T>::Instance() is an inline template holding a
+// function-local static, so inlining it in this module makes the compiler emit
+// this module's own GNU_UNIQUE definition of `::obj` *and* its own guard
+// variable. The dynamic linker still binds libzvec's internal calls to the same
+// object, but each module runs the constructor under its own guard, so the
+// singleton is constructed twice and destroyed twice at exit. The second
+// destruction releases an already-freed shared_ptr control block, which glibc
+// reports as "free(): chunks in smallbin corrupted" and then SIGABRT.
+//
+// Instead resolve the single real Instance() inside libzvec: reusing its guard
+// means construction and destruction each happen exactly once. The handle is
+// obtained with RTLD_NOLOAD so an already-loaded libzvec is reused rather than
+// loaded a second time, and it is intentionally never dlclose()d -- libzvec
+// must stay resident for as long as this adapter is.
+static GlobalConfig* global_config_ptr() {
+    using InstanceFn = GlobalConfig& (*)();
+    static InstanceFn instance_fn = []() -> InstanceFn {
+#ifdef RTLD_NOLOAD
+        void* handle = dlopen("libzvec.so", RTLD_LAZY | RTLD_NOLOAD);
+#else
+        void* handle = dlopen("libzvec.so", RTLD_LAZY);
+#endif
+        if (!handle) {
+            return nullptr;
+        }
+        return reinterpret_cast<InstanceFn>(
+            dlsym(handle, "_ZN4zvec6ailego9SingletonINS_12GlobalConfigEE8InstanceEv"));
+    }();
+
+    return instance_fn ? &instance_fn() : nullptr;
+}
+
 zvec_status_t zvec_init(int log_type, int log_level,
                         const char* log_dir, const char* log_basename,
                         uint32_t log_file_size, uint32_t log_overdue_days,
@@ -201,8 +237,13 @@ zvec_status_t zvec_init(int log_type, int log_level,
     if (brute_force_by_keys_ratio > 0.0f) config.brute_force_by_keys_ratio = brute_force_by_keys_ratio;
     if (memory_limit_mb > 0) config.memory_limit_bytes = memory_limit_mb * 1024ULL * 1024ULL;
 
-    auto& gc = GlobalConfig::Instance();
-    auto st = MAKE_STATUS(gc.Initialize(config));
+    auto* gc = global_config_ptr();
+    if (!gc) {
+        zvec_status_t st = {8, "internal: libzvec GlobalConfig::Instance() symbol not found"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    auto st = MAKE_STATUS(gc->initialize(config));
     if (st.code == 0) {
         g_ffi_initialized.store(1, std::memory_order_release);
     }
@@ -286,10 +327,15 @@ void zvec_config_data_set_brute_force_by_keys_ratio(zvec_config_data_t config, f
 }
 
 zvec_status_t zvec_ffi_initialize(zvec_config_data_t config) {
+    auto* gc = global_config_ptr();
+    if (!gc) {
+        zvec_status_t st = {8, "internal: libzvec GlobalConfig::Instance() symbol not found"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
     if (!config) {
         auto* holder = new ConfigDataHolder();
-        auto& gc = GlobalConfig::Instance();
-        auto st = MAKE_STATUS(gc.Initialize(holder->config));
+        auto st = MAKE_STATUS(gc->initialize(holder->config));
         delete holder;
         if (st.code == 0) {
             g_ffi_initialized.store(1, std::memory_order_release);
@@ -297,8 +343,7 @@ zvec_status_t zvec_ffi_initialize(zvec_config_data_t config) {
         return st;
     }
     auto* holder = static_cast<ConfigDataHolder*>(config);
-    auto& gc = GlobalConfig::Instance();
-    auto st = MAKE_STATUS(gc.Initialize(holder->config));
+    auto st = MAKE_STATUS(gc->initialize(holder->config));
     if (st.code == 0) {
         g_ffi_initialized.store(1, std::memory_order_release);
     }
@@ -599,7 +644,7 @@ zvec_status_t zvec_collection_flush(zvec_collection_t coll) {
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    return MAKE_STATUS(c->Flush());
+    return MAKE_STATUS(c->flush());
 }
 
 zvec_status_t zvec_collection_optimize(zvec_collection_t coll, uint32_t concurrency) {
@@ -611,7 +656,7 @@ zvec_status_t zvec_collection_optimize(zvec_collection_t coll, uint32_t concurre
     auto* c = static_cast<Collection*>(coll);
     OptimizeOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->Optimize(opts));
+    return MAKE_STATUS(c->optimize(opts));
 }
 
 zvec_status_t zvec_collection_destroy(zvec_collection_t coll) {
@@ -621,7 +666,7 @@ zvec_status_t zvec_collection_destroy(zvec_collection_t coll) {
         return st;
     }
     auto* raw = static_cast<Collection*>(coll);
-    auto status = raw->Destroy();
+    auto status = raw->destroy();
     {
         std::unique_lock lock(g_collections_mutex);
         collections_registry().erase(raw);
@@ -638,7 +683,7 @@ zvec_status_t zvec_collection_schema(zvec_collection_t coll, char* buf, size_t b
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    auto res = c->Schema();
+    auto res = c->schema();
     if (!res.has_value()) {
         return MAKE_STATUS(res.error());
     }
@@ -655,7 +700,7 @@ zvec_status_t zvec_collection_path(zvec_collection_t coll, char* buf, size_t buf
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    auto res = c->Path();
+    auto res = c->path();
     if (!res.has_value()) {
         return MAKE_STATUS(res.error());
     }
@@ -671,7 +716,7 @@ zvec_status_t zvec_collection_options(zvec_collection_t coll, int* read_only, in
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    auto res = c->Options();
+    auto res = c->options();
     if (!res.has_value()) {
         return MAKE_STATUS(res.error());
     }
@@ -693,11 +738,11 @@ zvec_status_t zvec_collection_add_column_int64(zvec_collection_t coll, const cha
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::INT64, (bool)nullable);
     AddColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AddColumn(field, default_expr ? default_expr : "0", opts));
+    return MAKE_STATUS(c->add_column(field, default_expr ? default_expr : "0", opts));
 }
 
 zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
@@ -707,11 +752,11 @@ zvec_status_t zvec_collection_add_column_float(zvec_collection_t coll, const cha
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::FLOAT, (bool)nullable);
     AddColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AddColumn(field, default_expr ? default_expr : "0", opts));
+    return MAKE_STATUS(c->add_column(field, default_expr ? default_expr : "0", opts));
 }
 
 zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
@@ -721,11 +766,11 @@ zvec_status_t zvec_collection_add_column_double(zvec_collection_t coll, const ch
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::DOUBLE, (bool)nullable);
     AddColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AddColumn(field, default_expr ? default_expr : "0", opts));
+    return MAKE_STATUS(c->add_column(field, default_expr ? default_expr : "0", opts));
 }
 
 zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
@@ -735,11 +780,11 @@ zvec_status_t zvec_collection_add_column_string(zvec_collection_t coll, const ch
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::STRING, (bool)nullable);
     AddColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AddColumn(field, default_expr ? default_expr : "", opts));
+    return MAKE_STATUS(c->add_column(field, default_expr ? default_expr : "", opts));
 }
 
 zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
@@ -749,11 +794,11 @@ zvec_status_t zvec_collection_add_column_bool(zvec_collection_t coll, const char
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::BOOL, (bool)nullable);
     AddColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AddColumn(field, default_expr ? default_expr : "false", opts));
+    return MAKE_STATUS(c->add_column(field, default_expr ? default_expr : "false", opts));
 }
 
 zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
@@ -763,11 +808,11 @@ zvec_status_t zvec_collection_add_column_int32(zvec_collection_t coll, const cha
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::INT32, (bool)nullable);
     AddColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AddColumn(field, default_expr ? default_expr : "0", opts));
+    return MAKE_STATUS(c->add_column(field, default_expr ? default_expr : "0", opts));
 }
 
 zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
@@ -777,11 +822,11 @@ zvec_status_t zvec_collection_add_column_uint32(zvec_collection_t coll, const ch
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::UINT32, (bool)nullable);
     AddColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AddColumn(field, default_expr ? default_expr : "0", opts));
+    return MAKE_STATUS(c->add_column(field, default_expr ? default_expr : "0", opts));
 }
 
 zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const char* name, int nullable, const char* default_expr, uint32_t concurrency) {
@@ -791,11 +836,11 @@ zvec_status_t zvec_collection_add_column_uint64(zvec_collection_t coll, const ch
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     auto field = std::make_shared<FieldSchema>(name, DataType::UINT64, (bool)nullable);
     AddColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AddColumn(field, default_expr ? default_expr : "0", opts));
+    return MAKE_STATUS(c->add_column(field, default_expr ? default_expr : "0", opts));
 }
 
 zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* name) {
@@ -805,8 +850,8 @@ zvec_status_t zvec_collection_drop_column(zvec_collection_t coll, const char* na
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
-    return MAKE_STATUS(c->DropColumn(name));
+    c->flush();
+    return MAKE_STATUS(c->drop_column(name));
 }
 
 zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* old_name, const char* new_name, uint32_t concurrency) {
@@ -816,10 +861,10 @@ zvec_status_t zvec_collection_rename_column(zvec_collection_t coll, const char* 
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     AlterColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AlterColumn(old_name, new_name, nullptr, opts));
+    return MAKE_STATUS(c->alter_column(old_name, new_name, nullptr, opts));
 }
 
 zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* column_name, const char* new_name, uint32_t data_type, int nullable, uint32_t concurrency) {
@@ -829,7 +874,7 @@ zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* c
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    c->Flush();
+    c->flush();
     
     // Convert data_type to DataType enum
     DataType dt = DataType::UNDEFINED;
@@ -852,13 +897,13 @@ zvec_status_t zvec_collection_alter_column(zvec_collection_t coll, const char* c
     std::string rename_str = new_name ? new_name : "";
     AlterColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->AlterColumn(column_name, rename_str, new_schema, opts));
+    return MAKE_STATUS(c->alter_column(column_name, rename_str, new_schema, opts));
 }
 
 zvec_status_t zvec_collection_create_invert_index(zvec_collection_t coll, const char* field_name, int enable_range, int enable_wildcard) {
     auto* c = static_cast<Collection*>(coll);
     auto params = std::make_shared<InvertIndexParams>((bool)enable_range, (bool)enable_wildcard);
-    return MAKE_STATUS(c->CreateIndex(field_name, params));
+    return MAKE_STATUS(c->create_index(field_name, params));
 }
 
 zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int m, int ef_construction, uint32_t quantize_type, uint32_t concurrency) {
@@ -866,7 +911,7 @@ zvec_status_t zvec_collection_create_hnsw_index(zvec_collection_t coll, const ch
     auto params = std::make_shared<HnswIndexParams>(to_metric_type(metric_type), m, ef_construction, to_quantize_type(quantize_type));
     CreateIndexOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->CreateIndex(field_name, params, opts));
+    return MAKE_STATUS(c->create_index(field_name, params, opts));
 }
 
 zvec_status_t zvec_collection_create_hnsw_rabitq_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int total_bits, int num_clusters, int m, int ef_construction, int sample_count, uint32_t concurrency) {
@@ -874,7 +919,7 @@ zvec_status_t zvec_collection_create_hnsw_rabitq_index(zvec_collection_t coll, c
     auto params = std::make_shared<HnswRabitqIndexParams>(to_metric_type(metric_type), total_bits, num_clusters, m, ef_construction, sample_count);
     CreateIndexOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->CreateIndex(field_name, params, opts));
+    return MAKE_STATUS(c->create_index(field_name, params, opts));
 }
 
 zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, uint32_t quantize_type, uint32_t concurrency) {
@@ -882,7 +927,7 @@ zvec_status_t zvec_collection_create_flat_index(zvec_collection_t coll, const ch
     auto params = std::make_shared<FlatIndexParams>(to_metric_type(metric_type), to_quantize_type(quantize_type));
     CreateIndexOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->CreateIndex(field_name, params, opts));
+    return MAKE_STATUS(c->create_index(field_name, params, opts));
 }
 
 zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const char* field_name, uint32_t metric_type, int n_list, int n_iters, int use_soar, uint32_t quantize_type, uint32_t concurrency) {
@@ -890,7 +935,7 @@ zvec_status_t zvec_collection_create_ivf_index(zvec_collection_t coll, const cha
     auto params = std::make_shared<IVFIndexParams>(to_metric_type(metric_type), n_list, n_iters, (bool)use_soar, to_quantize_type(quantize_type));
     CreateIndexOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->CreateIndex(field_name, params, opts));
+    return MAKE_STATUS(c->create_index(field_name, params, opts));
 }
 
 zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* field_name) {
@@ -900,7 +945,7 @@ zvec_status_t zvec_collection_drop_index(zvec_collection_t coll, const char* fie
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    return MAKE_STATUS(c->DropIndex(field_name));
+    return MAKE_STATUS(c->drop_index(field_name));
 }
 
 // --- Unified IndexParams API ---
@@ -1119,7 +1164,7 @@ zvec_status_t zvec_collection_create_index(zvec_collection_t coll, const char* f
     }
     CreateIndexOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    return MAKE_STATUS(c->CreateIndex(field_name, index_params, opts));
+    return MAKE_STATUS(c->create_index(field_name, index_params, opts));
 }
 
 // --- Doc ---
@@ -1884,7 +1929,7 @@ zvec_status_t zvec_collection_insert(zvec_collection_t coll, zvec_doc_t* docs, i
     for (int i = 0; i < count; i++) {
         doc_vec.push_back(*static_cast<Doc*>(docs[i]));
     }
-    auto res = c->Insert(doc_vec);
+    auto res = c->insert(doc_vec);
     if (!res.has_value()) {
         return MAKE_STATUS(res.error());
     }
@@ -1906,7 +1951,7 @@ zvec_status_t zvec_collection_upsert(zvec_collection_t coll, zvec_doc_t* docs, i
     for (int i = 0; i < count; i++) {
         doc_vec.push_back(*static_cast<Doc*>(docs[i]));
     }
-    auto res = c->Upsert(doc_vec);
+    auto res = c->upsert(doc_vec);
     if (!res.has_value()) {
         return MAKE_STATUS(res.error());
     }
@@ -1928,7 +1973,7 @@ zvec_status_t zvec_collection_update(zvec_collection_t coll, zvec_doc_t* docs, i
     for (int i = 0; i < count; i++) {
         doc_vec.push_back(*static_cast<Doc*>(docs[i]));
     }
-    auto res = c->Update(doc_vec);
+    auto res = c->update(doc_vec);
     if (!res.has_value()) {
         return MAKE_STATUS(res.error());
     }
@@ -1998,17 +2043,17 @@ static zvec_status_t collection_batch_op(
 
 zvec_status_t zvec_collection_insert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result) {
     return collection_batch_op(coll, docs, count, result,
-        [](Collection* c, std::vector<Doc>& v) { return c->Insert(v); });
+        [](Collection* c, std::vector<Doc>& v) { return c->insert(v); });
 }
 
 zvec_status_t zvec_collection_upsert_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result) {
     return collection_batch_op(coll, docs, count, result,
-        [](Collection* c, std::vector<Doc>& v) { return c->Upsert(v); });
+        [](Collection* c, std::vector<Doc>& v) { return c->upsert(v); });
 }
 
 zvec_status_t zvec_collection_update_batch(zvec_collection_t coll, zvec_doc_t* docs, int count, zvec_batch_result_t* result) {
     return collection_batch_op(coll, docs, count, result,
-        [](Collection* c, std::vector<Doc>& v) { return c->Update(v); });
+        [](Collection* c, std::vector<Doc>& v) { return c->update(v); });
 }
 
 void zvec_batch_result_free(zvec_batch_result_t* result) {
@@ -2046,7 +2091,7 @@ zvec_status_t zvec_collection_delete(zvec_collection_t coll, const char** pks, i
     for (int i = 0; i < count; i++) {
         pk_vec.emplace_back(pks[i]);
     }
-    auto res = c->Delete(pk_vec);
+    auto res = c->delete_(pk_vec);
     if (!res.has_value()) {
         return MAKE_STATUS(res.error());
     }
@@ -2060,7 +2105,7 @@ zvec_status_t zvec_collection_delete_by_filter(zvec_collection_t coll, const cha
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    return MAKE_STATUS(c->DeleteByFilter(filter));
+    return MAKE_STATUS(c->delete_by_filter(filter));
 }
 
 // --- VectorQuery opaque object ---
@@ -2363,7 +2408,7 @@ static void ensure_query_params_for_field(Collection* c, SearchQuery& query, con
     // If radius, is_linear, or is_using_refiner has non-default value, create params
     if (holder->radius_ != 0.0f || holder->is_linear_ || holder->is_using_refiner_) {
         // Try to determine the field's index type from schema
-        auto schema_res = c->Schema();
+        auto schema_res = c->schema();
         if (schema_res.has_value()) {
             const FieldSchema* field = schema_res.value().get_field(query.target_.field_name_.c_str());
             if (field) {
@@ -2410,7 +2455,7 @@ zvec_status_t zvec_collection_query_vector(zvec_collection_t coll, const zvec_ve
     // Ensure query params match the field's index type if radius/linear/refiner are set
     ensure_query_params_for_field(c, holder->query, holder);
 
-    auto res = c->Query(holder->query);
+    auto res = c->query(holder->query);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
@@ -2432,7 +2477,7 @@ zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, cons
 
     // Ensure query params match the field's index type if radius/linear/refiner are set
     if (!holder->query.target_.query_params_ && (holder->radius_ != 0.0f || holder->is_linear_ || holder->is_using_refiner_)) {
-        auto schema_res = c->Schema();
+        auto schema_res = c->schema();
         if (schema_res.has_value()) {
             const FieldSchema* field = schema_res.value().get_field(holder->query.target_.field_name_.c_str());
             if (field) {
@@ -2465,7 +2510,7 @@ zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, cons
         }
     }
 
-    auto res = c->GroupByQuery(holder->query);
+    auto res = c->group_by_query(holder->query);
     if (!res.has_value()) {
         result->groups = nullptr;
         result->count = 0;
@@ -2549,14 +2594,14 @@ zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, in
         }
         cpp_output_fields = std::move(fields);
     }
-    auto res = c->Fetch(pk_vec, cpp_output_fields, (bool)include_vector);
+    auto res = c->fetch(pk_vec, cpp_output_fields, (bool)include_vector);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
         return MAKE_STATUS(res.error());
     }
     auto& doc_map = res.value();
-    auto schema_res = c->Schema();
+    auto schema_res = c->schema();
     if (schema_res.has_value()) {
         normalize_nullable_fields_for_fetch(schema_res.value(), doc_map);
     }
@@ -2601,7 +2646,7 @@ zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_na
         query.filter_ = filter;
     }
 
-    auto res = c->Query(query);
+    auto res = c->query(query);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
@@ -2648,7 +2693,7 @@ zvec_status_t zvec_collection_query_fp16(zvec_collection_t coll, const char* fie
         query.filter_ = filter;
     }
 
-    auto res = c->Query(query);
+    auto res = c->query(query);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
@@ -2693,7 +2738,7 @@ zvec_status_t zvec_collection_query_fp64(zvec_collection_t coll, const char* fie
         query.filter_ = filter;
     }
 
-    auto res = c->Query(query);
+    auto res = c->query(query);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
@@ -2720,7 +2765,7 @@ static zvec_status_t validate_query_param_type(Collection* c, const char* field_
         return ok_status();
     }
     
-    auto schema_res = c->Schema();
+    auto schema_res = c->schema();
     if (!schema_res.has_value()) {
         return MAKE_STATUS(schema_res.error());
     }
@@ -2839,7 +2884,7 @@ zvec_status_t zvec_collection_query_ex(zvec_collection_t coll, const char* field
     apply_output_fields(query, output_fields, output_fields_count);
     apply_query_params(query, query_param_type, hnsw_ef, ivf_nprobe, radius, is_linear, is_using_refiner);
 
-    auto res = c->Query(query);
+    auto res = c->query(query);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
@@ -2888,7 +2933,7 @@ zvec_status_t zvec_collection_query_fp64_ex(zvec_collection_t coll, const char* 
     apply_output_fields(query, output_fields, output_fields_count);
     apply_query_params(query, query_param_type, hnsw_ef, ivf_nprobe, radius, is_linear, is_using_refiner);
 
-    auto res = c->Query(query);
+    auto res = c->query(query);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
@@ -2910,7 +2955,7 @@ zvec_status_t zvec_collection_query_filter(zvec_collection_t coll, const char* f
     query.topk_ = topk;
     query.filter_ = filter;
 
-    auto res = c->Query(query);
+    auto res = c->query(query);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
@@ -2935,7 +2980,7 @@ zvec_status_t zvec_collection_query_filter_ex(zvec_collection_t coll, const char
     query.filter_ = filter;
     apply_output_fields(query, output_fields, output_fields_count);
 
-    auto res = c->Query(query);
+    auto res = c->query(query);
     if (!res.has_value()) {
         result->docs = nullptr;
         result->count = 0;
@@ -3010,7 +3055,7 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
             hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
     }
 
-    auto res = c->GroupByQuery(query);
+    auto res = c->group_by_query(query);
     if (!res.has_value()) {
         result->groups = nullptr;
         result->count = 0;
@@ -3087,7 +3132,7 @@ struct CollectionStatsHolder {
 };
 
 static CollectionStatsHolder* stats_holder_from_coll(Collection* c) {
-    auto res = c->Stats();
+    auto res = c->stats();
     if (!res.has_value()) {
         return nullptr;
     }
@@ -3110,7 +3155,7 @@ zvec_status_t zvec_collection_get_stats_struct(zvec_collection_t coll, zvec_coll
     auto* holder = stats_holder_from_coll(c);
     if (!holder) {
         *out = nullptr;
-        auto res = c->Stats();
+        auto res = c->stats();
         if (!res.has_value()) {
             return MAKE_STATUS(res.error());
         }
@@ -3163,7 +3208,7 @@ zvec_status_t zvec_collection_stats(zvec_collection_t coll, char* buf, size_t bu
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    auto res = c->Stats();
+    auto res = c->stats();
     if (!res.has_value()) {
         return MAKE_STATUS(res.error());
     }
@@ -3191,7 +3236,7 @@ zvec_status_t zvec_collection_get_field_schema(zvec_collection_t coll, const cha
         return st;
     }
     auto* c = static_cast<Collection*>(coll);
-    auto schema_res = c->Schema();
+    auto schema_res = c->schema();
     if (!schema_res.has_value()) {
         *out = nullptr;
         return MAKE_STATUS(schema_res.error());

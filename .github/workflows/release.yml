@@ -6,8 +6,8 @@ on:
       - 'v*'
 
 env:
-  ZVEC_VERSION: v0.6.0
-  ZVEC_BUILD_RELEASE: zvec-build-v0.6.0
+  ZVEC_VERSION: v0.7.0
+  ZVEC_BUILD_RELEASE: zvec-build-v0.7.0
 
 jobs:
   create-release:

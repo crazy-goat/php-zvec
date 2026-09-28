@@ -16,9 +16,13 @@ else
     exit 1
 fi
 
-# --- Check zvec is built ---
-if [ ! -f zvec/build/lib/libzvec.a ]; then
-    echo "Error: zvec library not built. Run ./build_zvec_lib.sh first."
+# --- Check zvec is present ---
+# Either layout is fine: the source build leaves libzvec.a, the official SDK
+# leaves libzvec.so.
+if [ ! -f zvec/build/lib/libzvec.a ] \
+   && [ ! -f zvec/build/lib/libzvec.so ] \
+   && [ ! -f zvec/build/lib/libzvec.dylib ]; then
+    echo "Error: zvec library not present. Run ./build_zvec_lib.sh first."
     exit 1
 fi
 

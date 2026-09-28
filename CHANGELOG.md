@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Official prebuilt zvec SDK instead of a source build** (#215)
+  - `build_zvec_lib.sh` now downloads the upstream prebuilt SDK from the `alibaba/zvec` release matching the requested version (`zvec-sdk-<os>-<arch>.tar.gz`) into `zvec/`, instead of compiling zvec, Arrow and RocksDB from a git checkout. Default pin moved to `v0.7.0`.
+  - `ZVEC_NO_SDK=1 ./build_zvec_lib.sh` still forces a source build, and a project-built prebuilt tarball URL is still accepted as the second argument for CI.
+  - `zvec/` is no longer a git submodule: it is a plain directory of SDK artifacts (`zvec/src/include`, `zvec/build/lib`, `zvec/data`).
+  - The FFI adapter is migrated to the v0.7.0 C++ API, which renamed a batch of methods to `snake_case` (`Collection::flush()`, `Collection::query()`, `Collection::fetch()`, `GlobalConfig::initialize()`, ...).
+  - Build metadata updated in `build_zvec.sh`, `build_ffi.sh`, `docker/build-zvec.sh`, and the `build.yml` / `release.yml` workflows.
+
 - **Full-Text Search (FTS) support** (#180)
   - `ZVecIndexParams::forFts(tokenizer, filters, extraParams)` builds a full-text index over a STRING column; mirrors the official Go SDK `NewFTSIndexParams`. Defaults to the `standard` tokenizer with the `lowercase` filter.
   - `ZVecVectorQuery::setFts(fieldName, queryString, matchString, defaultOperator)` runs an FTS query. `defaultOperator` accepts `ZVec::FTS_OPERATOR_OR` (default) or `FTS_OPERATOR_AND`, case-insensitively.
@@ -49,6 +56,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Non-nullable absent fields continue to be omitted.
 
 ### Fixed
+
+- **SIGABRT at process exit: `GlobalConfig` singleton destroyed twice** (#215)
+  - Every PHP script that initialised zvec and then exited could abort with `free(): chunks in smallbin corrupted` (exit 134) when linked against the shared zvec SDK. A collection left open at shutdown — the normal case — was enough to trigger it.
+  - Cause: `zvec::ailego::Singleton<T>::Instance()` is an inline template with a function-local static. Calling it directly from `ffi/zvec_ffi.cc` made the adapter emit its own `GNU_UNIQUE` `::obj` plus its own guard variable. The linker bound both modules to the same object, but each ran the constructor under its own guard, so the singleton — and the `shared_ptr<GlobalConfig::LogConfig>` it owns — was constructed twice and destroyed twice during exit handling. The second destruction released an already-freed control block.
+  - Fix: `global_config_ptr()` resolves the single real `Instance()` inside libzvec with `dlsym` (`dlopen("libzvec.so", RTLD_LAZY|RTLD_NOLOAD)`), so libzvec's own guard is used and construction and destruction each happen exactly once. The adapter now defines no singleton symbols at all, and valgrind reports zero errors on the init-and-exit path.
+  - Regression test `tests/bug_0055_globalconfig_singleton_double_destroy.phpt`, and a new AGENTS.md rule forbidding inlined zvec singletons in the adapter.
 
 - **`fetch()` no longer emits a PHP warning for named-argument forms** (#205)
   - `fetch(pks: ['doc1'])` previously triggered `Undefined array key 0` before the validation error — `is_array($args[0])` is now guarded with `isset()`.

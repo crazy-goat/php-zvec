@@ -32,25 +32,44 @@ zvec-php/
 ├── build_zvec_lib.sh         # Builds only the zvec C++ library (with version caching)
 ├── build_ffi.sh              # Builds only the FFI shared library (requires zvec built)
 ├── build_zvec.sh             # Orchestrator: builds zvec C++ lib + FFI shared library
-├── zvec/                     # Git-cloned upstream zvec C++ library (not committed)
+├── zvec/                     # Downloaded official zvec SDK (not committed)
 └── cmake-3.28.3-*/           # Vendored CMake (not committed)
 ```
 
 ## Build Commands
 
-### Step 1: Build the zvec C++ library (only if not already built for this version)
+### Step 1: Fetch the zvec C++ library (only if not already present for this version)
 
 ```bash
 ./build_zvec_lib.sh [version]
 ```
 
-Default version is `v0.6.0`. The script checks `zvec/build/.zvec_version` — if the
-stamp matches, the build is skipped. If the version changes, it auto-updates the
-git checkout and rebuilds.
+Default version is `v0.7.0`.
 
-For CI with prebuilt download:
+**Since v0.7.0 we do not compile zvec from source.** The script downloads the
+official prebuilt SDK published by upstream:
+
+```
+https://github.com/alibaba/zvec/releases/download/<version>/zvec-sdk-<os>-<arch>.tar.gz
+```
+
+It is extracted into `zvec/` (`zvec/src/include`, `zvec/build/lib`,
+`zvec/data`) and stamped in `zvec/build/.zvec_version`. If the stamp already
+matches the requested version the download is skipped. This avoids building Arrow
+and RocksDB, which dominated the build time.
+
+To force a source build instead:
+
 ```bash
-./build_zvec_lib.sh v0.6.0 "https://url-to-prebuilt.tar.gz"
+ZVEC_NO_SDK=1 ./build_zvec_lib.sh v0.7.0
+```
+
+> **Note:** `zvec/` is a plain directory of SDK artifacts, not a git submodule.
+> Do not run `git submodule update` — that path no longer exists.
+
+For CI with a project-built prebuilt tarball:
+```bash
+./build_zvec_lib.sh v0.7.0 "https://url-to-prebuilt.tar.gz"
 ```
 
 ### Step 2: Build the FFI shared library (requires zvec already built)
@@ -76,27 +95,37 @@ This calls `build_zvec_lib.sh` then `build_ffi.sh`.
 ### Run the integration test suite
 
 ```bash
-php run-tests.php -n tests/
+php run-tests.php -n -d extension=ffi.so tests/
 ```
 
-> **Note:** Always run the suite with `-n` (no php.ini). Machines with the
-> legacy `zvec` PHP extension (v0.4.10, `php-ext/`) installed in `php.ini`
-> shadow the FFI classes: `src/ZVec.php` bails out early
-> (`if (extension_loaded('zvec')) return;`) and FFI-only classes like
-> `ZVecIndexParams` never load, causing widespread test failures (#188).
-> The `-n` flag disables the extension in the child PHP processes.
+> **Note:** The goal is *FFI enabled, legacy `zvec` extension disabled*.
+> Getting only one of the two produces a silently useless run:
+>
+> - Without `-n`, a machine with the legacy `zvec` PHP extension (v0.4.10,
+>   `php-ext/`) loaded from `php.ini` shadows the FFI classes: `src/ZVec.php`
+>   bails out early (`if (extension_loaded('zvec')) return;`) and FFI-only
+>   classes like `ZVecIndexParams` never load (#188).
+> - With `-n` alone, FFI is **also** lost wherever it comes from a conf.d ini
+>   rather than being compiled in. Every test then reports SKIP with
+>   `reason: FFI extension not available` — on a machine where FFI is
+>   perfectly available. A run with ~170 skips is a broken run, not a pass.
+>
+> `-d extension=ffi.so` re-enables FFI after `-n` has stripped the ini, so both
+> goals hold. If your PHP has FFI compiled in, drop the `-d` flag and use
+> `php run-tests.php -n tests/`. Sanity check before trusting a full run:
+> `php run-tests.php -n -d extension=ffi.so tests/ | grep -c SKIP` must be 0.
 
 ### Run .phpt tests (standard PHP test format)
 
 ```bash
 # Run all phpt tests
-php run-tests.php -n tests/
+php run-tests.php -n -d extension=ffi.so tests/
 
 # Run single phpt test
-php run-tests.php -n tests/test_error_handling.phpt
+php run-tests.php -n -d extension=ffi.so tests/test_error_handling.phpt
 
 # Run with verbose output
-php run-tests.php -n -v tests/
+php run-tests.php -n -d extension=ffi.so -v tests/
 ```
 
 The `run-tests.php` script is bundled with this project (from php-src).
@@ -104,15 +133,15 @@ It parses `.phpt` files and executes the PHP code within `--FILE--` sections.
 
 ### Run legacy PHP test scripts
 
-Legacy scripts must also be run with `-n` so they test the FFI bindings
-instead of a pre-installed `zvec` extension (#188):
+Legacy scripts need the same flags as the suite, so they exercise the FFI
+bindings rather than a pre-installed `zvec` extension (#188):
 
 ```bash
 # Run a single test
-php -n tests/test_error_handling.php
+php -n -d extension=ffi.so tests/test_error_handling.php
 
 # Run all tests (old format)
-for f in tests/*.php; do php -n "$f"; done
+for f in tests/*.php; do php -n -d extension=ffi.so "$f"; done
 ```
 
 > **Warning:** `run-tests.php` derives the executable path from the `.phpt`
@@ -128,10 +157,10 @@ for f in tests/*.php; do php -n "$f"; done
 ./build_zvec.sh
 
 # Run all tests (phpt suite)
-php run-tests.php -n tests/
+php run-tests.php -n -d extension=ffi.so tests/
 
 # Run legacy scripts (restore deleted tests/*.php first, see warning above)
-for f in tests/*.php; do php -n "$f"; done
+for f in tests/*.php; do php -n -d extension=ffi.so "$f"; done
 ```
 
 ## Testing Requirements
@@ -156,13 +185,14 @@ Before marking any task as DONE:
 
 2. **Run all .phpt tests**:
    ```bash
-   php run-tests.php -n tests/
+   php run-tests.php -n -d extension=ffi.so tests/
    ```
+   Must report `Tests skipped: 0`. A large skip count means FFI was not loaded.
 
 3. **Run all tests**:
    ```bash
-   php run-tests.php -n tests/
-   for f in tests/*.php; do php -n "$f"; done   # legacy scripts (restore deleted files first, see #187)
+   php run-tests.php -n -d extension=ffi.so tests/
+   for f in tests/*.php; do php -n -d extension=ffi.so "$f"; done   # legacy scripts (restore deleted files first, see #187)
    ```
 
 4. **Verify test databases cleaned up:**
@@ -287,10 +317,42 @@ The deprecated `addField*()` methods (`addFieldBinary()`, `addFieldArrayString()
 
 ### FFI-Specific Rules
 
-- Inline C declarations in `FFI::cdef()` — do not load the `.h` file at runtime.
+- C declarations live in `ffi/zvec_ffi_php.h`, which `ZVec::ffi()` strips and
+  passes to `FFI::cdef()`. That file must mirror `ffi/zvec_ffi.h` — a function
+  added to only one of them throws `FFI\Exception: undefined C function`.
 - Manually allocate and free C string arrays with `FFI::new()` / `FFI::free()`.
 - Always free C strings returned by the FFI layer to avoid memory leaks.
 - Use `FFI::string()` to convert C strings to PHP strings before freeing.
+
+### Never inline a zvec singleton in the FFI adapter
+
+**Never call `GlobalConfig::Instance()` (or any other
+`zvec::ailego::Singleton<T>::Instance()`) directly from `ffi/zvec_ffi.cc`.**
+Use `global_config_ptr()` instead, which resolves the real `Instance()` inside
+libzvec with `dlsym`.
+
+`Singleton<T>::Instance()` is an inline template holding a function-local
+static. Inlining it in the adapter makes the compiler emit the adapter's *own*
+`GNU_UNIQUE` definition of `::obj` plus its *own* guard variable. The dynamic
+linker still binds libzvec's internal calls to the same object, but each module
+then runs the constructor under its own guard — so the singleton is constructed
+twice and destroyed twice at exit. The second destruction releases an
+already-freed `shared_ptr` control block:
+
+```
+free(): chunks in smallbin corrupted
+Aborted (core dumped)     # exit 134
+```
+
+valgrind pinpoints it as an invalid read in `_Sp_counted_base::_M_release()`
+under `~GlobalConfig()` inside `libzvec_ffi.so`. The symptom appears at process
+exit, not at the call site, so it looks unrelated to whatever code you were
+working on. Regression test:
+`tests/bug_0055_globalconfig_singleton_double_destroy.phpt`.
+
+Rule of thumb: if a `zvec::` C++ symbol would be *inlined* into the adapter and
+is also used inside libzvec, resolve it at runtime instead of calling it
+directly.
 
 ### alterColumn() Limitations
 
@@ -365,7 +427,7 @@ require_once __DIR__ . '/../src/ZVec.php';
 **Current format (.phpt):**
 - Test files use `.phpt` format in `tests/` directory
 - Each test uses `--TEST--`, `--SKIPIF--`, `--FILE--`, `--EXPECT--` sections
-- Run via `php run-tests.php -n tests/` (the `-n` flag avoids a legacy pre-installed `zvec` extension shadowing the FFI classes — see "Run the integration test suite")
+- Run via `php run-tests.php -n -d extension=ffi.so tests/`: `-n` avoids a legacy pre-installed `zvec` extension shadowing the FFI classes, `-d extension=ffi.so` keeps FFI available when it comes from a conf.d ini — see "Run the integration test suite"
 - Each test creates unique temp directory with `uniqid()` and cleans up with `try-finally`
 - **Test naming:**
   - `tests/bug_NNNN.php` (zero-padded 4-digit number) - bug reproduction scripts  
@@ -392,7 +454,8 @@ and runner output.
 - The FFI shared library is resolved from two locations (in order):
   1. `__DIR__ . '/../lib/libzvec_ffi.so'` — Composer-installed (via `vendor/bin/zvec-install`)
   2. `__DIR__ . '/../ffi/build/libzvec_ffi.so'` — locally built (via `./build_zvec.sh`)
-- `zvec/` directory is a git submodule - run `git submodule update --init` if missing.
+- `zvec/` holds the downloaded official SDK (not a git submodule). If it is
+  missing, run `./build_zvec_lib.sh` to fetch it.
 
 ### Memory Management
 
