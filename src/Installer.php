@@ -10,30 +10,40 @@ class Installer
 {
     private const GITHUB_REPO = 'crazy-goat/php-zvec';
     private const LIB_DIR = __DIR__ . '/../lib';
+    private const STAMP_FILE = '.installed';
+
+    /** Official prebuilt zvec SDK the FFI adapter is compiled against. Keep in sync with fetch_zvec_sdk.sh. */
+    public const ZVEC_SDK_REPO = 'alibaba/zvec';
+    public const ZVEC_SDK_VERSION = 'v0.7.0';
+    private const ZVEC_SDK_SHA256 = [
+        'zvec-sdk-linux-amd64.tar.gz' => 'db9472ef2146b8f435b45b47a644eb7a75eb84b9946334debfcfc21112cec7f9',
+        'zvec-sdk-linux-arm64.tar.gz' => '9a2a2867fb6ddb53212029b7f50eac288ad86bebfccb6ea6d52b3f35c4e026a8',
+        'zvec-sdk-linux-musl-amd64.tar.gz' => '8d863da76921cb46cf3799236cb83ee026cc94a76e97b1cd697129b64a89dd3d',
+        'zvec-sdk-linux-musl-arm64.tar.gz' => '6385fe59639639fb60163649d8b1ce137e1c6f5428af57cc7d47d8d0e655d4ce',
+        'zvec-sdk-osx-arm64.tar.gz' => 'ac909c57e084bb39f7f98ef89b28db322df88348254158eedefa9c00e2c34dfc',
+    ];
 
     /**
-     * Download and install the FFI shared library for the current platform.
+     * Download and install the FFI adapter and the official zvec SDK library for the current platform.
      *
-     * Uses a cryptographically random temp directory (128-bit via random_bytes(8) + bin2hex)
-     * to prevent symlink race attacks (TOCTOU). The temp directory is created with 0700
-     * permissions and is recursively removed in the finally block.
+     * Two archives are installed into lib/:
+     *  - libzvec_ffi (our adapter) from this package's GitHub release, verified against its checksums.sha256;
+     *  - libzvec + data/ (jieba dictionary) from the official alibaba/zvec SDK release, verified against
+     *    the SHA-256 values pinned in ZVEC_SDK_SHA256.
      *
-     * SHA-256 checksum verification is performed before extraction to ensure integrity
-     * of the downloaded archive (see verifyChecksum()).
+     * Uses cryptographically random temp directories (created 0700, removed in finally blocks) to prevent
+     * symlink race attacks. Concurrent installations are serialized via flock(); the installed state is
+     * re-checked inside the lock. The lock file persists as a sentinel so all processes share one inode.
+     * A stamp file records the installed package + SDK versions, so an upgrade replaces stale libraries.
      *
-     * Concurrent installations are serialized via advisory file locking (flock) to prevent
-     * TOCTOU race conditions between the file-exists check and the download+extract window.
-     * The lock is acquired first, then the existence of the library is re-checked inside the
-     * lock (lock-check pattern). The lock file persists as a sentinel to ensure all concurrent
-     * processes share the same inode for flock() serialization.
-     *
-     * @param string|null $version Release version tag (e.g., "v0.4.10"). Auto-detected from composer if null.
+     * @param string|null $version Release version tag (e.g., "v0.7.0"). Auto-detected from composer if null.
      * @throws RuntimeException On download failure, checksum mismatch, extraction failure, lock failure, or missing lib in archive.
      */
     public static function install(?string $version = null): void
     {
         $assetName = self::resolveAssetName();
-        if ($assetName === null) {
+        $sdkAssetName = self::resolveSdkAssetName();
+        if ($assetName === null || $sdkAssetName === null) {
             echo "zvec FFI library auto-download is not supported on your platform (" . PHP_OS_FAMILY . " " . php_uname('m') . ").\n";
             echo "See https://github.com/" . self::GITHUB_REPO . " for build instructions.\n";
             return;
@@ -43,15 +53,16 @@ class Installer
         if (!preg_match('/^v\d+\.\d+\.\d+(-[\w.-]*\w)?$/', $version)) {
             throw new RuntimeException("Invalid version format: {$version}. Expected semver format (e.g. v0.4.0)");
         }
-        $url = "https://github.com/" . self::GITHUB_REPO . "/releases/download/{$version}/{$assetName}";
 
         $libDir = self::LIB_DIR;
         if (!is_dir($libDir) && !mkdir($libDir, 0755, true)) {
             throw new RuntimeException("Failed to create lib directory: {$libDir}");
         }
 
-        $libName = self::libName();
-        $libPath = $libDir . '/' . $libName;
+        $libPath = $libDir . '/' . self::libName();
+        $sdkLibPath = $libDir . '/' . self::sdkLibName();
+        $stampPath = $libDir . '/' . self::STAMP_FILE;
+        $stamp = "{$version} " . self::ZVEC_SDK_VERSION;
 
         // Acquire exclusive lock to serialize concurrent installations (TOCTOU mitigation)
         $lockFile = $libDir . '/install.lock';
@@ -66,43 +77,85 @@ class Installer
 
         try {
             // Double-check after acquiring lock — another process may have installed it
-            if (file_exists($libPath)) {
+            if (file_exists($libPath) && file_exists($sdkLibPath)
+                && file_exists($stampPath) && file_get_contents($stampPath) === $stamp) {
                 echo "zvec FFI library already installed at {$libPath}\n";
                 return;
             }
 
-            echo "Downloading zvec FFI library {$version} for " . self::platformLabel() . "...\n";
-
-            $tmpDir = sys_get_temp_dir() . '/zvec_ffi_' . bin2hex(random_bytes(8));
-            if (!mkdir($tmpDir, 0700)) {
-                throw new RuntimeException("Failed to create temporary directory");
-            }
-            $tmpFile = $tmpDir . '/download.tar.gz';
-
-            try {
-                self::download($url, $tmpFile);
-
-                $expectedHash = self::getExpectedHash($version, $assetName);
-                self::verifyChecksum($tmpFile, $expectedHash);
-
-                self::extract($tmpFile, $libDir);
-            } finally {
-                if (file_exists($tmpFile)) {
-                    unlink($tmpFile);
+            // Stale or partial install (e.g. a pre-SDK statically linked adapter): start over.
+            foreach ([$libPath, $sdkLibPath, $stampPath] as $file) {
+                if (file_exists($file)) {
+                    unlink($file);
                 }
-                exec("rm -rf " . escapeshellarg($tmpDir));
             }
+            exec("rm -rf " . escapeshellarg($libDir . '/zvec_data'));
 
+            echo "Downloading zvec FFI library {$version} for " . self::platformLabel() . "...\n";
+            $url = "https://github.com/" . self::GITHUB_REPO . "/releases/download/{$version}/{$assetName}";
+            self::downloadAndExtract($url, self::getExpectedHash($version, $assetName), $libDir);
             if (!file_exists($libPath)) {
-                throw new RuntimeException("Download succeeded but {$libName} not found in archive.");
+                throw new RuntimeException("Download succeeded but " . self::libName() . " not found in archive.");
             }
 
+            echo "Downloading zvec SDK " . self::ZVEC_SDK_VERSION . " from " . self::ZVEC_SDK_REPO . "...\n";
+            self::installSdk($sdkAssetName, $libDir);
+
+            file_put_contents($stampPath, $stamp);
             echo "zvec FFI library installed at {$libPath}\n";
         } finally {
             flock($lockFh, LOCK_UN);
             fclose($lockFh);
             // Lock file persists as a sentinel. Never delete — removing it would let
             // a new process create a different inode and bypass flock() serialization.
+        }
+    }
+
+    private static function installSdk(string $sdkAssetName, string $libDir): void
+    {
+        $url = "https://github.com/" . self::ZVEC_SDK_REPO . "/releases/download/"
+            . self::ZVEC_SDK_VERSION . "/{$sdkAssetName}";
+
+        // Staging lives inside lib/ so the final moves are same-filesystem renames.
+        $staging = $libDir . '/.sdk_' . bin2hex(random_bytes(8));
+        if (!mkdir($staging, 0700)) {
+            throw new RuntimeException("Failed to create SDK staging directory");
+        }
+        try {
+            self::downloadAndExtract($url, self::ZVEC_SDK_SHA256[$sdkAssetName], $staging);
+
+            $sdkLib = $staging . '/lib/' . self::sdkLibName();
+            if (!file_exists($sdkLib)) {
+                throw new RuntimeException("Download succeeded but " . self::sdkLibName() . " not found in SDK archive.");
+            }
+            if (!rename($sdkLib, $libDir . '/' . self::sdkLibName())) {
+                throw new RuntimeException("Failed to install " . self::sdkLibName());
+            }
+            if (is_dir($staging . '/data') && !rename($staging . '/data', $libDir . '/zvec_data')) {
+                throw new RuntimeException("Failed to install zvec SDK data directory");
+            }
+        } finally {
+            exec("rm -rf " . escapeshellarg($staging));
+        }
+    }
+
+    private static function downloadAndExtract(string $url, string $expectedHash, string $destDir): void
+    {
+        $tmpDir = sys_get_temp_dir() . '/zvec_ffi_' . bin2hex(random_bytes(8));
+        if (!mkdir($tmpDir, 0700)) {
+            throw new RuntimeException("Failed to create temporary directory");
+        }
+        $tmpFile = $tmpDir . '/download.tar.gz';
+
+        try {
+            self::download($url, $tmpFile);
+            self::verifyChecksum($tmpFile, $expectedHash);
+            self::extract($tmpFile, $destDir);
+        } finally {
+            if (file_exists($tmpFile)) {
+                unlink($tmpFile);
+            }
+            exec("rm -rf " . escapeshellarg($tmpDir));
         }
     }
 
@@ -131,18 +184,32 @@ class Installer
 
     private static function resolveAssetName(): ?string
     {
+        $platform = self::platformKey();
+        return $platform === null ? null : "libzvec_ffi-{$platform}.tar.gz";
+    }
+
+    private static function resolveSdkAssetName(): ?string
+    {
+        return match (self::platformKey()) {
+            'linux-x86_64' => 'zvec-sdk-linux-amd64.tar.gz',
+            'linux-aarch64' => 'zvec-sdk-linux-arm64.tar.gz',
+            'linux-musl-x86_64' => 'zvec-sdk-linux-musl-amd64.tar.gz',
+            'linux-musl-aarch64' => 'zvec-sdk-linux-musl-arm64.tar.gz',
+            'darwin-aarch64' => 'zvec-sdk-osx-arm64.tar.gz',
+            default => null,
+        };
+    }
+
+    /** Platforms with an official prebuilt zvec SDK (macOS x86_64 has none). */
+    private static function platformKey(): ?string
+    {
         $os = PHP_OS_FAMILY;
         $arch = php_uname('m');
-
+        $libc = self::isMusl() ? 'linux-musl' : 'linux';
         return match (true) {
-            $os === 'Linux' && $arch === 'x86_64' && !self::isMusl()
-                => 'libzvec_ffi-ubuntu24-x86_64.tar.gz',
-            $os === 'Linux' && $arch === 'x86_64' && self::isMusl()
-                => 'libzvec_ffi-alpine-x86_64.tar.gz',
-            $os === 'Darwin' && $arch === 'x86_64'
-                => 'libzvec_ffi-darwin-x86_64.tar.gz',
-            $os === 'Darwin' && $arch === 'arm64'
-                => 'libzvec_ffi-darwin-aarch64.tar.gz',
+            $os === 'Linux' && $arch === 'x86_64' => "{$libc}-x86_64",
+            $os === 'Linux' && ($arch === 'aarch64' || $arch === 'arm64') => "{$libc}-aarch64",
+            $os === 'Darwin' && $arch === 'arm64' => 'darwin-aarch64',
             default => null,
         };
     }
@@ -157,6 +224,11 @@ class Installer
     private static function libName(): string
     {
         return PHP_OS_FAMILY === 'Darwin' ? 'libzvec_ffi.dylib' : 'libzvec_ffi.so';
+    }
+
+    private static function sdkLibName(): string
+    {
+        return PHP_OS_FAMILY === 'Darwin' ? 'libzvec.dylib' : 'libzvec.so';
     }
 
     private static function detectVersion(): string

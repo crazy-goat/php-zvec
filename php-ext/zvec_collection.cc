@@ -20,11 +20,35 @@
 
 #pragma pop_macro("IS_NULL")
 
+#include <dlfcn.h>
 #include <vector>
 #include <string>
 #include <cstring>
 
 using namespace zvec;
+
+// zvec::GlobalConfig::Instance() is defined by the inline
+// ailego::Singleton<GlobalConfig>::Instance() template. libzvec.so exports
+// its function-local static object as a GNU_UNIQUE symbol, but the
+// associated initialization guard variable is LOCAL to that translation
+// unit inside libzvec.so. If this extension instantiated the same inline
+// template itself (e.g. by calling GlobalConfig::Instance() directly), the
+// linker would give our module its own guard variable, causing the
+// function-local static to be constructed a second time in our address
+// space (silently resetting global config) and destroyed a second time at
+// process exit (double-destruction -> heap corruption / SIGABRT). To avoid
+// instantiating the template here, resolve the already-instantiated
+// function inside libzvec.so via dlsym and call through it instead.
+static GlobalConfig *global_config() {
+    using Fn = GlobalConfig &(*)();
+    static Fn fn = reinterpret_cast<Fn>(
+        dlsym(RTLD_DEFAULT, "_ZN4zvec6ailego9SingletonINS_12GlobalConfigEE8InstanceEv"));
+    if (!fn) {
+        zvec_throw_exception(0, "Failed to resolve zvec::GlobalConfig::Instance()");
+        return nullptr;
+    }
+    return &fn();
+}
 
 zend_class_entry *zvec_collection_ce = nullptr;
 static zend_object_handlers zvec_collection_handlers;
@@ -142,8 +166,9 @@ PHP_METHOD(ZVec, init) {
     if (brute_ratio > 0.0) config.brute_force_by_keys_ratio = static_cast<float>(brute_ratio);
     if (memory_limit > 0) config.memory_limit_bytes = static_cast<uint64_t>(memory_limit) * 1024ULL * 1024ULL;
 
-    auto &gc = GlobalConfig::Instance();
-    check_status(gc.Initialize(config));
+    auto *gc = global_config();
+    if (!gc) RETURN_THROWS();
+    check_status(gc->initialize(config));
 }
 
 PHP_METHOD(ZVec, create) {
@@ -282,7 +307,7 @@ PHP_METHOD(ZVec, getOptions) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    auto res = intern->collection->Options();
+    auto res = intern->collection->options();
     if (!res.has_value()) {
         check_status(res.error());
         RETURN_THROWS();
@@ -317,7 +342,7 @@ PHP_METHOD(ZVec, flush) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    check_status(intern->collection->Flush());
+    check_status(intern->collection->flush());
 }
 
 PHP_METHOD(ZVec, optimize) {
@@ -331,7 +356,7 @@ PHP_METHOD(ZVec, optimize) {
     if (EG(exception)) RETURN_THROWS();
     OptimizeOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    check_status(intern->collection->Optimize(opts));
+    check_status(intern->collection->optimize(opts));
 }
 
 PHP_METHOD(ZVec, destroy) {
@@ -344,7 +369,7 @@ PHP_METHOD(ZVec, destroy) {
         intern->destroyed = true;
         RETURN_NULL();
     }
-    auto status = intern->collection->Destroy();
+    auto status = intern->collection->destroy();
     intern->collection.reset();
     intern->closed = true;
     intern->destroyed = true;
@@ -356,7 +381,7 @@ PHP_METHOD(ZVec, schema) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    auto res = intern->collection->Schema();
+    auto res = intern->collection->schema();
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     auto str = res.value().to_string();
     RETURN_STRINGL(str.c_str(), str.length());
@@ -367,7 +392,7 @@ PHP_METHOD(ZVec, path) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    auto res = intern->collection->Path();
+    auto res = intern->collection->path();
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     RETURN_STRINGL(res.value().c_str(), res.value().length());
 }
@@ -377,7 +402,7 @@ PHP_METHOD(ZVec, options) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    auto res = intern->collection->Options();
+    auto res = intern->collection->options();
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     array_init(return_value);
     add_assoc_bool(return_value, "read_only", res.value().read_only_);
@@ -390,7 +415,7 @@ PHP_METHOD(ZVec, stats) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    auto res = intern->collection->Stats();
+    auto res = intern->collection->stats();
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     auto str = res.value().to_string();
     RETURN_STRINGL(str.c_str(), str.length());
@@ -414,11 +439,11 @@ PHP_METHOD(ZVec, php_name) { \
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS); \
     check_closed(intern); \
     if (EG(exception)) RETURN_THROWS(); \
-    intern->collection->Flush(); \
+    intern->collection->flush(); \
     auto field = std::make_shared<FieldSchema>(std::string(name, name_len), data_type, (bool)nullable); \
     AddColumnOptions opts; \
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency); \
-    check_status(intern->collection->AddColumn(field, default_expr ? default_expr : default_expr_val, opts)); \
+    check_status(intern->collection->add_column(field, default_expr ? default_expr : default_expr_val, opts)); \
 }
 
 ZVEC_ADD_COLUMN_METHOD(addColumnInt64, DataType::INT64, "0")
@@ -438,8 +463,8 @@ PHP_METHOD(ZVec, dropColumn) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    intern->collection->Flush();
-    check_status(intern->collection->DropColumn(std::string(name, name_len)));
+    intern->collection->flush();
+    check_status(intern->collection->drop_column(std::string(name, name_len)));
 }
 
 PHP_METHOD(ZVec, renameColumn) {
@@ -455,10 +480,10 @@ PHP_METHOD(ZVec, renameColumn) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    intern->collection->Flush();
+    intern->collection->flush();
     AlterColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    check_status(intern->collection->AlterColumn(
+    check_status(intern->collection->alter_column(
         std::string(old_name, old_name_len), std::string(new_name, new_name_len), nullptr, opts));
 }
 
@@ -481,7 +506,7 @@ PHP_METHOD(ZVec, alterColumn) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    intern->collection->Flush();
+    intern->collection->flush();
 
     uint32_t data_type = 0;
     if (new_data_type_zv && Z_TYPE_P(new_data_type_zv) == IS_LONG) {
@@ -511,7 +536,7 @@ PHP_METHOD(ZVec, alterColumn) {
     std::string rename_str = new_name ? std::string(new_name, new_name_len) : "";
     AlterColumnOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    check_status(intern->collection->AlterColumn(
+    check_status(intern->collection->alter_column(
         std::string(col_name, col_name_len), rename_str, new_schema, opts));
 }
 
@@ -530,7 +555,7 @@ PHP_METHOD(ZVec, createInvertIndex) {
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
     auto params = std::make_shared<InvertIndexParams>((bool)enable_range, (bool)enable_wildcard);
-    check_status(intern->collection->CreateIndex(std::string(field, field_len), params));
+    check_status(intern->collection->create_index(std::string(field, field_len), params));
 }
 
 PHP_METHOD(ZVec, createHnswIndex) {
@@ -554,7 +579,7 @@ PHP_METHOD(ZVec, createHnswIndex) {
         to_quantize_type(static_cast<uint32_t>(quantize_type)));
     CreateIndexOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    check_status(intern->collection->CreateIndex(std::string(field, field_len), params, opts));
+    check_status(intern->collection->create_index(std::string(field, field_len), params, opts));
 }
 
 PHP_METHOD(ZVec, createFlatIndex) {
@@ -575,7 +600,7 @@ PHP_METHOD(ZVec, createFlatIndex) {
         to_quantize_type(static_cast<uint32_t>(quantize_type)));
     CreateIndexOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    check_status(intern->collection->CreateIndex(std::string(field, field_len), params, opts));
+    check_status(intern->collection->create_index(std::string(field, field_len), params, opts));
 }
 
 PHP_METHOD(ZVec, createIvfIndex) {
@@ -601,7 +626,7 @@ PHP_METHOD(ZVec, createIvfIndex) {
         (bool)use_soar, to_quantize_type(static_cast<uint32_t>(quantize_type)));
     CreateIndexOptions opts;
     if (concurrency > 0) opts.concurrency_ = static_cast<int>(concurrency);
-    check_status(intern->collection->CreateIndex(std::string(field, field_len), params, opts));
+    check_status(intern->collection->create_index(std::string(field, field_len), params, opts));
 }
 
 PHP_METHOD(ZVec, dropIndex) {
@@ -612,7 +637,7 @@ PHP_METHOD(ZVec, dropIndex) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    check_status(intern->collection->DropIndex(std::string(field, field_len)));
+    check_status(intern->collection->drop_index(std::string(field, field_len)));
 }
 
 // --- Insert / Upsert / Update ---
@@ -627,7 +652,7 @@ PHP_METHOD(ZVec, insert) {
     if (EG(exception)) RETURN_THROWS();
     auto doc_vec = docs_from_args(args, argc);
     if (EG(exception)) RETURN_THROWS();
-    auto res = intern->collection->Insert(doc_vec);
+    auto res = intern->collection->insert(doc_vec);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     for (const auto &s : res.value()) {
         if (!s.ok()) { check_status(s); RETURN_THROWS(); }
@@ -644,7 +669,7 @@ PHP_METHOD(ZVec, upsert) {
     if (EG(exception)) RETURN_THROWS();
     auto doc_vec = docs_from_args(args, argc);
     if (EG(exception)) RETURN_THROWS();
-    auto res = intern->collection->Upsert(doc_vec);
+    auto res = intern->collection->upsert(doc_vec);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     for (const auto &s : res.value()) {
         if (!s.ok()) { check_status(s); RETURN_THROWS(); }
@@ -661,7 +686,7 @@ PHP_METHOD(ZVec, update) {
     if (EG(exception)) RETURN_THROWS();
     auto doc_vec = docs_from_args(args, argc);
     if (EG(exception)) RETURN_THROWS();
-    auto res = intern->collection->Update(doc_vec);
+    auto res = intern->collection->update(doc_vec);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     for (const auto &s : res.value()) {
         if (!s.ok()) { check_status(s); RETURN_THROWS(); }
@@ -716,17 +741,17 @@ static void do_batch_op(INTERNAL_FUNCTION_PARAMETERS, F op) {
 
 PHP_METHOD(ZVec, insertBatch) {
     do_batch_op(INTERNAL_FUNCTION_PARAM_PASSTHRU,
-        [](Collection *c, std::vector<Doc> &docs) { return c->Insert(docs); });
+        [](Collection *c, std::vector<Doc> &docs) { return c->insert(docs); });
 }
 
 PHP_METHOD(ZVec, upsertBatch) {
     do_batch_op(INTERNAL_FUNCTION_PARAM_PASSTHRU,
-        [](Collection *c, std::vector<Doc> &docs) { return c->Upsert(docs); });
+        [](Collection *c, std::vector<Doc> &docs) { return c->upsert(docs); });
 }
 
 PHP_METHOD(ZVec, updateBatch) {
     do_batch_op(INTERNAL_FUNCTION_PARAM_PASSTHRU,
-        [](Collection *c, std::vector<Doc> &docs) { return c->Update(docs); });
+        [](Collection *c, std::vector<Doc> &docs) { return c->update(docs); });
 }
 
 // --- Delete ---
@@ -748,7 +773,7 @@ PHP_METHOD(ZVec, delete) {
         }
         pks.emplace_back(Z_STRVAL(args[i]), Z_STRLEN(args[i]));
     }
-    auto res = intern->collection->Delete(pks);
+    auto res = intern->collection->delete_(pks);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
 }
 
@@ -760,7 +785,7 @@ PHP_METHOD(ZVec, deleteByFilter) {
     auto *intern = Z_ZVEC_COLLECTION_P(ZEND_THIS);
     check_closed(intern);
     if (EG(exception)) RETURN_THROWS();
-    check_status(intern->collection->DeleteByFilter(std::string(filter, filter_len)));
+    check_status(intern->collection->delete_by_filter(std::string(filter, filter_len)));
 }
 
 // --- Fetch ---
@@ -782,7 +807,7 @@ PHP_METHOD(ZVec, fetch) {
         }
         pks.emplace_back(Z_STRVAL(args[i]), Z_STRLEN(args[i]));
     }
-    auto res = intern->collection->Fetch(pks);
+    auto res = intern->collection->fetch(pks);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
 
     array_init(return_value);
@@ -842,7 +867,7 @@ static void fill_results(zval *return_value, const DocPtrList &doc_list) {
 
 static bool validate_query_param_type(Collection *c, const std::string &field_name, int query_param_type) {
     if (query_param_type == 0) return true;
-    auto schema_res = c->Schema();
+    auto schema_res = c->schema();
     if (!schema_res.has_value()) { check_status(schema_res.error()); return false; }
     const auto &schema = schema_res.value();
     const FieldSchema *field = schema.get_field(field_name);
@@ -974,7 +999,7 @@ PHP_METHOD(ZVec, query) {
                     static_cast<float>(radius), (bool)is_linear, (bool)is_using_refiner);
             }
 
-            auto res_fp64 = intern->collection->Query(query_fp64);
+            auto res_fp64 = intern->collection->query(query_fp64);
             if (!res_fp64.has_value()) { check_status(res_fp64.error()); RETURN_THROWS(); }
             fill_results(return_value, res_fp64.value());
             return;
@@ -1013,7 +1038,7 @@ PHP_METHOD(ZVec, query) {
             static_cast<float>(radius), (bool)is_linear, (bool)is_using_refiner);
     }
 
-    auto res = intern->collection->Query(query);
+    auto res = intern->collection->query(query);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
 
     if (reranker_zv != nullptr && Z_TYPE_P(reranker_zv) == IS_OBJECT) {
@@ -1089,7 +1114,7 @@ PHP_METHOD(ZVec, queryFp16) {
     query.target_.set_vector(std::string(reinterpret_cast<const char *>(fp16_vec.data()), dim * sizeof(ailego::Float16)));
     if (filter && filter[0] != '\0') query.filter_ = std::string(filter, filter_len);
 
-    auto res = intern->collection->Query(query);
+    auto res = intern->collection->query(query);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     fill_results(return_value, res.value());
 }
@@ -1132,7 +1157,7 @@ PHP_METHOD(ZVec, queryFp64) {
     query.target_.set_vector(std::string(reinterpret_cast<const char *>(fp64_vec.data()), dim * sizeof(double)));
     if (filter && filter[0] != '\0') query.filter_ = std::string(filter, filter_len);
 
-    auto res = intern->collection->Query(query);
+    auto res = intern->collection->query(query);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     fill_results(return_value, res.value());
 }
@@ -1208,7 +1233,7 @@ PHP_METHOD(ZVec, queryMulti) {
                 zend_is_true(lin), zend_is_true(ref));
         }
 
-        auto res = intern->collection->Query(query);
+        auto res = intern->collection->query(query);
         if (!res.has_value()) {
             check_status(res.error());
             zval_ptr_dtor(&query_results);
@@ -1255,7 +1280,7 @@ PHP_METHOD(ZVec, queryByFilter) {
     query.filter_ = std::string(filter, filter_len);
     if (output_fields) apply_output_fields(query, output_fields);
 
-    auto res = intern->collection->Query(query);
+    auto res = intern->collection->query(query);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     fill_results(return_value, res.value());
 }
@@ -1294,7 +1319,7 @@ PHP_METHOD(ZVec, queryById) {
     if (EG(exception)) RETURN_THROWS();
 
     std::vector<std::string> pks = {std::string(doc_id, doc_id_len)};
-    auto fetch_res = intern->collection->Fetch(pks);
+    auto fetch_res = intern->collection->fetch(pks);
     if (!fetch_res.has_value()) { check_status(fetch_res.error()); RETURN_THROWS(); }
 
     Doc *found_doc = nullptr;
@@ -1331,7 +1356,7 @@ PHP_METHOD(ZVec, queryById) {
             static_cast<float>(radius), (bool)is_linear, (bool)is_using_refiner);
     }
 
-    auto res = intern->collection->Query(query);
+    auto res = intern->collection->query(query);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
     fill_results(return_value, res.value());
 }
@@ -1444,7 +1469,7 @@ PHP_METHOD(ZVec, groupByQuery) {
         query.target_.query_params_ = params;
     }
 
-    auto res = intern->collection->GroupByQuery(query);
+    auto res = intern->collection->group_by_query(query);
     if (!res.has_value()) { check_status(res.error()); RETURN_THROWS(); }
 
     auto &groups = res.value();

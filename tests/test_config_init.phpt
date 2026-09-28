@@ -13,8 +13,8 @@ echo "pre-init: " . (ZVec::isInitialized() ? '1' : '0') . "\n";
 ZVec::init(
     logType: ZVec::LOG_CONSOLE,
     logLevel: ZVec::LOG_WARN,
-    queryThreads: 4,
-    optimizeThreads: 2,
+    queryThreads: 2,
+    optimizeThreads: 1,
 );
 echo "post-init: " . (ZVec::isInitialized() ? '1' : '0') . "\n";
 

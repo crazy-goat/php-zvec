@@ -6,8 +6,7 @@ on:
       - 'v*'
 
 env:
-  ZVEC_VERSION: v0.6.0
-  ZVEC_BUILD_RELEASE: zvec-build-v0.6.0
+  ZVEC_VERSION: v0.7.0
 
 jobs:
   create-release:
@@ -36,10 +35,25 @@ jobs:
             --generate-notes \
             || echo "Release already exists"
 
-  setup-zvec:
+  release-ffi-linux:
     needs: create-release
-    runs-on: ubuntu-24.04
-    name: Build zvec C++ library
+    strategy:
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runner: ubuntu-24.04
+            libc: glibc
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+            libc: glibc
+          - platform: linux-musl-x86_64
+            runner: ubuntu-24.04
+            libc: musl
+          - platform: linux-musl-aarch64
+            runner: ubuntu-24.04-arm
+            libc: musl
+    runs-on: ${{ matrix.runner }}
+    name: Build & Release FFI (${{ matrix.platform }})
 
     permissions:
       contents: write
@@ -47,118 +61,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential cmake g++ \
-            libssl-dev libz-dev \
-            curl rsync binutils
-
-      - name: Setup zvec ${{ env.ZVEC_VERSION }}
-        run: |
-          PREBUILT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${ZVEC_BUILD_RELEASE}/zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
-          ./build_zvec_lib.sh "$ZVEC_VERSION" "$PREBUILT_URL"
-          test -f zvec/build/lib/libzvec.a
-          test -d zvec/src/include
-          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
-
-      - name: Package zvec build for downstream jobs
-        run: |
-          PKG=$(mktemp -d)
-          mkdir -p "$PKG/zvec/src" \
-                   "$PKG/zvec/thirdparty/sparsehash/sparsehash-2.0.4" \
-                   "$PKG/zvec/build/external/usr/local"
-          rsync -a zvec/src/include                                "$PKG/zvec/src/"
-          rsync -a zvec/thirdparty/sparsehash/sparsehash-2.0.4/src "$PKG/zvec/thirdparty/sparsehash/sparsehash-2.0.4/"
-          rsync -a zvec/build/lib                                   "$PKG/zvec/build/"
-          rsync -a zvec/build/external/usr/local/lib                "$PKG/zvec/build/external/usr/local/"
-          tar -czf zvec-pkg.tar.gz -C "$PKG" zvec
-
-      - name: Upload artifact for downstream jobs
-        uses: actions/upload-artifact@v4
-        with:
-          name: zvec-build
-          path: zvec-pkg.tar.gz
-
-      - name: Upload prebuilt zvec for future CI builds
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          BUILD_RELEASE="zvec-build-${ZVEC_VERSION}"
-          TARBALL="zvec-${ZVEC_VERSION}-ubuntu24-x86_64.tar.gz"
-          echo "Packaging $TARBALL for release $BUILD_RELEASE"
-          PKG=$(mktemp -d)
-          mkdir -p "$PKG/zvec/src" \
-                   "$PKG/zvec/thirdparty/sparsehash/sparsehash-2.0.4" \
-                   "$PKG/zvec/build/external/usr/local"
-          rsync -a zvec/src/include                                "$PKG/zvec/src/"
-          rsync -a zvec/thirdparty/sparsehash/sparsehash-2.0.4/src "$PKG/zvec/thirdparty/sparsehash/sparsehash-2.0.4/"
-          rsync -a zvec/build/lib                                   "$PKG/zvec/build/"
-          rsync -a zvec/build/external/usr/local/lib                "$PKG/zvec/build/external/usr/local/"
-          tar -czf "$TARBALL" -C "$PKG" zvec
-          rm -rf "$PKG"
-          gh release create "$BUILD_RELEASE" \
-            --repo "${{ github.repository }}" \
-            --title "zvec ${ZVEC_VERSION} build artifacts" \
-            --prerelease \
-            --notes "$(printf '%s\n\n%s' \
-              "Pre-built zvec ${ZVEC_VERSION} library for ubuntu-24.04. Used by CI to avoid rebuilding zvec from source on every PR." \
-              '**This is a CI build cache, not a product release.** It is marked prerelease so that GitHub does not surface it as the repository Latest release, which would otherwise hide the actual v-prefixed release from anyone visiting the releases page. Do not install from here -- use the matching v-prefixed release instead.')" \
-            || echo "Release ${BUILD_RELEASE} already exists"
-          gh release upload "$BUILD_RELEASE" "$TARBALL" --clobber
-
-  release-ffi:
-    needs: setup-zvec
-    runs-on: ubuntu-24.04
-    name: Build & Release FFI Library (Ubuntu)
-
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download zvec artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: zvec-build
-
-      - name: Extract zvec
-        run: |
-          tar -xzf zvec-pkg.tar.gz
-          rm zvec-pkg.tar.gz
-          test -f zvec/build/lib/libzvec.a
-          test -d zvec/src/include
-          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential cmake g++ \
-            libssl-dev libz-dev \
-            curl binutils
-
-      - name: Build FFI shared library
-        working-directory: ffi
-        run: |
-          mkdir -p build
-          cd build
-          cmake ..
-          make -j$(nproc)
-          ls -la libzvec_ffi.so
+      - name: Build FFI adapter
+        run: .github/scripts/build-ffi-linux.sh ${{ matrix.libc }} "$ZVEC_VERSION"
 
       - name: Strip library
-        working-directory: ffi/build
-        run: |
-          ls -la libzvec_ffi.so
-          strip -s libzvec_ffi.so
-          ls -la libzvec_ffi.so
+        run: strip -s ffi/build/libzvec_ffi.so
 
+      - name: Setup PHP
+        if: matrix.libc == 'glibc'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: ffi
+
+      - name: Run tests
+        if: matrix.libc == 'glibc'
+        run: .github/scripts/run-tests.sh
+
+      - name: Run tests (Alpine)
+        if: matrix.libc == 'musl'
+        run: .github/scripts/test-ffi-musl.sh
+
+      # Only our adapter is shipped; the Installer fetches libzvec from alibaba/zvec.
       - name: Package FFI library
         run: |
-          ASSET_NAME="libzvec_ffi-ubuntu24-x86_64.tar.gz"
+          ASSET_NAME="libzvec_ffi-${{ matrix.platform }}.tar.gz"
           tar -czf "$ASSET_NAME" -C ffi/build libzvec_ffi.so
           echo "ASSET_NAME=$ASSET_NAME" >> "$GITHUB_ENV"
 
@@ -170,14 +97,8 @@ jobs:
 
   release-ffi-macos:
     needs: create-release
-    strategy:
-      matrix:
-        include:
-          - os: macos-14
-            arch: arm64
-            asset_suffix: darwin-aarch64
-    runs-on: ${{ matrix.os }}
-    name: Build & Release FFI (macOS ${{ matrix.arch }})
+    runs-on: macos-15
+    name: Build & Release FFI (darwin-aarch64)
 
     permissions:
       contents: write
@@ -185,30 +106,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          brew install openssl zlib
+      # setup-php hangs in Homebrew on macOS runners; Homebrew's php has FFI built in.
+      - name: Install PHP
+        run: brew install php && php -v && php -n -m | grep -x FFI
 
-      - name: Build zvec C++ library from source
-        run: |
-          ./build_zvec_lib.sh "$ZVEC_VERSION"
-          test -f zvec/build/lib/libzvec.a
-
-      - name: Build FFI shared library
-        working-directory: ffi
-        run: |
-          mkdir -p build
-          cd build
-          cmake ..
-          make -j$(sysctl -n hw.ncpu)
-          ls -la libzvec_ffi.dylib
+      - name: Build FFI adapter
+        run: ./build_zvec.sh "$ZVEC_VERSION"
 
       - name: Strip library
         run: strip -S ffi/build/libzvec_ffi.dylib
 
+      - name: Run tests
+        run: .github/scripts/run-tests.sh
+
       - name: Package FFI library
         run: |
-          ASSET_NAME="libzvec_ffi-${{ matrix.asset_suffix }}.tar.gz"
+          ASSET_NAME="libzvec_ffi-darwin-aarch64.tar.gz"
           tar -czf "$ASSET_NAME" -C ffi/build libzvec_ffi.dylib
           echo "ASSET_NAME=$ASSET_NAME" >> "$GITHUB_ENV"
 
@@ -219,7 +132,7 @@ jobs:
           gh release upload "${{ github.ref_name }}" "$ASSET_NAME" --clobber
 
   release-ext:
-    needs: setup-zvec
+    needs: create-release
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -233,78 +146,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download zvec artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: zvec-build
-
-      - name: Extract zvec
-        run: |
-          tar -xzf zvec-pkg.tar.gz
-          rm zvec-pkg.tar.gz
-          test -f zvec/build/lib/libzvec.a
-          test -d zvec/src/include
-          test -d zvec/thirdparty/sparsehash/sparsehash-2.0.4/src
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential cmake g++ \
-            libssl-dev libz-dev \
-            autoconf automake libtool \
-            curl binutils
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
           tools: phpize
 
+      - name: Fetch zvec SDK
+        run: ./fetch_zvec_sdk.sh "$ZVEC_VERSION"
+
       - name: Build PHP extension
-        working-directory: php-ext
-        run: |
-          phpize
-          ./configure --enable-zvec
-          make -j$(nproc)
-
-      - name: Re-link with whole-archive (libtool workaround)
-        working-directory: php-ext
-        run: |
-          ZVEC_LIB="../zvec/build/lib"
-          ZVEC_EXT_LIB="../zvec/build/external/usr/local/lib"
-          g++ -shared -fPIC -DPIC \
-            .libs/*.o \
-            -Wl,--whole-archive \
-              $ZVEC_LIB/libzvec.a \
-              $ZVEC_LIB/libzvec_ailego.a \
-              $ZVEC_LIB/libzvec_core.a \
-              $ZVEC_LIB/libzvec_turbo.a \
-              $ZVEC_EXT_LIB/*.a \
-            -Wl,--no-whole-archive \
-            -lssl -lcrypto -lstdc++ -lz -lpthread -ldl \
-            -Wl,-soname,zvec.so \
-            -o modules/zvec.so
-
-      - name: Strip extension
-        working-directory: php-ext
-        run: strip --strip-unneeded modules/zvec.so
-
-      - name: Verify extension loads
-        working-directory: php-ext
-        run: |
-          php -n -d enable_dl=1 -d extension=modules/zvec.so -r 'if (!extension_loaded("zvec")) { echo "FAIL: zvec not loaded\n"; exit(1); } echo "zvec loaded: yes\n";'
+        run: ./php-ext/build_ext.sh
 
       - name: Run tests
         env:
-          TEST_PHP_ARGS: "-n -d extension=${{ github.workspace }}/php-ext/modules/zvec.so"
-        run: |
-          php run-tests.php -q --show-diff tests/
+          ZVEC_EXT: ${{ github.workspace }}/php-ext/modules/zvec.so
+        run: .github/scripts/run-tests.sh
 
+      # zvec.so finds libzvec.so next to itself ($ORIGIN rpath).
       - name: Package extension
         run: |
           ASSET_NAME="zvec-php${{ matrix.php-version }}-ubuntu24-x86_64.tar.gz"
-          tar -czf "$ASSET_NAME" -C php-ext/modules zvec.so
+          tar -czf "$ASSET_NAME" -C php-ext/modules zvec.so libzvec.so
           echo "ASSET_NAME=$ASSET_NAME" >> "$GITHUB_ENV"
 
       - name: Upload release asset
@@ -314,7 +177,7 @@ jobs:
           gh release upload "${{ github.ref_name }}" "$ASSET_NAME" --clobber
 
   checksums:
-    needs: [release-ffi, release-ffi-macos, release-ext]
+    needs: [release-ffi-linux, release-ffi-macos, release-ext]
     runs-on: ubuntu-24.04
     name: Generate checksums.sha256
 

@@ -1,7 +1,7 @@
 --TEST--
 VECTOR_FP64: double-precision vector insert, fetch, query, index
 --XFAIL--
-zvec v0.6.0 does not support VECTOR_FP64 as a dense vector type (schema validation rejects it). Needs upstream change: add DataType::VECTOR_FP64 to support_dense_vector_type in schema.cc
+zvec v0.7.0 does not support VECTOR_FP64 as a dense vector type (schema validation rejects it). Needs upstream change: add DataType::VECTOR_FP64 to support_dense_vector_type in schema.cc
 --SKIPIF--
 <?php if (!extension_loaded('zvec') && !extension_loaded('ffi')) die('skip Neither zvec extension nor FFI available'); ?>
 --FILE--

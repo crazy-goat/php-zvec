@@ -67,3 +67,6 @@ php-ext/.libs/
 php-ext/*.lo
 php-ext/*.la
 php-ext/*.dep
+
+# Official prebuilt zvec SDK (./fetch_zvec_sdk.sh)
+sdk/

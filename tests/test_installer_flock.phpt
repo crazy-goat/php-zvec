@@ -110,12 +110,23 @@ PHP;
 
     // --- Test 4: Behavioral — double-check pattern skips download when lib already exists ---
     echo "---\n";
-    $realLibPath = __DIR__ . '/../lib/' . (PHP_OS_FAMILY === 'Darwin' ? 'libzvec_ffi.dylib' : 'libzvec_ffi.so');
-    $dummyCreated = false;
+    $libDir = __DIR__ . '/../lib';
+    $isDarwin = PHP_OS_FAMILY === 'Darwin';
+    $dummyFiles = [
+        $libDir . '/' . ($isDarwin ? 'libzvec_ffi.dylib' : 'libzvec_ffi.so') => 'dummy',
+        $libDir . '/' . ($isDarwin ? 'libzvec.dylib' : 'libzvec.so') => 'dummy',
+        $libDir . '/.installed' => 'v0.4.0 ' . Installer::ZVEC_SDK_VERSION,
+    ];
+    $created = [];
+    $lockExisted = file_exists($libDir . '/install.lock');
     try {
-        // Create dummy library file so Installer::install() sees it as already installed
-        file_put_contents($realLibPath, 'dummy');
-        $dummyCreated = true;
+        // Create a dummy complete install (adapter + SDK lib + stamp) so Installer::install() sees it as already installed
+        foreach ($dummyFiles as $file => $content) {
+            if (!file_exists($file)) {
+                file_put_contents($file, $content);
+                $created[] = $file;
+            }
+        }
 
         // This should detect the file and return early (no download, no exception)
         ob_start();
@@ -130,7 +141,6 @@ PHP;
         }
 
         // Verify lock file persists as sentinel (never deleted — ensures same inode for flock)
-        $libDir = __DIR__ . '/../lib';
         $lockFilePath = $libDir . '/install.lock';
         if (file_exists($lockFilePath)) {
             echo "Test 4: Lock file persists as sentinel\n";
@@ -141,13 +151,12 @@ PHP;
 
         echo "Test 4 PASS\n";
     } finally {
-        // Clean up dummy library
-        if ($dummyCreated && file_exists($realLibPath)) {
-            unlink($realLibPath);
+        foreach ($created as $file) {
+            unlink($file);
         }
         // Clean up lock file left by test (Installer's own finally never deletes it)
         $lockFilePath = __DIR__ . '/../lib/install.lock';
-        if (file_exists($lockFilePath)) {
+        if (!$lockExisted && file_exists($lockFilePath)) {
             unlink($lockFilePath);
         }
     }

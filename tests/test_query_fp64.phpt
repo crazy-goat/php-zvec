@@ -1,7 +1,7 @@
 --TEST--
 VECTOR_FP64 query operations: queryFp64(), queryById, includeVector, filter, outputFields
 --XFAIL--
-zvec v0.6.0 does not support VECTOR_FP64 as a dense vector type (schema validation rejects it). Needs upstream change: add DataType::VECTOR_FP64 to support_dense_vector_type in schema.cc
+zvec v0.7.0 does not support VECTOR_FP64 as a dense vector type (schema validation rejects it). Needs upstream change: add DataType::VECTOR_FP64 to support_dense_vector_type in schema.cc
 --SKIPIF--
 <?php
 if (extension_loaded('zvec')) die('skip Native zvec extension loaded (use FFI)');

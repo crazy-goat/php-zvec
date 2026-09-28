@@ -41,20 +41,24 @@ composer require crazy-goat/zvec
 vendor/bin/zvec-install
 ```
 
-The `zvec-install` tool detects your OS and architecture, downloads the matching
-pre-built FFI shared library from GitHub Releases, and places it in `lib/`.
+The `zvec-install` tool detects your OS and architecture and places two libraries
+in `lib/`: our small FFI adapter (`libzvec_ffi`, from this project's GitHub Releases)
+and the official prebuilt zvec SDK library (`libzvec`, from
+[alibaba/zvec releases](https://github.com/alibaba/zvec/releases), pinned SHA-256).
 The version is auto-detected from Composer's `installed.json`. If omitted,
 specify it explicitly: `vendor/bin/zvec-install v0.4.10`.
 
-Supported platforms:
-- **Linux x86_64 (glibc)** — pre-built (`libzvec_ffi-ubuntu24-x86_64.tar.gz`)
+Supported platforms (all pre-built):
+- **Linux x86_64 / aarch64 (glibc 2.28+)** — `libzvec_ffi-linux-{x86_64,aarch64}.tar.gz`
+- **Linux x86_64 / aarch64 (musl, e.g. Alpine)** — `libzvec_ffi-linux-musl-{x86_64,aarch64}.tar.gz`
+- **macOS arm64 (macOS 15+)** — `libzvec_ffi-darwin-aarch64.tar.gz`
 
 ### Manual build (all platforms)
 
-### 1. Clone with submodules
+### 1. Clone
 
 ```bash
-git clone --recursive <repository-url>
+git clone <repository-url>
 cd zvec-php
 ```
 
@@ -65,10 +69,10 @@ cd zvec-php
 ```
 
 This will:
-- Clone zvec repository (if not present)
-- Download CMake 3.28 locally
-- Build zvec C++ library
-- Build FFI wrapper (`ffi/build/libzvec_ffi.so`)
+- Download the official prebuilt zvec SDK into `sdk/` (`./fetch_zvec_sdk.sh`, SHA-256 verified)
+- Build the FFI wrapper (`ffi/build/libzvec_ffi.so`) and copy `libzvec` next to it
+
+Requires CMake 3.14+ and a C++17 compiler. zvec itself is no longer built from source.
 
 ### 3. Verify installation (FFI mode)
 
@@ -81,11 +85,12 @@ php run-tests.php -n tests/
 
 ### Alternative: Build the native PHP extension
 
-The native extension provides the same API without FFI overhead. It links directly with the zvec C++ library.
+The native extension provides the same API without FFI overhead. It links dynamically
+with the zvec SDK library, which `build_ext.sh` copies next to `modules/zvec.so`.
 
 ```bash
-# 1. Build zvec first (if not already done)
-./build_zvec.sh
+# 1. Fetch the zvec SDK first (if not already done)
+./fetch_zvec_sdk.sh
 
 # 2. Build the extension
 cd php-ext
@@ -830,10 +835,10 @@ zvec-php/
 │   └── CMakeLists.txt            # Build configuration
 ├── tests/                        # .phpt test suite
 ├── tasks/                        # Feature planning documents
-├── build_zvec_lib.sh             # Builds zvec C++ library
+├── fetch_zvec_sdk.sh             # Downloads the official prebuilt zvec SDK into sdk/
 ├── build_ffi.sh                  # Builds FFI shared library
-├── build_zvec.sh                 # Orchestrator: both builds
-└── zvec/                         # Git-cloned upstream zvec C++ library (not committed)
+├── build_zvec.sh                 # Orchestrator: fetch SDK + build FFI
+└── sdk/                          # Official zvec SDK (downloaded, not committed)
 ```
 
 ## Implemented Features
@@ -918,18 +923,19 @@ chmod 700 /path/to/collection
 
 ### Supply Chain
 
-Pre-built shared libraries are downloaded from GitHub Releases via `vendor/bin/zvec-install`.
+Pre-built shared libraries are downloaded from GitHub Releases via `vendor/bin/zvec-install`:
+the FFI adapter from this project's release (checked against its `checksums.sha256`) and
+the zvec SDK from alibaba/zvec (checked against a SHA-256 pinned in `src/Installer.php`).
 Downloads use HTTPS with TLS verification (CA bundle). SHA-256 checksums are verified
 before extraction using `hash_equals()` (timing-safe comparison).
 
-For production deployments, build the library from source with `./build_zvec.sh`
-for full supply chain control.
+For production deployments, build the FFI adapter yourself with `./build_zvec.sh`
+(it compiles `ffi/zvec_ffi.cc` against the same pinned upstream SDK).
 
 ## Known Limitations
 
 - **GroupByQuery**: The C++ API has this method but it returns all documents in a single group with empty group value. This is a known issue in upstream zvec (marked as "Coming Soon" in zvec docs).
-- **Platform**: Pre-built FFI library available for Linux x86_64 (glibc). macOS builds coming soon.
-- **musl Linux** (e.g., Alpine): musl-based Linux is not yet supported by the pre-built library. Build from source instead.
+- **Platform**: Pre-built for Linux x86_64/aarch64 (glibc and musl) and macOS arm64 (macOS 15 or newer — the upstream SDK is built for 15.0). No macOS x86_64 build (upstream ships no SDK for it).
 - **alterColumn()**: Requires `nullable` to be explicitly specified when changing data type. Cannot rename AND change type in one call. Only scalar numeric types (INT32, INT64, UINT32, UINT64, FLOAT, DOUBLE) are supported for type changes.
 - **GroupByVectorQuery**: Does not support HNSW, IVF, Flat, or Vamana query parameters (`setTopk()`, `setHnswParams()`, etc. throw ZVecException).
 - **queryById()**: Uses `fetch()` internally to get the source vector, then performs a second query. Not a single round-trip to the C++ layer.

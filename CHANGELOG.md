@@ -44,11 +44,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **zvec v0.7.0, official prebuilt SDK instead of our own zvec builds**
+  - The FFI adapter and the PHP extension now link dynamically against `libzvec` from the official [alibaba/zvec](https://github.com/alibaba/zvec/releases) SDK. zvec is no longer compiled from source; `./fetch_zvec_sdk.sh` downloads the SDK (pinned SHA-256) and `./build_zvec.sh` builds only our adapter.
+  - Ported `ffi/zvec_ffi.cc` and `php-ext/` to the v0.7.0 C++ API (snake_case methods).
+  - `vendor/bin/zvec-install` installs our `libzvec_ffi` plus `libzvec` and `zvec_data/` (jieba dictionary) from the upstream SDK into `lib/`. The adapter points zvec at `zvec_data/jieba_dict` automatically.
+  - Pre-built adapters for `linux-x86_64`, `linux-aarch64` (glibc 2.28+), `linux-musl-x86_64`, `linux-musl-aarch64` and `darwin-aarch64`. Release asset names changed from `libzvec_ffi-ubuntu24-x86_64.tar.gz` to `libzvec_ffi-<platform>.tar.gz`.
+  - Removed `build_zvec_lib.sh`, `docker/` and the `zvec-build-*` CI cache release.
+
 - **`fetch()` returns absent nullable fields as explicit null** (#192)
   - Fetched documents now carry unset *nullable* fields as present-with-null (`hasField()` → `true`, `isFieldNull()` → `true`, typed getters → `null`) instead of omitting the key entirely — mirroring upstream `zvec_collection_fetch` nullable normalization (`normalize_nullable_fields_for_fetch`).
   - Non-nullable absent fields continue to be omitted.
 
 ### Fixed
+
+- **Crash at exit and lost `ZVec::init()` settings with a shared libzvec** (#215)
+  - libzvec exports the `GlobalConfig` singleton but keeps its init guard local, so calling the inline `GlobalConfig::Instance()` from our module built a second copy: `init()` settings were silently reset and the object was destroyed twice at exit (`free(): chunks in smallbin corrupted`, SIGABRT). The FFI adapter and the extension now resolve the instance from libzvec via `dlsym`. Test: `tests/bug_0056.phpt`.
+  - Release builds of the Linux FFI adapter embed libstdc++; its symbols are now kept private (`-Wl,--exclude-libs,ALL`). Before, the dynamic linker bound part of them to the system libstdc++ that PHP already loads through libxml2/libicu, and `schema()` segfaulted inside `IndexParams::to_string()`.
+- **`run-tests.php` still overwrote hand-written `tests/<name>.php` files** (#187) — the temp copy of the extracted test used the old path; it now uses the `.php.tmp-extract` suffix too.
+- **`ZVecFieldSchema::getIndexType()` swapped VAMANA and DISKANN** — the C++ enum order differs from the PHP constants; the value is now mapped back explicitly. Test: `tests/bug_0055.phpt`.
 
 - **`fetch()` no longer emits a PHP warning for named-argument forms** (#205)
   - `fetch(pks: ['doc1'])` previously triggered `Undefined array key 0` before the validation error — `is_array($args[0])` is now guarded with `isset()`.

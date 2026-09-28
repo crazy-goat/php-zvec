@@ -152,11 +152,11 @@ if (!str_contains($mig, 'backward')) {
     $failures++;
 }
 
-// 4. The zvec version pin is v0.6.0 everywhere it is declared.
-foreach (['build_zvec.sh', 'build_zvec_lib.sh', 'docker/build-zvec.sh'] as $f) {
+// 4. The zvec SDK version pin is v0.7.0 everywhere it is declared.
+foreach (['build_zvec.sh', 'fetch_zvec_sdk.sh', 'src/Installer.php'] as $f) {
     $c = file_get_contents("$root/$f");
-    $ok = str_contains($c, 'v0.6.0');
-    echo pad($f, 22) . ' ' . ($ok ? 'v0.6.0' : 'WRONG') . "\n";
+    $ok = str_contains($c, 'v0.7.0');
+    echo pad($f, 22) . ' ' . ($ok ? 'v0.7.0' : 'WRONG') . "\n";
     if (!$ok) {
         $failures++;
     }
@@ -190,9 +190,9 @@ setHnswPrefetch               1
 setIncludeDocId               1
 migration section: present
 states BC: yes
-build_zvec.sh          v0.6.0
-build_zvec_lib.sh      v0.6.0
-docker/build-zvec.sh   v0.6.0
+build_zvec.sh          v0.7.0
+fetch_zvec_sdk.sh      v0.7.0
+src/Installer.php      v0.7.0
 INDEX_TYPE_HNSW           =1 documented
 INDEX_TYPE_IVF            =2 documented
 INDEX_TYPE_FLAT           =3 documented

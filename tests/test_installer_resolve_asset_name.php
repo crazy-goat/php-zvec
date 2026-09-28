@@ -31,7 +31,7 @@ if ($result === null) {
 
     // Platform-specific checks
     if ($os === 'Linux') {
-        if (str_contains($result, 'ubuntu') || str_contains($result, 'alpine')) {
+        if (str_contains($result, 'linux')) {
             echo "PASS: Linux asset name contains distro identifier\n";
         } else {
             echo "FAIL: Linux asset name missing distro identifier\n";
