@@ -529,11 +529,26 @@ void zvec_schema_add_field_array_double(zvec_schema_t schema, const char* name, 
 
 // --- Collection ---
 
-// Thread-safe collection registry using shared_mutex for concurrent reads
-// and exclusive writes. Uses unordered_map for O(1) lookups instead of
-// O(n) vector scans.
-static std::shared_mutex g_collections_mutex;
-static std::unordered_map<Collection*, std::shared_ptr<Collection>> g_collections;
+// Thread-safe collection registry: a pointer-keyed map so lookups are O(1).
+//
+// The registry is a function-local static (Meyers singleton), so it is created
+// on first use and never destroyed at process exit. A namespace-scope
+// std::shared_mutex cannot be used here: its destructor runs from .fini_array,
+// which glibc executes *after* it has already torn down thread state, so
+// pthread_mutex_destroy fails with "pthread lock: Invalid argument" and the
+// process segfaults. That only surfaces in a shared-library build, where this
+// file is its own module -- in the static build everything lives in one .so and
+// the ordering happens to work. A std::mutex has no destructor, so it is safe
+// as a static, and the registry has no concurrent readers, so exclusivity is
+// all that is needed anyway.
+static std::mutex g_collections_mutex;
+
+static std::unordered_map<Collection*, std::shared_ptr<Collection>>&
+collections_registry()
+{
+    static std::unordered_map<Collection*, std::shared_ptr<Collection>> registry;
+    return registry;
+}
 
 zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out) {
     auto* s = static_cast<CollectionSchema*>(schema);
@@ -547,7 +562,7 @@ zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int
     auto* raw = ptr.get();
     {
         std::unique_lock lock(g_collections_mutex);
-        g_collections[raw] = std::move(ptr);
+        collections_registry()[raw] = std::move(ptr);
     }
     *out = static_cast<zvec_collection_t>(raw);
     return ok_status();
@@ -564,7 +579,7 @@ zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_m
     auto* raw = ptr.get();
     {
         std::unique_lock lock(g_collections_mutex);
-        g_collections[raw] = std::move(ptr);
+        collections_registry()[raw] = std::move(ptr);
     }
     *out = static_cast<zvec_collection_t>(raw);
     return ok_status();
@@ -574,7 +589,7 @@ void zvec_collection_free(zvec_collection_t coll) {
     if (!coll) return;
     auto* raw = static_cast<Collection*>(coll);
     std::unique_lock lock(g_collections_mutex);
-    g_collections.erase(raw);
+    collections_registry().erase(raw);
 }
 
 zvec_status_t zvec_collection_flush(zvec_collection_t coll) {
@@ -609,7 +624,7 @@ zvec_status_t zvec_collection_destroy(zvec_collection_t coll) {
     auto status = raw->Destroy();
     {
         std::unique_lock lock(g_collections_mutex);
-        g_collections.erase(raw);
+        collections_registry().erase(raw);
     }
     return MAKE_STATUS(status);
 }
