@@ -4,84 +4,36 @@ project(zvec_ffi CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(ZVEC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../zvec")
-set(ZVEC_BUILD "${ZVEC_ROOT}/build")
-set(ZVEC_INCLUDE "${ZVEC_ROOT}/src/include")
-set(ZVEC_EXTERNAL_LIB "${ZVEC_BUILD}/external/usr/local/lib")
-set(ZVEC_LIB "${ZVEC_BUILD}/lib")
+# Official prebuilt zvec SDK, fetched by ../fetch_zvec_sdk.sh.
+set(ZVEC_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../sdk" CACHE PATH "zvec SDK root")
+set(ZVEC_SDK_LIB "${ZVEC_SDK_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}zvec${CMAKE_SHARED_LIBRARY_SUFFIX}")
+
+if(NOT EXISTS "${ZVEC_SDK_LIB}")
+    message(FATAL_ERROR "zvec SDK not found at ${ZVEC_SDK_DIR}. Run ./fetch_zvec_sdk.sh first.")
+endif()
 
 add_library(zvec_ffi SHARED zvec_ffi.cc)
 
-target_include_directories(zvec_ffi PRIVATE
-    ${ZVEC_INCLUDE}
-    ${ZVEC_ROOT}/thirdparty/sparsehash/sparsehash-2.0.4/src
-)
+target_include_directories(zvec_ffi PRIVATE "${ZVEC_SDK_DIR}/include")
+target_link_libraries(zvec_ffi PRIVATE "${ZVEC_SDK_LIB}" ${CMAKE_DL_LIBS})
 
-set(ZVEC_STATIC_LIBS
-    ${ZVEC_LIB}/libzvec.a
-    ${ZVEC_LIB}/libzvec_ailego.a
-    ${ZVEC_LIB}/libzvec_core.a
-    ${ZVEC_LIB}/libzvec_turbo.a
-    # Upstream ships the DiskANN algorithm as a separate core_knn_* library
-    # (see src/core/algorithm/diskann/CMakeLists.txt) and deliberately excludes
-    # its sources from libzvec_core to avoid duplicate symbols. Its
-    # INDEX_FACTORY_REGISTER_* statics therefore never make it into
-    # libzvec_core.a, so index creation fails at runtime with
-    # "DiskAnn factory entries are not registered" unless we link it here.
-    #
-    # core_framework and core_knn_cluster are NOT listed: their object files are
-    # already pulled in by libzvec_core.a, and naming them here would duplicate
-    # every shared symbol (multiple definition of IndexFactory::*, IndexCluster::*).
-    # The static .a resolves against the whole-archive of libzvec_core.a, so the
-    # diskann objects that need them link fine.
-    ${ZVEC_LIB}/libcore_knn_diskann.a
-)
-
-set(ZVEC_EXTERNAL_LIBS
-    ${ZVEC_LIB}/libFastPFOR.a
-    ${ZVEC_LIB}/libsnowball.a
-    ${ZVEC_EXTERNAL_LIB}/librocksdb.a
-    ${ZVEC_EXTERNAL_LIB}/libarrow.a
-    ${ZVEC_EXTERNAL_LIB}/libarrow_acero.a
-    ${ZVEC_EXTERNAL_LIB}/libarrow_compute.a
-    ${ZVEC_EXTERNAL_LIB}/libarrow_dataset.a
-    ${ZVEC_EXTERNAL_LIB}/libarrow_bundled_dependencies.a
-    ${ZVEC_EXTERNAL_LIB}/libparquet.a
-    ${ZVEC_EXTERNAL_LIB}/libprotobuf.a
-    ${ZVEC_EXTERNAL_LIB}/libprotoc.a
-    ${ZVEC_EXTERNAL_LIB}/libantlr4-runtime.a
-    ${ZVEC_EXTERNAL_LIB}/libglog.a
-    ${ZVEC_EXTERNAL_LIB}/libgflags_nothreads.a
-    ${ZVEC_EXTERNAL_LIB}/libyaml-cpp.a
-    ${ZVEC_EXTERNAL_LIB}/liblz4.a
-    ${ZVEC_EXTERNAL_LIB}/libroaring.a
-)
-
-if(APPLE)
-    foreach(lib ${ZVEC_STATIC_LIBS})
-        target_link_options(zvec_ffi PRIVATE -Wl,-force_load,${lib})
-    endforeach()
-    target_link_libraries(zvec_ffi PRIVATE ${ZVEC_EXTERNAL_LIBS})
-else()
-    target_link_options(zvec_ffi PRIVATE
-        -Wl,--whole-archive ${ZVEC_STATIC_LIBS} ${ZVEC_EXTERNAL_LIBS} -Wl,--no-whole-archive
-    )
+# Release builds on Linux: embed libstdc++/libgcc like the SDK itself does, so the
+# adapter runs on hosts without libstdc++ (php:*-alpine) or with an older one.
+option(ZVEC_FFI_STATIC_LIBSTDCXX "Link libstdc++ and libgcc statically" OFF)
+if(ZVEC_FFI_STATIC_LIBSTDCXX)
+    target_link_options(zvec_ffi PRIVATE -static-libstdc++ -static-libgcc)
 endif()
 
-target_link_libraries(zvec_ffi PRIVATE
-    z
-    pthread
-    dl
-)
-
+# libzvec is always shipped next to libzvec_ffi (lib/ for Composer installs,
+# ffi/build/ for local builds), so resolve it relative to the adapter itself.
 if(APPLE)
-    target_link_libraries(zvec_ffi PRIVATE
-        "-framework CoreFoundation"
-        "-framework Security"
-    )
+    set_target_properties(zvec_ffi PROPERTIES INSTALL_RPATH "@loader_path")
 else()
-    target_link_libraries(zvec_ffi PRIVATE
-        ssl
-        crypto
-    )
+    set_target_properties(zvec_ffi PROPERTIES INSTALL_RPATH "$ORIGIN")
 endif()
+set_target_properties(zvec_ffi PROPERTIES BUILD_WITH_INSTALL_RPATH ON)
+
+add_custom_command(TARGET zvec_ffi POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ZVEC_SDK_LIB}" "$<TARGET_FILE_DIR:zvec_ffi>"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ZVEC_SDK_DIR}/data" "$<TARGET_FILE_DIR:zvec_ffi>/zvec_data"
+)

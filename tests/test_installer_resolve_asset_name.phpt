@@ -33,7 +33,7 @@ if ($result === null) {
     echo "PASS: Asset name contains 'libzvec_ffi'\n";
 
     // Platform-specific checks (uniform output across platforms)
-    $identifierOk = ($os === 'Linux' && (str_contains($result, 'ubuntu') || str_contains($result, 'alpine')))
+    $identifierOk = ($os === 'Linux' && str_contains($result, 'linux'))
         || ($os === 'Darwin' && str_contains($result, 'darwin'));
     if (!$identifierOk) {
         echo "FAIL: Asset name missing platform identifier\n";

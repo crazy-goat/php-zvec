@@ -29,35 +29,41 @@ zvec-php/
 ├── tests/                    # Test files (.phpt format)
 ├── test_dbs/                 # Test database directory (content ignored by git)
 ├── tasks/todo/               # Feature planning documents
-├── build_zvec_lib.sh         # Builds only the zvec C++ library (with version caching)
-├── build_ffi.sh              # Builds only the FFI shared library (requires zvec built)
-├── build_zvec.sh             # Orchestrator: builds zvec C++ lib + FFI shared library
-├── zvec/                     # Git-cloned upstream zvec C++ library (not committed)
-└── cmake-3.28.3-*/           # Vendored CMake (not committed)
+├── fetch_zvec_sdk.sh         # Downloads the official prebuilt zvec SDK into sdk/ (pinned SHA-256)
+├── build_ffi.sh              # Builds only the FFI shared library (requires sdk/)
+├── build_zvec.sh             # Orchestrator: fetch SDK + build FFI shared library
+├── .github/scripts/          # CI helpers (container builds, test runners)
+├── sdk/                      # Official zvec SDK: include/, lib/libzvec.*, data/ (not committed)
+└── zvec/                     # Optional local clone of upstream sources, for reference only (not committed)
 ```
 
 ## Build Commands
 
-### Step 1: Build the zvec C++ library (only if not already built for this version)
+We do not build zvec from source. We use the official prebuilt SDK from
+[alibaba/zvec releases](https://github.com/alibaba/zvec/releases) and only compile
+our adapter (`ffi/zvec_ffi.cc`) against it.
+
+### Step 1: Fetch the zvec SDK
 
 ```bash
-./build_zvec_lib.sh [version]
+./fetch_zvec_sdk.sh [version]
 ```
 
-Default version is `v0.6.0`. The script checks `zvec/build/.zvec_version` — if the
-stamp matches, the build is skipped. If the version changes, it auto-updates the
-git checkout and rebuilds.
+Default version is `v0.7.0`. The SDK lands in `sdk/`; the stamp
+`sdk/.zvec_sdk_version` skips the download when it already matches. Each
+version/asset needs a SHA-256 in `expected_sha256()` (or `ZVEC_SDK_SHA256`).
+Upstream ships SDKs for Linux x86_64/aarch64 (glibc and musl) and macOS arm64.
 
-For CI with prebuilt download:
-```bash
-./build_zvec_lib.sh v0.6.0 "https://url-to-prebuilt.tar.gz"
-```
-
-### Step 2: Build the FFI shared library (requires zvec already built)
+### Step 2: Build the FFI shared library (requires sdk/)
 
 ```bash
-./build_ffi.sh
+./build_ffi.sh [extra cmake args]
 ```
+
+This builds `ffi/build/libzvec_ffi.{so,dylib}` and copies `libzvec.{so,dylib}`
+and `zvec_data/` (jieba dictionary) next to it. The adapter finds libzvec via
+rpath `$ORIGIN` / `@loader_path`. Release builds pass
+`-DZVEC_FFI_STATIC_LIBSTDCXX=ON` (see `.github/scripts/build-ffi-linux.sh`).
 
 ### Build both in one command (orchestrator)
 
@@ -65,9 +71,18 @@ For CI with prebuilt download:
 ./build_zvec.sh [version]
 ```
 
-This calls `build_zvec_lib.sh` then `build_ffi.sh`.
+This calls `fetch_zvec_sdk.sh` then `build_ffi.sh`.
 
-### Build PHP extension (requires zvec already built)
+### zvec singleton rule (#215)
+
+Never call `zvec::GlobalConfig::Instance()` (or any other
+`ailego::Singleton<T>::Instance()`) inline from our code. libzvec exports the
+singleton object but keeps its init guard local, so an inline instantiation
+in our module constructs a second copy and double-destroys it at exit (heap
+corruption, SIGABRT). Resolve the instance from libzvec with `dlsym` instead
+(see `global_config_ptr()` in `ffi/zvec_ffi.cc`).
+
+### Build PHP extension (requires sdk/)
 
 ```bash
 ./php-ext/build_ext.sh
@@ -115,11 +130,9 @@ php -n tests/test_error_handling.php
 for f in tests/*.php; do php -n "$f"; done
 ```
 
-> **Warning:** `run-tests.php` derives the executable path from the `.phpt`
-> basename in the same directory and **unlinks it unconditionally** — running
-> the suite deletes legacy tracked `tests/<name>.php` files that share a
-> basename with a `.phpt` file (#187). Back them up first, or restore with
-> `git checkout -- tests/` after the run.
+> **Note:** `run-tests.php` extracts each `.phpt` body to
+> `tests/<name>.php.tmp-extract`, so running the suite never touches the
+> hand-written `tests/<name>.php` files (#187).
 
 ### Run all tests (both formats)
 
@@ -130,7 +143,7 @@ for f in tests/*.php; do php -n "$f"; done
 # Run all tests (phpt suite)
 php run-tests.php -n tests/
 
-# Run legacy scripts (restore deleted tests/*.php first, see warning above)
+# Run legacy scripts
 for f in tests/*.php; do php -n "$f"; done
 ```
 
@@ -144,8 +157,8 @@ Before marking any task as DONE:
 
 1. **Build the FFI library** (if C++ changes):
    ```bash
-   # If zvec version changed (e.g. new v0.7.0):
-   ./build_zvec_lib.sh v0.7.0
+   # If zvec version changed (add its SHA-256 to fetch_zvec_sdk.sh and src/Installer.php):
+   ./fetch_zvec_sdk.sh v0.7.0
 
    # Rebuild FFI wrapper (always if ffi/*.cc or ffi/*.h changed):
    ./build_ffi.sh
@@ -162,7 +175,7 @@ Before marking any task as DONE:
 3. **Run all tests**:
    ```bash
    php run-tests.php -n tests/
-   for f in tests/*.php; do php -n "$f"; done   # legacy scripts (restore deleted files first, see #187)
+   for f in tests/*.php; do php -n "$f"; done   # legacy scripts
    ```
 
 4. **Verify test databases cleaned up:**
@@ -387,12 +400,14 @@ and runner output.
 
 ### Platform Notes
 
-- Pre-built FFI library available for Linux x86_64 (glibc).
-- macOS and musl Linux builds not yet available as pre-built artifacts.
+- Pre-built FFI adapters: `linux-x86_64`, `linux-aarch64` (manylinux_2_28, glibc 2.28+),
+  `linux-musl-x86_64`, `linux-musl-aarch64` (Alpine) and `darwin-aarch64`. No macOS x86_64.
+- Release assets hold only `libzvec_ffi`; `zvec-install` downloads `libzvec` and
+  `zvec_data/` from the upstream SDK release (SHA-256 pinned in `src/Installer.php`).
 - The FFI shared library is resolved from two locations (in order):
   1. `__DIR__ . '/../lib/libzvec_ffi.so'` — Composer-installed (via `vendor/bin/zvec-install`)
   2. `__DIR__ . '/../ffi/build/libzvec_ffi.so'` — locally built (via `./build_zvec.sh`)
-- `zvec/` directory is a git submodule - run `git submodule update --init` if missing.
+- `libzvec.{so,dylib}` and `zvec_data/` must sit in the same directory as `libzvec_ffi`.
 
 ### Memory Management
 
