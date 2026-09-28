@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **DiskANN I/O backend introspection** (#224)
+  - `ZVec::getIoBackendType()`, `ZVec::getIoBackendTypeName(int $type)` and `ZVec::getIoBackendDescription()` report the I/O backend zvec picked for DiskANN disk reads. Linux tries `io_uring`, then `libaio`, and falls back to synchronous `pread()`; macOS always uses `pread()`. The value matters a lot for DiskANN throughput and previously could not be observed at all.
+  - The choice is process-wide and resolved lazily, so the getters work without `ZVec::init()`. New constants `ZVec::IO_BACKEND_PREAD`, `IO_BACKEND_LIBAIO` and `IO_BACKEND_IO_URING` (`0`/`1`/`2`), matching the upstream C ABI.
+  - FFI: `zvec_get_io_backend_type()`, `zvec_get_io_backend_type_name()` and `zvec_get_io_backend_description()`. The adapter calls upstream's exported `current_io_backend_*()` functions and keeps the #215 singleton rule — the internal `io_backend_def.h` is not part of the SDK and `IOBackend::Instance()` is never referenced here.
+  - Test: `tests/test_io_backend.phpt` (constant values, name mapping including the `unknown` fallback, value valid before `init()`, description matching the reported name, macOS pread rule, stability across repeated calls and across `init()`).
+
 - **Full-Text Search (FTS) support** (#180)
   - `ZVecIndexParams::forFts(tokenizer, filters, extraParams)` builds a full-text index over a STRING column; mirrors the official Go SDK `NewFTSIndexParams`. Defaults to the `standard` tokenizer with the `lowercase` filter.
   - `ZVecVectorQuery::setFts(fieldName, queryString, matchString, defaultOperator)` runs an FTS query. `defaultOperator` accepts `ZVec::FTS_OPERATOR_OR` (default) or `FTS_OPERATOR_AND`, case-insensitively.

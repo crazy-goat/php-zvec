@@ -50,6 +50,9 @@ int zvec_check_version(int major, int minor, int patch);
 int zvec_get_version_major(void);
 int zvec_get_version_minor(void);
 int zvec_get_version_patch(void);
+int zvec_get_io_backend_type(void);
+const char* zvec_get_io_backend_type_name(int type);
+const char* zvec_get_io_backend_description(void);
 
 zvec_status_t zvec_init(int log_type, int log_level,
                         const char* log_dir, const char* log_basename,

@@ -15,6 +15,7 @@
 #include <zvec/db/config.h>
 #include <zvec/db/status.h>
 #include <zvec/ailego/utility/float_helper.h>
+#include <zvec/ailego/io/io_backend.h>
 
 using namespace zvec;
 
@@ -137,6 +138,32 @@ int zvec_get_version_minor(void) {
 
 int zvec_get_version_patch(void) {
     return kVersionPatch;
+}
+
+// DiskANN I/O backend. current_io_backend_type() and
+// current_io_backend_description() are ordinary functions compiled inside
+// libzvec; the IOBackend singleton behind them is created only there, so this
+// keeps the #215 singleton rule. Do NOT include the internal
+// zvec/ailego/io/io_backend_def.h and do not reference IOBackend::Instance()
+// from this module: that header is not part of the SDK, and instantiating the
+// singleton here would build a second copy destroyed twice at exit.
+int zvec_get_io_backend_type(void) {
+    return static_cast<int>(zvec::ailego::current_io_backend_type());
+}
+
+const char* zvec_get_io_backend_type_name(int type) {
+    switch (type) {
+        case ZVEC_IO_BACKEND_PREAD: return "pread";
+        case ZVEC_IO_BACKEND_LIBAIO: return "libaio";
+        case ZVEC_IO_BACKEND_IO_URING: return "io_uring";
+        default: return "unknown";
+    }
+}
+
+const char* zvec_get_io_backend_description(void) {
+    static thread_local std::string buf;
+    buf = zvec::ailego::current_io_backend_description();
+    return buf.c_str();
 }
 
 static MetricType to_metric_type(uint32_t v) {
