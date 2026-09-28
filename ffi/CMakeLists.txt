@@ -21,7 +21,11 @@ target_link_libraries(zvec_ffi PRIVATE "${ZVEC_SDK_LIB}" ${CMAKE_DL_LIBS})
 # adapter runs on hosts without libstdc++ (php:*-alpine) or with an older one.
 option(ZVEC_FFI_STATIC_LIBSTDCXX "Link libstdc++ and libgcc statically" OFF)
 if(ZVEC_FFI_STATIC_LIBSTDCXX)
-    target_link_options(zvec_ffi PRIVATE -static-libstdc++ -static-libgcc)
+    # Keep the embedded runtime private (GH#215): if its symbols stay exported,
+    # the dynamic linker binds part of them to the system libstdc++ that PHP
+    # already has loaded (via libxml2/libicu), mixing two runtimes -> segfault
+    # in std::ostream inside zvec::*IndexParams::to_string().
+    target_link_options(zvec_ffi PRIVATE -static-libstdc++ -static-libgcc -Wl,--exclude-libs,ALL)
 endif()
 
 # libzvec is always shipped next to libzvec_ffi (lib/ for Composer installs,

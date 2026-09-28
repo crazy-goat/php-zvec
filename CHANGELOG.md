@@ -59,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Crash at exit and lost `ZVec::init()` settings with a shared libzvec** (#215)
   - libzvec exports the `GlobalConfig` singleton but keeps its init guard local, so calling the inline `GlobalConfig::Instance()` from our module built a second copy: `init()` settings were silently reset and the object was destroyed twice at exit (`free(): chunks in smallbin corrupted`, SIGABRT). The FFI adapter and the extension now resolve the instance from libzvec via `dlsym`. Test: `tests/bug_0056.phpt`.
+  - Release builds of the Linux FFI adapter embed libstdc++; its symbols are now kept private (`-Wl,--exclude-libs,ALL`). Before, the dynamic linker bound part of them to the system libstdc++ that PHP already loads through libxml2/libicu, and `schema()` segfaulted inside `IndexParams::to_string()`.
 - **`run-tests.php` still overwrote hand-written `tests/<name>.php` files** (#187) — the temp copy of the extracted test used the old path; it now uses the `.php.tmp-extract` suffix too.
 - **`ZVecFieldSchema::getIndexType()` swapped VAMANA and DISKANN** — the C++ enum order differs from the PHP constants; the value is now mapped back explicitly. Test: `tests/bug_0055.phpt`.
 

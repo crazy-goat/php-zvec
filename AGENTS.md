@@ -82,6 +82,11 @@ in our module constructs a second copy and double-destroys it at exit (heap
 corruption, SIGABRT). Resolve the instance from libzvec with `dlsym` instead
 (see `global_config_ptr()` in `ffi/zvec_ffi.cc`).
 
+When the adapter embeds libstdc++ (`-DZVEC_FFI_STATIC_LIBSTDCXX=ON`, used for
+release builds), keep `-Wl,--exclude-libs,ALL` in `ffi/CMakeLists.txt`. Without
+it the embedded runtime is exported, gets mixed with the system libstdc++ that
+PHP loads via libxml2/libicu, and `schema()` segfaults.
+
 ### Build PHP extension (requires sdk/)
 
 ```bash
