@@ -213,6 +213,27 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /**
+     * Set IVF-RaBitQ query params.
+     *
+     * Only valid on an IVF_RABITQ index (see {@see ZVecIndexParams::forIvfRabitq()}).
+     *
+     * @param int $nprobe Number of IVF partitions to visit — larger trades
+     *                    latency for recall
+     *
+     * @throws ZVecException
+     */
+    public function setIvfRabitqParams(int $nprobe = 10): self
+    {
+        if ($nprobe <= 0) {
+            throw new ZVecException("nprobe must be a positive integer, got: {$nprobe}");
+        }
+        $this->queryParamType = ZVec::QUERY_PARAM_IVF_RABITQ;
+        $this->ivfNprobe = $nprobe;
+        self::ffi()->zvec_vector_query_set_ivf_rabitq_nprobe($this->handle, $nprobe);
+        return $this;
+    }
+
     /** @throws ZVecException */
     public function setFlatParams(): self
     {

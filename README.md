@@ -176,9 +176,13 @@ ZVec::init(
     float $bruteForceByKeysRatio = 0.0,
     int $memoryLimitMb = 0,
     ?string $allowedBasePath = null,
-    bool $verboseErrors = false
+    bool $verboseErrors = false,
+    ?string $jiebaDictDir = null,          // folder with jieba.dict.utf8 + hmm_model.utf8
+    ?float $ftsBruteForceByKeysRatio = null  // 0.0-1.0, upstream default 0.05
 ): void
 ZVec::isInitialized(): bool
+ZVec::getFtsBruteForceByKeysRatio(): float
+ZVec::getJiebaDictDir(): string
 ZVec::shutdown(): void
 ZVec::getLastErrorDetails(): array
 ZVec::clearError(): void
@@ -270,7 +274,7 @@ $schema->setMaxDocCountPerSegment(int $count): self
 
 // Scalar fields
 $schema->addInt64(string $name, bool $nullable = false, bool $withInvertIndex = false): self
-$schema->addString(string $name, bool $nullable = false, bool $withInvertIndex = false): self
+$schema->addString(string $name, bool $nullable = false, bool $withInvertIndex = false, ?ZVecIndexParams $indexParams = null): self
 $schema->addFloat(string $name, bool $nullable = true): self
 $schema->addDouble(string $name, bool $nullable = true): self
 $schema->addBool(string $name, bool $nullable = false, bool $withInvertIndex = false): self
@@ -466,6 +470,16 @@ $params = ZVecIndexParams::forIvf(
     int $quantizeType = QUANTIZE_UNDEFINED
 ): self
 
+// IVF-RaBitQ — IVF partitions storing RaBitQ-quantized vectors
+// Linux x86_64 with AVX2/AVX-512 only; FP32 vectors, dimension 64..4095,
+// metric L2/IP/COSINE. Elsewhere createIndex() fails with NOT_SUPPORTED.
+$params = ZVecIndexParams::forIvfRabitq(
+    int $metricType = METRIC_IP,
+    int $nList = 1024,
+    int $totalBits = 7,
+    int $sampleCount = 0
+): self
+
 // Vamana (DiskANN) — disk-based graph for 10K+ documents
 $params = ZVecIndexParams::forVamana(
     int $metricType = METRIC_IP,
@@ -497,6 +511,22 @@ $params = ZVecIndexParams::forFts(
     string[] $filters = ['lowercase'],
     string $extraParams = ''
 ): self
+// The same index can be declared up front, so it exists from the first insert
+// instead of via a later createIndex() call:
+//   $schema->addString('body', indexParams: ZVecIndexParams::forFts());
+//   $schema->addString('tag',  indexParams: ZVecIndexParams::forInvert());
+//
+// Tokenizers: "standard", "ngram", "jieba", "whitespace"
+// Filters:   "lowercase", "ascii_folding", "stemmer"
+// extraParams is a JSON object, e.g. '{"stemmer_lang":"english"}',
+//             '{"ngram_min":2,"ngram_max":3}' or '{"cut_mode":"mix"}'
+// The jieba dictionary ships in zvec_data/jieba_dict next to the library and is
+// used automatically. Lookup order: per-field extraParams jieba_dict_dir, then
+// ZVEC_JIEBA_DICT_DIR, then ZVec::init(jiebaDictDir:), then the bundled copy.
+//
+// A bad jieba dictionary path is not a catchable error: cppjieba calls abort(),
+// which kills the process with exit code 134. The bundled copy avoids this, and
+// ZVec::init(jiebaDictDir:) validates that both dictionary files exist.
 
 // Invert — keyword-based inverted index
 $params = ZVecIndexParams::forInvert(
@@ -587,6 +617,7 @@ $query->setHnswPrefetch(int $prefetchOffset, int $prefetchLines): self  // HNSW 
 $query->setVamanaPrefetch(int $prefetchOffset, int $prefetchLines): self  // Vamana prefetch, 0 disables
 $query->setHnswRabitqParams(int $ef): self           // HNSW-RaBitQ ef_search
 $query->setIvfParams(int $nprobe): self              // IVF nprobe
+$query->setIvfRabitqParams(int $nprobe = 10): self  // IVF-RaBitQ nprobe
 $query->setFlatParams(): self                        // Brute force mode
 $query->setVamanaParams(int $efSearch): self         // Vamana ef_search
 $query->setDiskAnnParams(int $listSize): self        // DiskANN search list size
@@ -745,6 +776,7 @@ $rerankedDoc->getSourceScores(): array       // ['fieldName' => score, ...]
 | `INDEX_TYPE_IVF` | 2 | Inverted File — partition-based, good for large-scale |
 | `INDEX_TYPE_FLAT` | 3 | Brute force exact search — no index structure |
 | `INDEX_TYPE_HNSW_RABITQ` | 4 | HNSW + RaBitQ quantization — memory-efficient |
+| `INDEX_TYPE_IVF_RABITQ` | 7 | IVF + RaBitQ quantization (Linux x86_64, AVX2/AVX-512) |
 | `INDEX_TYPE_VAMANA` | 5 | Vamana — in-memory graph, the DiskANN family for 10K+ documents |
 | `INDEX_TYPE_DISKANN` | 6 | DiskANN — disk-based graph for billion-scale corpora |
 | `INDEX_TYPE_INVERT` | 10 | Keyword-based inverted index |
@@ -767,7 +799,7 @@ $rerankedDoc->getSourceScores(): array       // ['fieldName' => score, ...]
 | `QUANTIZE_FP16` | 1 | 16-bit float (2x memory reduction) |
 | `QUANTIZE_INT8` | 2 | 8-bit integer (4x memory reduction) |
 | `QUANTIZE_INT4` | 3 | 4-bit integer (8x memory reduction) |
-| `QUANTIZE_RABITQ` | 4 | RaBitQ for HNSW-RaBitQ index |
+| `QUANTIZE_RABITQ` | 4 | RaBitQ, implied by the HNSW-RaBitQ / IVF-RaBitQ index types; not valid with plain `forIvf()` |
 
 ### Query Param Types
 
@@ -782,6 +814,7 @@ Returned by the `set*Params()` / `setFts()` methods on `ZVecVectorQuery` via its
 | `QUERY_PARAM_FLAT` | 3 | `setFlatParams()` |
 | `QUERY_PARAM_HNSW_RABITQ` | 4 | `setHnswRabitqParams()` |
 | `QUERY_PARAM_VAMANA` | 5 | `setVamanaParams()` |
+| `QUERY_PARAM_IVF_RABITQ` | 7 | `setIvfRabitqParams()` |
 | `QUERY_PARAM_DISKANN` | 6 | `setDiskAnnParams()` |
 | `QUERY_PARAM_FTS` | 11 | `setFts()` |
 

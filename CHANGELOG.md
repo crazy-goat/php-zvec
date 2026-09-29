@@ -17,6 +17,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `zvec_index_params_set_vamana_two_pass_build()` is a separate function rather than an extra argument to `zvec_index_params_set_vamana()`, whose signature stays stable for callers compiled against an older header.
   - Tests: `tests/test_vamana_two_pass_build.phpt` (the flag reached upstream, via `two_pass_build:true` in `schema()`; the default stays `false`; positional calls still work) and `tests/test_vamana_prefetch.phpt` (both call orders, prefetch with no `setVamanaParams()`, `0`/`0`, negative-value rejection).
 
+- **Scalar index declared in `ZVecSchema::addString()`** (#223)
+  - `addString()` takes an optional `?ZVecIndexParams $indexParams`, so a full-text or invert index can be part of the schema instead of a separate `createIndex()` call after the collection exists:
+    ```php
+    $schema->addString('body', indexParams: ZVecIndexParams::forFts());
+    ```
+    The index then exists from the first insert. Mirrors the Python SDK's `FieldSchema(index_param=...)` and how upstream's own hybrid tests build collections.
+  - Passing both `$withInvertIndex` and `$indexParams` throws, and unlike the other `add*()` methods a duplicate field name is now reported instead of silently dropped (upstream returns `AlreadyExists`; the older `add*()` functions discard that `Status`).
+  - A mismatched index type is left to upstream, which reports it at `ZVec::create()` time naming the field, so there is one source of truth rather than two.
+  - FFI: `zvec_schema_add_field_string_with_index()`. The index params are cloned by upstream's `FieldSchema` constructor, so the `ZVecIndexParams` object may be freed as usual.
+  - Test: `tests/test_schema_fts_index.phpt` (query without `createIndex()`, introspection before and after reopen, invert via params, the two validation errors, and backward compatibility of the existing arguments).
+- **`ZVec::init()` jieba and FTS tuning options** (#221)
+  - `?string $jiebaDictDir` sets the folder holding `jieba.dict.utf8` and `hmm_model.utf8` for the jieba FTS tokenizer, and `?float $ftsBruteForceByKeysRatio` (0.0–1.0) the point at which an FTS query stops walking posting lists and scores candidates one by one. Upstream default is 0.05. Both take effect only on the first successful `init()` in a process, like every other option.
+  - Read back with `ZVec::getJiebaDictDir()` and `ZVec::getFtsBruteForceByKeysRatio()`. With no option given, the jieba dictionary shipped in `zvec_data/jieba_dict` is still picked up automatically.
+  - `null` rather than `0.0` as the default for the ratio, because 0.0 is a real value upstream accepts.
+  - Both values are validated in PHP **before** any FFI call. Upstream `GlobalConfig::initialize()` sets its initialized flag before validating, so a rejected value would leave the library marked initialized and make every later `init()` a silent no-op; `NAN` also slips through the upstream range check. A `jiebaDictDir` that lacks the dictionary files is rejected for a worse reason: cppjieba calls `abort()`, killing the process with exit code 134 rather than raising a catchable error.
+  - FFI: `zvec_config_data_set_fts_brute_force_by_keys_ratio()`, `zvec_config_data_set_jieba_dict_dir()`, `zvec_global_config_get_fts_brute_force_by_keys_ratio()`, `zvec_global_config_get_jieba_dict_dir()`. The getters go through `global_config_ptr()`, keeping the #215 singleton rule.
+  - Tests: `tests/test_init_fts_options.phpt` (six validation cases that must leave the library uninitialized, plus an end-to-end jieba FTS query using a custom dictionary) and `tests/test_init_fts_defaults.phpt` (upstream defaults).
+
+- **IVF-RaBitQ index type** (#218)
+  - `ZVecIndexParams::forIvfRabitq(metricType, nList, totalBits, sampleCount)` builds the new v0.7.0 IVF variant storing RaBitQ-quantized vectors, and `ZVecVectorQuery::setIvfRabitqParams(nprobe)` sends the matching query params. Mirrors the Python `IvfRabitqIndexParam` / `IvfRabitqQueryParam`.
+  - New constants `ZVec::INDEX_TYPE_IVF_RABITQ` and `ZVec::QUERY_PARAM_IVF_RABITQ`, both `7`, matching the upstream enum and C ABI.
+  - **Platform:** upstream supports RaBitQ on Linux x86_64 with AVX2+FMA or AVX-512 only, and rejects an FP64 field, a dimension outside 64–4095, or a metric other than L2/IP/COSINE. `createIndex()` fails with `NOT_SUPPORTED` elsewhere, so `tests/test_ivf_rabitq_index.phpt` skips off that platform and runs everywhere else.
+  - PHP validates `nList > 0`, `1 <= totalBits <= 9` and `sampleCount >= 0` before any FFI call. The upstream core only *logs* an out-of-range `total_bits` at build time, so a bad value would otherwise fail late and quietly.
+  - FFI: `zvec_index_params_set_ivf_rabitq()`, `zvec_vector_query_set_ivf_rabitq_nprobe()`, the index type in `to_index_type()` / `from_index_type()`, an `IVF_RABITQ` case in `ensure_query_params_for_field()` and the group-by switch, and a `case 7` in the legacy `query()` path's `validate_query_param_type()` and `apply_query_params()`. The legacy path reuses the existing `ivfNprobe` argument, having no separate one.
+  - `scale_factor` is deliberately not exposed: the upstream engine copies only `nprobe` for this index type, so exposing it would be misleading.
+  - Tests: `tests/test_ivf_rabitq_params.phpt` (constants, validation, query-param plumbing) and `tests/test_ivf_rabitq_index.phpt` (real index, both query paths, radius-only through `ensure_query_params_for_field()`, a params-type mismatch, and the dimension rule).
 - **DiskANN I/O backend introspection** (#224)
   - `ZVec::getIoBackendType()`, `ZVec::getIoBackendTypeName(int $type)` and `ZVec::getIoBackendDescription()` report the I/O backend zvec picked for DiskANN disk reads. Linux tries `io_uring`, then `libaio`, and falls back to synchronous `pread()`; macOS always uses `pread()`. The value matters a lot for DiskANN throughput and previously could not be observed at all.
   - The choice is process-wide and resolved lazily, so the getters work without `ZVec::init()`. New constants `ZVec::IO_BACKEND_PREAD`, `IO_BACKEND_LIBAIO` and `IO_BACKEND_IO_URING` (`0`/`1`/`2`), matching the upstream C ABI.
@@ -30,7 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New constants `ZVec::INDEX_TYPE_FTS`, `ZVec::QUERY_PARAM_FTS` (both `11`) plus `FTS_OPERATOR_OR` / `FTS_OPERATOR_AND`.
   - FFI: `zvec_index_params_set_fts()`, `zvec_vector_query_set_fts()`, and `IndexType::FTS` handling in the params factory and `to_index_type()`.
   - Test: `tests/test_fts.phpt` (index creation, OR/AND semantics, lowercase folding, no-match, input validation).
-  - Hybrid dense + FTS retrieval through `MultiQuery`, and stemming filters beyond the tested defaults, are not covered yet.
+  - The `ngram` and `jieba` tokenizers, the `stemmer` filter, and their `extraParams` keys are now covered by `tests/test_fts_tokenizer_ngram.phpt`, `tests/test_fts_tokenizer_jieba.phpt` and `tests/test_fts_filter_stemmer.phpt`. The `forFts()` docblock listed a `stemmer_en` filter and a non-JSON `stemmer_lang=en` example, neither of which upstream accepts; both are now documented correctly and asserted as rejected.
+  - Hybrid dense + FTS retrieval through `MultiQuery` is not covered yet.
 
 - **DiskANN index type and query params** (#179)
   - `ZVecIndexParams::forDiskAnn(metricType, maxDegree, listSize, pqChunkNum, quantizeType)` — the disk-based graph index, previously missing because only the in-memory Vamana variant was exposed. Mirrors the official Go SDK `NewDiskANNIndexParams`.

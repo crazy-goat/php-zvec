@@ -77,6 +77,10 @@ void zvec_config_data_set_query_thread_count(zvec_config_data_t config, uint32_t
 void zvec_config_data_set_optimize_thread_count(zvec_config_data_t config, uint32_t count);
 void zvec_config_data_set_invert_to_forward_scan_ratio(zvec_config_data_t config, float ratio);
 void zvec_config_data_set_brute_force_by_keys_ratio(zvec_config_data_t config, float ratio);
+void zvec_config_data_set_fts_brute_force_by_keys_ratio(zvec_config_data_t config, float ratio);
+void zvec_config_data_set_jieba_dict_dir(zvec_config_data_t config, const char* dir);
+float zvec_global_config_get_fts_brute_force_by_keys_ratio(void);
+zvec_status_t zvec_global_config_get_jieba_dict_dir(char* buf, size_t buf_size);
 
 zvec_status_t zvec_ffi_initialize(zvec_config_data_t config);
 zvec_status_t zvec_ffi_shutdown(void);
@@ -158,6 +162,7 @@ void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_constr
 void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bits, int num_clusters, int m, int ef_construction, int sample_count);
 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
+void zvec_index_params_set_ivf_rabitq(zvec_index_params_t params, int nlist, int total_bits, int sample_count);
 void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, int search_list_size, float alpha, int saturate_graph, int use_contiguous_memory, int use_id_map, int quantize_type);
 void zvec_index_params_set_vamana_two_pass_build(zvec_index_params_t params, int two_pass_build);
 void zvec_index_params_set_diskann(zvec_index_params_t params, int max_degree, int list_size, int pq_chunk_num);
@@ -167,6 +172,7 @@ void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantiz
 void zvec_index_params_set_quantizer_enable_rotate(zvec_index_params_t params, int enable_rotate);
 void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type);
 zvec_status_t zvec_collection_create_index(zvec_collection_t coll, const char* field_name, zvec_index_params_t params, uint32_t concurrency);
+zvec_status_t zvec_schema_add_field_string_with_index(zvec_schema_t schema, const char* name, int nullable, zvec_index_params_t params);
 
 zvec_doc_t zvec_doc_create(const char* pk);
 void zvec_doc_free(zvec_doc_t doc);
@@ -356,6 +362,7 @@ void zvec_vector_query_set_vamana_ef_search(zvec_vector_query_t q, int ef_search
 void zvec_vector_query_set_fts(zvec_vector_query_t q, const char* field_name, const char* query_string, const char* match_string, const char* default_operator);
 void zvec_vector_query_set_diskann_list_size(zvec_vector_query_t q, int list_size);
 void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe);
+void zvec_vector_query_set_ivf_rabitq_nprobe(zvec_vector_query_t q, int nprobe);
 void zvec_vector_query_set_flat_mode(zvec_vector_query_t q);
 void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius);
 void zvec_vector_query_set_is_linear(zvec_vector_query_t q, int is_linear);

@@ -867,6 +867,19 @@ class ZVec
     public const INDEX_TYPE_HNSW_RABITQ = 4;
 
     /**
+     * Index type: IVF partitioned index with RaBitQ quantization.
+     *
+     * Requires FP32 vectors, dimension 64–4095, metric L2/IP/COSINE, and a CPU
+     * with AVX2+FMA or AVX-512. Upstream supports RaBitQ on Linux x86_64 only;
+     * on any other platform createIndex() fails with NOT_SUPPORTED.
+     *
+     * Value: 7 — matches zvec::IndexType::IVF_RABITQ
+     *
+     * @see ZVecIndexParams::forIvfRabitq()
+     */
+    public const INDEX_TYPE_IVF_RABITQ = 7;
+
+    /**
      * Index type: Vamana (DiskANN).
      *
      * Disk-based graph index for large-scale vector search.
@@ -958,6 +971,17 @@ class ZVec
      * Value: 5
      */
     public const QUERY_PARAM_VAMANA = 5;
+
+    /**
+     * Query parameter preset: IVF-RaBitQ (nprobe).
+     *
+     * Enables IVF-RaBitQ-specific search parameters.
+     *
+     * Value: 7
+     *
+     * @see ZVecVectorQuery::setIvfRabitqParams()
+     */
+    public const QUERY_PARAM_IVF_RABITQ = 7;
 
     /**
      * Query parameter preset: FTS.
@@ -1586,12 +1610,41 @@ class ZVec
         int $memoryLimitMb = 0,
         ?string $allowedBasePath = null,
         bool $verboseErrors = false,
+        ?string $jiebaDictDir = null,
+        ?float $ftsBruteForceByKeysRatio = null,
     ): void {
         self::$verboseErrors = $verboseErrors;
 
         if ($allowedBasePath !== null && !is_dir($allowedBasePath)) {
             throw new ZVecException("Allowed base path does not exist: {$allowedBasePath}");
         }
+
+        // Validate before any FFI call. Upstream GlobalConfig::initialize() sets
+        // its "initialized" flag *before* validating, so a value it rejects still
+        // leaves the library marked initialized and every later init() silently
+        // does nothing. NAN also passes the upstream range check.
+        if ($ftsBruteForceByKeysRatio !== null
+            && (is_nan($ftsBruteForceByKeysRatio) || $ftsBruteForceByKeysRatio < 0.0 || $ftsBruteForceByKeysRatio > 1.0)
+        ) {
+            // var_export(), not interpolation: a NAN would emit a PHP warning here.
+            throw new ZVecException(sprintf(
+                'ftsBruteForceByKeysRatio must be between 0 and 1, got: %s',
+                var_export($ftsBruteForceByKeysRatio, true)
+            ));
+        }
+        // A bad jieba folder is fatal: cppjieba calls abort() rather than
+        // returning a Status, killing the process with exit code 134.
+        if ($jiebaDictDir !== null) {
+            if ($jiebaDictDir === '' || !is_dir($jiebaDictDir)) {
+                throw new ZVecException("jiebaDictDir does not exist: {$jiebaDictDir}");
+            }
+            foreach (['jieba.dict.utf8', 'hmm_model.utf8'] as $file) {
+                if (!is_file($jiebaDictDir . '/' . $file)) {
+                    throw new ZVecException("jiebaDictDir is missing {$file}: {$jiebaDictDir}");
+                }
+            }
+        }
+
         self::$allowedBasePath = $allowedBasePath;
 
         $ffi = self::ffi();
@@ -1618,6 +1671,14 @@ class ZVec
         if ($memoryLimitMb > 0) {
             $ffi->zvec_config_data_set_memory_limit($configData, $memoryLimitMb * self::BYTES_PER_MB);
         }
+        // null (not 0.0) means "keep the upstream default", because 0.0 is a real
+        // value here that upstream accepts.
+        if ($ftsBruteForceByKeysRatio !== null) {
+            $ffi->zvec_config_data_set_fts_brute_force_by_keys_ratio($configData, $ftsBruteForceByKeysRatio);
+        }
+        if ($jiebaDictDir !== null) {
+            $ffi->zvec_config_data_set_jieba_dict_dir($configData, $jiebaDictDir);
+        }
 
         try {
             self::checkStatus($ffi->zvec_ffi_initialize($configData));
@@ -1636,6 +1697,48 @@ class ZVec
     public static function isInitialized(): bool
     {
         return self::ffi()->zvec_ffi_is_initialized() !== 0;
+    }
+
+    /**
+     * Effective process-wide FTS candidate-scanning ratio.
+     *
+     * Point at which an FTS query stops walking the posting lists and starts
+     * checking candidates one by one. Separate from
+     * $bruteForceByKeysRatio because scoring one FTS candidate costs more.
+     * Upstream default is 0.05.
+     *
+     * @throws ZVecException On FFI error
+     */
+    public static function getFtsBruteForceByKeysRatio(): float
+    {
+        return self::ffi()->zvec_global_config_get_fts_brute_force_by_keys_ratio();
+    }
+
+    /**
+     * Effective jieba dictionary directory used by the jieba FTS tokenizer.
+     *
+     * Lookup order is per-field extraParams jieba_dict_dir, then the
+     * ZVEC_JIEBA_DICT_DIR environment variable, then this value, then the
+     * dictionary shipped next to the library.
+     *
+     * @throws ZVecException On FFI error
+     */
+    public static function getJiebaDictDir(): string
+    {
+        $ffi = self::ffi();
+        $bufSize = self::PATH_BUFFER_SIZE;
+        while (true) {
+            $buf = $ffi->new("char[$bufSize]");
+            self::checkStatus($ffi->zvec_global_config_get_jieba_dict_dir($buf, $bufSize));
+            $str = FFI::string($buf);
+            if (strlen($str) < $bufSize - 1) {
+                return $str;
+            }
+            $bufSize *= 2;
+            if ($bufSize > self::MAX_STRING_BUFFER_SIZE) {
+                throw new ZVecException('jiebaDictDir string exceeds maximum buffer size of 1 MB');
+            }
+        }
     }
 
     /**
