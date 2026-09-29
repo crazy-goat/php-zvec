@@ -6,7 +6,9 @@ set -euo pipefail
 ARGS="-n"
 if [ -n "${ZVEC_EXT:-}" ]; then
     ARGS="$ARGS -d extension=$ZVEC_EXT"
-elif ! php -n -m | grep -qx FFI; then
+# Not `php -m | grep -q`: grep exits on the first match, php gets SIGPIPE,
+# and pipefail turns that into a false "FFI missing" (#236).
+elif ! php -n -r 'exit(extension_loaded("FFI") ? 0 : 1);'; then
     ARGS="$ARGS -d extension=ffi"
 fi
 for ext in ${PHP_EXTRA_EXTENSIONS:-}; do
