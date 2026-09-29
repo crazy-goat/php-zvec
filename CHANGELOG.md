@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Vamana `two_pass_build` and query prefetch** (#220)
+  - `ZVecIndexParams::forVamana()` takes a trailing `bool $twoPassBuild = false`, which runs a second full-graph Vamana construction pass for better graph quality at the cost of build time. Upstream and Python both default to `false`. Last and optional, so existing positional calls are unaffected.
+  - `ZVecVectorQuery::setVamanaPrefetch(int $prefetchOffset, int $prefetchLines)` tunes software prefetch during the Vamana graph search, the counterpart of the existing `setHnswPrefetch()`. An offset of `0` disables prefetch; `0` lines means "derive from vector size". Both reject negative values.
+  - Prefetch reuses the single stored `prefetch_offset_` / `prefetch_lines_` pair already kept by `VectorQueryHolder`, and `merge_stored_query_settings()` now applies them to `VamanaQueryParams` as well as `HnswQueryParams`. So the call order relative to `setVamanaParams()` does not matter, the same guarantee HNSW already had. When prefetch was never set the stored values are the upstream defaults, so re-applying them is a no-op.
+  - `zvec_vector_query_set_vamana_prefetch()` creates `VamanaQueryParams` rather than `HnswQueryParams` when no params exist yet — the wrong type would be rejected upstream as a query-params type mismatch.
+  - `zvec_index_params_set_vamana_two_pass_build()` is a separate function rather than an extra argument to `zvec_index_params_set_vamana()`, whose signature stays stable for callers compiled against an older header.
+  - Tests: `tests/test_vamana_two_pass_build.phpt` (the flag reached upstream, via `two_pass_build:true` in `schema()`; the default stays `false`; positional calls still work) and `tests/test_vamana_prefetch.phpt` (both call orders, prefetch with no `setVamanaParams()`, `0`/`0`, negative-value rejection).
+
 - **Full-Text Search (FTS) support** (#180)
   - `ZVecIndexParams::forFts(tokenizer, filters, extraParams)` builds a full-text index over a STRING column; mirrors the official Go SDK `NewFTSIndexParams`. Defaults to the `standard` tokenizer with the `lowercase` filter.
   - `ZVecVectorQuery::setFts(fieldName, queryString, matchString, defaultOperator)` runs an FTS query. `defaultOperator` accepts `ZVec::FTS_OPERATOR_OR` (default) or `FTS_OPERATOR_AND`, case-insensitively.

@@ -187,6 +187,9 @@ void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bit
 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
 void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, int search_list_size, float alpha, int saturate_graph, int use_contiguous_memory, int use_id_map, int quantize_type);
+// Kept separate from zvec_index_params_set_vamana() so that function's signature
+// stays stable for callers compiled against an older header.
+void zvec_index_params_set_vamana_two_pass_build(zvec_index_params_t params, int two_pass_build);
 void zvec_index_params_set_diskann(zvec_index_params_t params, int max_degree, int list_size, int pq_chunk_num);
 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard);
 void zvec_index_params_set_fts(zvec_index_params_t params, const char* tokenizer_name, const char** filters, int filter_count, const char* extra_params);
@@ -306,6 +309,7 @@ void zvec_vector_query_set_filter(zvec_vector_query_t q, const char* filter);
 void zvec_vector_query_set_output_fields(zvec_vector_query_t q, const char** fields, int count);
 void zvec_vector_query_set_hnsw_ef(zvec_vector_query_t q, int ef);
 void zvec_vector_query_set_hnsw_prefetch(zvec_vector_query_t q, int prefetch_offset, int prefetch_lines);
+void zvec_vector_query_set_vamana_prefetch(zvec_vector_query_t q, int prefetch_offset, int prefetch_lines);
 void zvec_vector_query_set_hnsw_rabitq_ef(zvec_vector_query_t q, int ef);
 void zvec_vector_query_set_vamana_ef_search(zvec_vector_query_t q, int ef_search);
 void zvec_vector_query_set_fts(zvec_vector_query_t q, const char* field_name, const char* query_string, const char* match_string, const char* default_operator);

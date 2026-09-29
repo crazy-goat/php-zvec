@@ -117,7 +117,7 @@ class ZVecIndexParams
      *
      * @throws ZVecException On FFI error
      */
-    public static function forVamana(int $metricType, int $maxDegree = 64, int $searchListSize = 100, float $alpha = 1.2, bool $saturateGraph = false, bool $useContiguousMemory = false, bool $useIdMap = false, int $quantizeType = ZVec::QUANTIZE_UNDEFINED): self
+    public static function forVamana(int $metricType, int $maxDegree = 64, int $searchListSize = 100, float $alpha = 1.2, bool $saturateGraph = false, bool $useContiguousMemory = false, bool $useIdMap = false, int $quantizeType = ZVec::QUANTIZE_UNDEFINED, bool $twoPassBuild = false): self
     {
         if ($maxDegree <= 0) {
             throw new ZVecException("maxDegree must be a positive integer, got: {$maxDegree}");
@@ -128,6 +128,9 @@ class ZVecIndexParams
         $ffi = self::ffi();
         $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_VAMANA, $metricType);
         $ffi->zvec_index_params_set_vamana($handle, $maxDegree, $searchListSize, $alpha, $saturateGraph ? 1 : 0, $useContiguousMemory ? 1 : 0, $useIdMap ? 1 : 0, $quantizeType);
+        if ($twoPassBuild) {
+            $ffi->zvec_index_params_set_vamana_two_pass_build($handle, 1);
+        }
         return new self($handle);
     }
 

@@ -270,6 +270,29 @@ class ZVecVectorQuery implements ZVecQueryInterface
         return $this;
     }
 
+    /**
+     * Tune Vamana search-time software prefetch.
+     *
+     * Only meaningful for a Vamana index. A prefetchOffset of 0 disables
+     * prefetch, and prefetchLines of 0 derives the line count from the vector
+     * size. The call order relative to {@see setVamanaParams()} does not matter.
+     *
+     * @throws ZVecException
+     */
+    public function setVamanaPrefetch(int $prefetchOffset, int $prefetchLines): self
+    {
+        if ($prefetchOffset < 0) {
+            throw new ZVecException('prefetchOffset must be >= 0');
+        }
+        if ($prefetchLines < 0) {
+            throw new ZVecException('prefetchLines must be >= 0');
+        }
+        $this->prefetchOffset = $prefetchOffset;
+        $this->prefetchLines = $prefetchLines;
+        self::ffi()->zvec_vector_query_set_vamana_prefetch($this->handle, $prefetchOffset, $prefetchLines);
+        return $this;
+    }
+
     /** @throws ZVecException */
     public function setRadius(float $radius): self
     {

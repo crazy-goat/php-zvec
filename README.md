@@ -472,7 +472,8 @@ $params = ZVecIndexParams::forVamana(
     bool $saturateGraph = false,
     bool $useContiguousMemory = false,
     bool $useIdMap = false,
-    int $quantizeType = QUANTIZE_UNDEFINED
+    int $quantizeType = QUANTIZE_UNDEFINED,
+    bool $twoPassBuild = false   // v0.7.0: second full-graph build pass (better graph, slower build)
 ): self
 
 // DiskANN — disk-based graph for billion-scale corpora
@@ -577,6 +578,7 @@ $query = ZVecVectorQuery::fromId('embedding', 'doc_1');
 $query->setFp64(bool $fp64 = true): self            // Use FP64 precision
 $query->setHnswParams(int $ef): self                 // HNSW ef_search
 $query->setHnswPrefetch(int $prefetchOffset, int $prefetchLines): self  // HNSW prefetch, 0 disables
+$query->setVamanaPrefetch(int $prefetchOffset, int $prefetchLines): self  // Vamana prefetch, 0 disables
 $query->setHnswRabitqParams(int $ef): self           // HNSW-RaBitQ ef_search
 $query->setIvfParams(int $nprobe): self              // IVF nprobe
 $query->setFlatParams(): self                        // Brute force mode
@@ -591,6 +593,10 @@ $query->setIncludeVector(bool $include): self
 $query->setIncludeDocId(bool $include): self  // Also return internal numeric doc id
 $query->setFilter(string $filter): self
 $query->setOutputFields(array $fields): self
+
+// Note: setHnswPrefetch() and setVamanaPrefetch() are honoured by queryVector().
+// The legacy query() path passes only queryParamType, ef/nprobe, radius,
+// isLinear and isUsingRefiner upstream, so prefetch is silently dropped there.
 
 // Use with:
 $results = $collection->queryVector($query);
