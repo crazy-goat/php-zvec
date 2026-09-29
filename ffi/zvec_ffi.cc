@@ -2958,6 +2958,143 @@ void zvec_doc_iterator_free(zvec_doc_iterator_t it) {
     delete static_cast<DocIteratorHolder*>(it);
 }
 
+// --- Native multi-query ---
+
+// The zvec_ffi_ prefix is deliberate: upstream's own C API library
+// (libzvec_c_api) exports zvec_multi_query_create, zvec_multi_query_set_topk
+// and zvec_collection_multi_query with *different* signatures. Identical names
+// with different ABIs are a trap, so these follow the existing
+// zvec_ffi_initialize / zvec_ffi_is_initialized convention.
+namespace {
+struct MultiQueryHolder {
+    // Full copies of the PHP-side sub-queries: ensure_query_params_for_field()
+    // needs radius_/is_linear_/is_using_refiner_ at execute time, not just the
+    // QueryTarget, when a sub-query carries no explicit params.
+    std::vector<std::pair<VectorQueryHolder, int>> subs;
+    MultiQuery query;
+};
+}  // namespace
+
+zvec_multi_query_t zvec_ffi_multi_query_create(void) {
+    return static_cast<zvec_multi_query_t>(new MultiQueryHolder());
+}
+
+void zvec_ffi_multi_query_free(zvec_multi_query_t mq) {
+    if (!mq) return;
+    delete static_cast<MultiQueryHolder*>(mq);
+}
+
+void zvec_ffi_multi_query_add_sub_query(zvec_multi_query_t mq, const zvec_vector_query_t sub, int num_candidates) {
+    if (!mq || !sub) return;
+    auto* h = static_cast<MultiQueryHolder*>(mq);
+    h->subs.emplace_back(*static_cast<const VectorQueryHolder*>(sub), num_candidates);
+}
+
+void zvec_ffi_multi_query_set_topk(zvec_multi_query_t mq, int topk) {
+    if (mq) static_cast<MultiQueryHolder*>(mq)->query.topk = topk;
+}
+
+void zvec_ffi_multi_query_set_filter(zvec_multi_query_t mq, const char* filter) {
+    if (mq) static_cast<MultiQueryHolder*>(mq)->query.filter = filter ? filter : "";
+}
+
+void zvec_ffi_multi_query_set_include_vector(zvec_multi_query_t mq, int include) {
+    if (mq) static_cast<MultiQueryHolder*>(mq)->query.include_vector = include != 0;
+}
+
+void zvec_ffi_multi_query_set_include_doc_id(zvec_multi_query_t mq, int include) {
+    if (mq) static_cast<MultiQueryHolder*>(mq)->query.include_doc_id_ = include != 0;
+}
+
+void zvec_ffi_multi_query_set_output_fields(zvec_multi_query_t mq, const char** fields, int count) {
+    if (!mq) return;
+    auto& h = *static_cast<MultiQueryHolder*>(mq);
+    if (!fields || count <= 0) {
+        // An empty vector means "select no field" upstream; nullopt means all.
+        // Only reached with an explicit empty request, never by default.
+        h.query.output_fields = std::vector<std::string>{};
+        return;
+    }
+    std::vector<std::string> names;
+    names.reserve(count);
+    for (int i = 0; i < count; i++) {
+        if (fields[i]) {
+            names.emplace_back(fields[i]);
+        }
+    }
+    h.query.output_fields = std::move(names);
+}
+
+void zvec_ffi_multi_query_set_rerank_rrf(zvec_multi_query_t mq, int rank_constant) {
+    if (!mq) return;
+    auto& h = *static_cast<MultiQueryHolder*>(mq);
+    h.query.rerank = reranker::RrfParams{rank_constant};
+}
+
+void zvec_ffi_multi_query_set_rerank_weighted(zvec_multi_query_t mq, const double* weights, int count) {
+    if (!mq) return;
+    auto& h = *static_cast<MultiQueryHolder*>(mq);
+    reranker::WeightedParams params;
+    if (weights && count > 0) {
+        params.weights.assign(weights, weights + count);
+    }
+    h.query.rerank = std::move(params);
+}
+
+zvec_status_t zvec_collection_query_multi(zvec_collection_t coll, const zvec_multi_query_t mq, zvec_query_result_t* result) {
+    if (!result) {
+        zvec_status_t st = {1, "null out pointer"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    result->docs = nullptr;
+    result->count = 0;
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    if (!mq) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+
+    auto* h = static_cast<const MultiQueryHolder*>(mq);
+    MultiQuery q = h->query;
+    q.queries.clear();
+    q.queries.reserve(h->subs.size());
+    for (const auto& [holder, num_candidates] : h->subs) {
+        SubQuery sub;
+        sub.target_ = holder.query.target_;
+        // A sub-query that only set radius/linear/refiner has no params yet;
+        // build the right ones for its field's index type, or upstream rejects
+        // the whole query with a params-type mismatch.
+        if (!sub.target_.query_params_ &&
+            (holder.radius_ != 0.0f || holder.is_linear_ || holder.is_using_refiner_)) {
+            SearchQuery as_search;
+            as_search.target_ = sub.target_;
+            ensure_query_params_for_field(static_cast<Collection*>(coll), as_search, &holder);
+            sub.target_.query_params_ = as_search.target_.query_params_;
+        }
+        if (sub.target_.query_params_) {
+            sub.target_.query_params_->set_radius(holder.radius_);
+            sub.target_.query_params_->set_is_linear(holder.is_linear_);
+            sub.target_.query_params_->set_is_using_refiner(holder.is_using_refiner_);
+        }
+        sub.num_candidates_ = num_candidates;
+        q.queries.push_back(std::move(sub));
+    }
+
+    auto* c = static_cast<Collection*>(coll);
+    auto res = c->query(q);
+    if (!res.has_value()) {
+        return MAKE_STATUS(res.error());
+    }
+    fill_doc_list(res.value(), result);
+    return ok_status();
+}
+
 // --- Query ---
 
 zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_name,

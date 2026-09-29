@@ -349,6 +349,19 @@ zvec_status_t zvec_collection_group_by_query(zvec_collection_t coll, const char*
 void zvec_group_results_free(zvec_group_results_t* result);
 
 typedef void* zvec_vector_query_t;
+
+typedef void* zvec_multi_query_t;
+zvec_multi_query_t zvec_ffi_multi_query_create(void);
+void zvec_ffi_multi_query_free(zvec_multi_query_t mq);
+void zvec_ffi_multi_query_add_sub_query(zvec_multi_query_t mq, const zvec_vector_query_t sub, int num_candidates);
+void zvec_ffi_multi_query_set_topk(zvec_multi_query_t mq, int topk);
+void zvec_ffi_multi_query_set_filter(zvec_multi_query_t mq, const char* filter);
+void zvec_ffi_multi_query_set_include_vector(zvec_multi_query_t mq, int include);
+void zvec_ffi_multi_query_set_include_doc_id(zvec_multi_query_t mq, int include);
+void zvec_ffi_multi_query_set_output_fields(zvec_multi_query_t mq, const char** fields, int count);
+void zvec_ffi_multi_query_set_rerank_rrf(zvec_multi_query_t mq, int rank_constant);
+void zvec_ffi_multi_query_set_rerank_weighted(zvec_multi_query_t mq, const double* weights, int count);
+zvec_status_t zvec_collection_query_multi(zvec_collection_t coll, const zvec_multi_query_t mq, zvec_query_result_t* result);
 typedef void* zvec_group_by_vector_query_t;
 
 zvec_vector_query_t zvec_vector_query_create(void);
