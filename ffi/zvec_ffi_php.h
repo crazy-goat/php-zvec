@@ -125,6 +125,7 @@ void zvec_schema_add_field_array_double(zvec_schema_t schema, const char* name, 
 
 zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
 zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
+zvec_status_t zvec_collection_close(zvec_collection_t coll);
 void zvec_collection_free(zvec_collection_t coll);
 zvec_status_t zvec_collection_flush(zvec_collection_t coll);
 zvec_status_t zvec_collection_optimize(zvec_collection_t coll, uint32_t concurrency);

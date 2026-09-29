@@ -100,6 +100,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A failed `destroy()` left the PHP object with a dangling handle** (#222)
+  - `zvec_collection_destroy()` erased the handle from the collections registry even when upstream returned an error, deleting the C++ `Collection` while the PHP object kept the raw pointer. The next method call on it operated on freed memory — reachable by destroying a read-only collection, which upstream rejects with `INVALID_ARGUMENT`, and later by destroying while a document iterator is open.
+  - The registry entry is now erased only on success. On failure upstream leaves the collection untouched, so the handle stays valid and the object remains open and usable.
+  - Regression test `tests/bug_0058.phpt`: destroy a read-only collection, then `fetch()` the document back.
+
+- **`close()` never called upstream `close()`** (#222)
+  - `ZVec::close()` only dropped our registry reference; the real close (flush, release files, release the lock) ran later inside the upstream destructor, and its status was discarded. Pending writes were therefore not guaranteed to be on disk when `close()` returned, and close errors were invisible.
+  - It now calls upstream `Collection::close()` (zvec v0.7.0) and reports failures as `ZVecException`. Behaviour by outcome: FAILED_PRECONDITION (code 5, e.g. open iterators) throws and changes nothing, so the collection stays open and usable; any other error releases the handle, marks the object closed, and *then* throws — because upstream has already released its resources at that point and the object must not keep looking open.
+  - `close()` stays idempotent, and `__destruct()` no longer propagates a failure: it falls back to dropping the registry reference so the C++ object is not leaked.
+  - FFI: `zvec_collection_close()`. Note this deliberately does *not* mirror upstream's own C API, which only deletes the handle without closing; we follow the Python SDK, which calls the real close.
+  - Tests: `tests/test_collection_close_real.phpt` (close flushes without an explicit `flush()`, second close is a no-op, close after `destroy()` is a no-op, and the destructor path flushes), plus a null-handle case in `test_null_handle_collection.phpt`.
+
 - **The documented test command silently skipped most of the suite** (#215, #188)
   - `php run-tests.php -n tests/` was documented as *the* way to run the suite, with the rationale that `-n` keeps a pre-installed legacy `zvec` extension from shadowing the FFI classes. That is only half the requirement. `-n` also strips `php.ini`, so wherever FFI is provided by a `conf.d` ini rather than compiled in, FFI disappears with it and **every** test reports `SKIP — reason: FFI extension not available`.
   - Measured on a glibc host with PHP 8.5.4: 16 passed, **172 skipped**, 1 failed — and the run still printed a green-looking summary. A large skip count is a broken run, not a pass.

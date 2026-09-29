@@ -718,6 +718,20 @@ zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_m
     return ok_status();
 }
 
+zvec_status_t zvec_collection_close(zvec_collection_t coll) {
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    auto* c = static_cast<Collection*>(coll);
+    // Deliberately does not touch the handle registry: the caller still has to
+    // call zvec_collection_free(). Upstream close() returns FAILED_PRECONDITION
+    // while iterators are open, in which case nothing changed and the
+    // collection stays usable; any other result means it is closed.
+    return MAKE_STATUS(c->close());
+}
+
 void zvec_collection_free(zvec_collection_t coll) {
     if (!coll) return;
     auto* raw = static_cast<Collection*>(coll);
@@ -755,7 +769,11 @@ zvec_status_t zvec_collection_destroy(zvec_collection_t coll) {
     }
     auto* raw = static_cast<Collection*>(coll);
     auto status = raw->destroy();
-    {
+    if (status.ok()) {
+        // On failure upstream leaves the collection untouched (e.g. read-only
+        // mode, or iterators still open), so the handle must stay valid for the
+        // caller -- erasing it here would leave the PHP object with a dangling
+        // pointer and turn the next method call into a use-after-free.
         std::unique_lock lock(g_collections_mutex);
         collections_registry().erase(raw);
     }
