@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Scalar index declared in `ZVecSchema::addString()`** (#223)
+  - `addString()` takes an optional `?ZVecIndexParams $indexParams`, so a full-text or invert index can be part of the schema instead of a separate `createIndex()` call after the collection exists:
+    ```php
+    $schema->addString('body', indexParams: ZVecIndexParams::forFts());
+    ```
+    The index then exists from the first insert. Mirrors the Python SDK's `FieldSchema(index_param=...)` and how upstream's own hybrid tests build collections.
+  - Passing both `$withInvertIndex` and `$indexParams` throws, and unlike the other `add*()` methods a duplicate field name is now reported instead of silently dropped (upstream returns `AlreadyExists`; the older `add*()` functions discard that `Status`).
+  - A mismatched index type is left to upstream, which reports it at `ZVec::create()` time naming the field, so there is one source of truth rather than two.
+  - FFI: `zvec_schema_add_field_string_with_index()`. The index params are cloned by upstream's `FieldSchema` constructor, so the `ZVecIndexParams` object may be freed as usual.
+  - Test: `tests/test_schema_fts_index.phpt` (query without `createIndex()`, introspection before and after reopen, invert via params, the two validation errors, and backward compatibility of the existing arguments).
+
 - **`ZVec::init()` jieba and FTS tuning options** (#221)
   - `?string $jiebaDictDir` sets the folder holding `jieba.dict.utf8` and `hmm_model.utf8` for the jieba FTS tokenizer, and `?float $ftsBruteForceByKeysRatio` (0.0–1.0) the point at which an FTS query stops walking posting lists and scores candidates one by one. Upstream default is 0.05. Both take effect only on the first successful `init()` in a process, like every other option.
   - Read back with `ZVec::getJiebaDictDir()` and `ZVec::getFtsBruteForceByKeysRatio()`. With no option given, the jieba dictionary shipped in `zvec_data/jieba_dict` is still picked up automatically.

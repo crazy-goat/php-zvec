@@ -69,11 +69,40 @@ class ZVecSchema
     }
 
     /**
-     * @throws ZVecException On FFI error
+     * Adds a STRING field, optionally carrying a scalar index so it exists from
+     * the first insert instead of a later createIndex() call.
+     *
+     * Pass $indexParams for a full-text or invert index:
+     *
+     *     $schema->addString('body', indexParams: ZVecIndexParams::forFts());
+     *
+     * That is an alternative to creating the collection and then calling
+     * createIndex('body', ...). Upstream validates a mismatched index type at
+     * ZVec::create() time, so passing vector params fails there with a message
+     * naming the field.
+     *
+     * @throws ZVecException On FFI error, duplicate field, or when both
+     *                       $withInvertIndex and $indexParams are given
      */
-    public function addString(string $name, bool $nullable = false, bool $withInvertIndex = false): self
-    {
-        self::ffi()->zvec_schema_add_field_string($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
+    public function addString(
+        string $name,
+        bool $nullable = false,
+        bool $withInvertIndex = false,
+        ?ZVecIndexParams $indexParams = null,
+    ): self {
+        if ($indexParams === null) {
+            self::ffi()->zvec_schema_add_field_string($this->handle, $name, $nullable ? 1 : 0, $withInvertIndex ? 1 : 0);
+            return $this;
+        }
+        if ($withInvertIndex) {
+            throw new ZVecException('Use either $withInvertIndex or $indexParams, not both');
+        }
+        ZVec::checkStatus(self::ffi()->zvec_schema_add_field_string_with_index(
+            $this->handle,
+            $name,
+            $nullable ? 1 : 0,
+            $indexParams->getHandle(),
+        ));
         return $this;
     }
 
