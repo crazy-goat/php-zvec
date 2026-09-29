@@ -867,6 +867,19 @@ class ZVec
     public const INDEX_TYPE_HNSW_RABITQ = 4;
 
     /**
+     * Index type: IVF partitioned index with RaBitQ quantization.
+     *
+     * Requires FP32 vectors, dimension 64–4095, metric L2/IP/COSINE, and a CPU
+     * with AVX2+FMA or AVX-512. Upstream supports RaBitQ on Linux x86_64 only;
+     * on any other platform createIndex() fails with NOT_SUPPORTED.
+     *
+     * Value: 7 — matches zvec::IndexType::IVF_RABITQ
+     *
+     * @see ZVecIndexParams::forIvfRabitq()
+     */
+    public const INDEX_TYPE_IVF_RABITQ = 7;
+
+    /**
      * Index type: Vamana (DiskANN).
      *
      * Disk-based graph index for large-scale vector search.
@@ -958,6 +971,17 @@ class ZVec
      * Value: 5
      */
     public const QUERY_PARAM_VAMANA = 5;
+
+    /**
+     * Query parameter preset: IVF-RaBitQ (nprobe).
+     *
+     * Enables IVF-RaBitQ-specific search parameters.
+     *
+     * Value: 7
+     *
+     * @see ZVecVectorQuery::setIvfRabitqParams()
+     */
+    public const QUERY_PARAM_IVF_RABITQ = 7;
 
     /**
      * Query parameter preset: FTS.
