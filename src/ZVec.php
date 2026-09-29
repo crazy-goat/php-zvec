@@ -996,6 +996,35 @@ class ZVec
     public const QUERY_PARAM_DISKANN = 6;
 
     /**
+     * DiskANN I/O backend: synchronous pread() reads.
+     *
+     * Always used on macOS. On Linux it means neither io_uring nor libaio
+     * could be loaded, so DiskANN disk reads are synchronous.
+     *
+     * Value: 0
+     */
+    public const IO_BACKEND_PREAD = 0;
+
+    /**
+     * DiskANN I/O backend: libaio.
+     *
+     * Loaded at runtime via dlopen(), so it depends on libaio being installed
+     * on the host.
+     *
+     * Value: 1
+     */
+    public const IO_BACKEND_LIBAIO = 1;
+
+    /**
+     * DiskANN I/O backend: io_uring via raw kernel syscalls.
+     *
+     * Preferred on Linux; requires kernel 5.1+ and no extra dependency.
+     *
+     * Value: 2
+     */
+    public const IO_BACKEND_IO_URING = 2;
+
+    /**
      * Log destination: Console (stderr).
      *
      * Writes log messages to standard error output.
@@ -1694,6 +1723,43 @@ class ZVec
     public static function getVersionPatch(): int
     {
         return self::ffi()->zvec_get_version_patch();
+    }
+
+    /**
+     * DiskANN I/O backend in use, one of the ZVec::IO_BACKEND_* constants.
+     *
+     * The choice is process-wide and resolved lazily on the first call, so
+     * this works without ZVec::init(). Linux prefers io_uring, then libaio,
+     * then falls back to synchronous pread(); macOS always uses pread.
+     *
+     * @throws ZVecException On FFI error
+     */
+    public static function getIoBackendType(): int
+    {
+        return self::ffi()->zvec_get_io_backend_type();
+    }
+
+    /**
+     * Name of a ZVec::IO_BACKEND_* value, or "unknown" for anything else.
+     *
+     * @throws ZVecException On FFI error
+     */
+    public static function getIoBackendTypeName(int $type): string
+    {
+        return self::ffi()->zvec_get_io_backend_type_name($type);
+    }
+
+    /**
+     * Human-readable description of the active I/O backend.
+     *
+     * On Linux the pread variant also explains how to install an async
+     * backend, so this is the place to look when DiskANN reads seem slow.
+     *
+     * @throws ZVecException On FFI error
+     */
+    public static function getIoBackendDescription(): string
+    {
+        return self::ffi()->zvec_get_io_backend_description();
     }
 
     /**

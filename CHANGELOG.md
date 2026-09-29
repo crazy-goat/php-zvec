@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `zvec_index_params_set_vamana_two_pass_build()` is a separate function rather than an extra argument to `zvec_index_params_set_vamana()`, whose signature stays stable for callers compiled against an older header.
   - Tests: `tests/test_vamana_two_pass_build.phpt` (the flag reached upstream, via `two_pass_build:true` in `schema()`; the default stays `false`; positional calls still work) and `tests/test_vamana_prefetch.phpt` (both call orders, prefetch with no `setVamanaParams()`, `0`/`0`, negative-value rejection).
 
+- **DiskANN I/O backend introspection** (#224)
+  - `ZVec::getIoBackendType()`, `ZVec::getIoBackendTypeName(int $type)` and `ZVec::getIoBackendDescription()` report the I/O backend zvec picked for DiskANN disk reads. Linux tries `io_uring`, then `libaio`, and falls back to synchronous `pread()`; macOS always uses `pread()`. The value matters a lot for DiskANN throughput and previously could not be observed at all.
+  - The choice is process-wide and resolved lazily, so the getters work without `ZVec::init()`. New constants `ZVec::IO_BACKEND_PREAD`, `IO_BACKEND_LIBAIO` and `IO_BACKEND_IO_URING` (`0`/`1`/`2`), matching the upstream C ABI.
+  - FFI: `zvec_get_io_backend_type()`, `zvec_get_io_backend_type_name()` and `zvec_get_io_backend_description()`. The adapter calls upstream's exported `current_io_backend_*()` functions and keeps the #215 singleton rule — the internal `io_backend_def.h` is not part of the SDK and `IOBackend::Instance()` is never referenced here.
+  - Test: `tests/test_io_backend.phpt` (constant values, name mapping including the `unknown` fallback, value valid before `init()`, description matching the reported name, macOS pread rule, stability across repeated calls and across `init()`).
+
 - **Full-Text Search (FTS) support** (#180)
   - `ZVecIndexParams::forFts(tokenizer, filters, extraParams)` builds a full-text index over a STRING column; mirrors the official Go SDK `NewFTSIndexParams`. Defaults to the `standard` tokenizer with the `lowercase` filter.
   - `ZVecVectorQuery::setFts(fieldName, queryString, matchString, defaultOperator)` runs an FTS query. `defaultOperator` accepts `ZVec::FTS_OPERATOR_OR` (default) or `FTS_OPERATOR_AND`, case-insensitively.
@@ -64,6 +70,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Non-nullable absent fields continue to be omitted.
 
 ### Fixed
+
+- **`fetch_zvec_sdk.sh` picked the musl SDK on glibc hosts** (#215)
+  - The musl check was `ls /lib/ld-musl-*.so.1`, which also succeeds on a glibc machine that merely has `musl-tools` installed. The musl SDK was then unpacked and every test failed at `ZVec::ffi()` with `libc.musl-x86_64.so.1: cannot open shared object file`.
+  - The detection now inspects the loader of the binary that will actually load the SDK (`ldd $(command -v php)`), falling back to `/bin/sh`, and assumes glibc when neither marker is present. Override the probe with `PHP_BINARY`.
 
 - **Crash at exit and lost `ZVec::init()` settings with a shared libzvec** (#215)
   - libzvec exports the `GlobalConfig` singleton but keeps its init guard local, so calling the inline `GlobalConfig::Instance()` from our module built a second copy: `init()` settings were silently reset and the object was destroyed twice at exit (`free(): chunks in smallbin corrupted`, SIGABRT). The FFI adapter and the extension now resolve the instance from libzvec via `dlsym`. Test: `tests/bug_0056.phpt`.

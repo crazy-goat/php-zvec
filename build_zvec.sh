@@ -15,4 +15,6 @@ echo "=== Step 2/2: Build FFI wrapper ==="
 
 echo ""
 echo "=== Done ==="
-echo "Run tests: php run-tests.php -n tests/"
+# -n drops php.ini, which also disables the legacy zvec extension but takes FFI
+# with it when FFI comes from a conf.d ini instead of being compiled in.
+echo "Run tests: php run-tests.php -n -d extension=ffi.so tests/"

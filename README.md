@@ -187,6 +187,9 @@ ZVec::checkVersion(int $major, int $minor, int $patch): bool
 ZVec::getVersionMajor(): int
 ZVec::getVersionMinor(): int
 ZVec::getVersionPatch(): int
+ZVec::getIoBackendType(): int                    // ZVec::IO_BACKEND_PREAD|LIBAIO|IO_URING
+ZVec::getIoBackendTypeName(int $type): string    // "pread" | "libaio" | "io_uring" | "unknown"
+ZVec::getIoBackendDescription(): string          // DiskANN I/O backend, with install hints on Linux
 
 // Collection lifecycle (static factories)
 $collection = ZVec::create(string $path, ZVecSchema $schema, bool $readOnly = false, bool $enableMmap = true, int $maxBufferSize = 67108864): self
@@ -484,6 +487,9 @@ $params = ZVecIndexParams::forDiskAnn(
     int $pqChunkNum = 0,
     int $quantizeType = QUANTIZE_UNDEFINED
 ): self
+// On Linux, check ZVec::getIoBackendType(). IO_BACKEND_PREAD means io_uring and
+// libaio are both unavailable, so DiskANN reads are synchronous; install libaio
+// (libaio1t64 on Ubuntu 24.04+) for async I/O.
 
 // Full-Text Search — inverted index over a STRING column
 $params = ZVecIndexParams::forFts(
@@ -881,6 +887,7 @@ See `tasks/done/` for detailed planning documents.
 - [x] Array field types (STRING, BOOL, INT32, INT64, UINT32, UINT64, FLOAT, DOUBLE)
 - [x] Group-by vector query builder (`ZVecGroupByVectorQuery`)
 - [x] Version API (`getVersion()`, `checkVersion()`)
+- [x] DiskANN I/O backend introspection (`getIoBackendType()`, `getIoBackendDescription()`)
 - [x] `allowedBasePath` security restriction in `init()`
 - [x] Verbose error details with file/line info
 - [x] Collection lifecycle options via `getOptions()`
