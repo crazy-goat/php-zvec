@@ -14,7 +14,8 @@ if (extension_loaded('zvec')) return;
  * Replaces the deprecated createHnswIndex(), createFlatIndex(),
  * createIvfIndex(), and createHnswRabitqIndex() methods with a
  * unified, type-safe API. Use factory methods: forHnsw(), forFlat(),
- * forIvf(), forVamana(), forHnswRabitq(), or forInvert().
+ * forIvf(), forIvfRabitq(), forVamana(), forHnswRabitq(), forDiskAnn(),
+ * forFts(), or forInvert().
  * The underlying CData handle is freed on destruction.
  *
  * @see ZVec::createIndex()
@@ -109,6 +110,39 @@ class ZVecIndexParams
         $ffi = self::ffi();
         $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_IVF, $metricType);
         $ffi->zvec_index_params_set_ivf($handle, $nList, $nIters, $useSoar ? 1 : 0, $quantizeType);
+        return new self($handle);
+    }
+
+    /**
+     * Create IVF-RaBitQ index params.
+     *
+     * An IVF partitioned index storing RaBitQ-quantized vectors. Upstream
+     * supports RaBitQ on Linux x86_64 with AVX2+FMA or AVX-512 only; on any
+     * other platform ZVec::createIndex() fails with NOT_SUPPORTED. The vector
+     * field must be FP32 with dimension 64–4095 and metric L2, IP or COSINE.
+     *
+     * @param int $nList       Number of IVF partitions
+     * @param int $totalBits   RaBitQ bits per vector, 1–9 (upstream default 7)
+     * @param int $sampleCount Clustering sample count, >= 0
+     *
+     * @throws ZVecException On invalid parameter values
+     */
+    public static function forIvfRabitq(int $metricType, int $nList = 1024, int $totalBits = 7, int $sampleCount = 0): self
+    {
+        if ($nList <= 0) {
+            throw new ZVecException("nlist must be a positive integer, got: {$nList}");
+        }
+        // The upstream core only logs an error for out-of-range total_bits at
+        // build time, so reject it here instead.
+        if ($totalBits < 1 || $totalBits > 9) {
+            throw new ZVecException("totalBits must be between 1 and 9, got: {$totalBits}");
+        }
+        if ($sampleCount < 0) {
+            throw new ZVecException("sampleCount must be >= 0, got: {$sampleCount}");
+        }
+        $ffi = self::ffi();
+        $handle = $ffi->zvec_index_params_create(ZVec::INDEX_TYPE_IVF_RABITQ, $metricType);
+        $ffi->zvec_index_params_set_ivf_rabitq($handle, $nList, $totalBits, $sampleCount);
         return new self($handle);
     }
 

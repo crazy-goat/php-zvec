@@ -228,6 +228,14 @@ class ZVecGroupByVectorQuery implements ZVecQueryInterface
         );
     }
 
+    /** @throws ZVecException */
+    public function setIvfRabitqParams(int $nprobe = 10): self
+    {
+        throw new ZVecException(
+            'IVF-RaBitQ params are not directly supported for group-by queries.'
+        );
+    }
+
     public function setFlatParams(): self
     {
         throw new ZVecException(
