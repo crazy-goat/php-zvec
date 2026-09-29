@@ -384,6 +384,30 @@ zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, in
                                      int include_vector,
                                      zvec_query_result_t* result);
 
+// Native multi-query (hybrid search, fusion in C++)
+// The zvec_ffi_ prefix avoids colliding with upstream's own C API library,
+// which exports zvec_multi_query_create / zvec_collection_multi_query with
+// different signatures.
+typedef void* zvec_multi_query_t;
+
+zvec_multi_query_t zvec_ffi_multi_query_create(void);
+void zvec_ffi_multi_query_free(zvec_multi_query_t mq);
+// Copies the sub-query (field, vector/FTS clause, query params,
+// radius/linear/refiner). The zvec_vector_query_t may be freed right after.
+void zvec_ffi_multi_query_add_sub_query(zvec_multi_query_t mq, const zvec_vector_query_t sub, int num_candidates);
+void zvec_ffi_multi_query_set_topk(zvec_multi_query_t mq, int topk);
+void zvec_ffi_multi_query_set_filter(zvec_multi_query_t mq, const char* filter);
+void zvec_ffi_multi_query_set_include_vector(zvec_multi_query_t mq, int include);
+void zvec_ffi_multi_query_set_include_doc_id(zvec_multi_query_t mq, int include);
+// NULL or count 0 selects no field; there is no "all fields" variant because
+// leaving output_fields unset already means all.
+void zvec_ffi_multi_query_set_output_fields(zvec_multi_query_t mq, const char** fields, int count);
+void zvec_ffi_multi_query_set_rerank_rrf(zvec_multi_query_t mq, int rank_constant);
+// weights are positional (index = sub-query order) and upstream requires one per
+// sub-query.
+void zvec_ffi_multi_query_set_rerank_weighted(zvec_multi_query_t mq, const double* weights, int count);
+zvec_status_t zvec_collection_query_multi(zvec_collection_t coll, const zvec_multi_query_t mq, zvec_query_result_t* result);
+
 // Document iterator (zvec v0.7.0 Collection::create_iterator)
 //
 // Full scan over an isolated snapshot taken at creation time. The iterator

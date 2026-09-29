@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Native hybrid multi-query: `ZVec::multiQuery()`** (#217)
+  - `multiQuery(array $subQueries, ZVecRrfReRanker|ZVecWeightedReRanker $reranker, int $topk = 10, ?int $numCandidates = null, ?string $filter = null, ?array $outputFields = null, bool $includeVector = false, bool $includeDocId = false): ZVecDoc[]` builds one upstream `MultiQuery` and lets zvec run the sub-queries in parallel and fuse them in C++. Mirrors the Python SDK's `Collection.multi_query()`.
+  - **This is what makes hybrid dense + full-text work at all.** The existing `queryMulti()` runs each sub-query separately through the legacy scalar path, which knows nothing about an FTS clause: an FTS sub-query has no vector, and building a float buffer from an empty one aborted with `FFI\Exception: Cannot instantiate FFI\CData of zero size`. It also discarded everything living only in the C++ query handle (the FTS clause, DiskANN `listSize`, HNSW prefetch, `setIncludeDocId()`, `setOutputFields()`), and keyed its results by field name so two sub-queries on one field silently dropped the first.
+  - `queryMulti()` is **unchanged in behaviour for everything it supported** and now rejects the two cases it could not: an FTS sub-query, and two sub-queries on the same field. Both point at `multiQuery()` in the message. Existing dense multi-vector queries and all `ZVecReRanker` implementations keep working.
+  - **The fused score is in `$doc->getScore()` and is not comparable with `queryMulti()`.** Upstream normalises weighted fusion per field with `atan` rather than min-max, so the numbers differ from `ZVecWeightedReRanker` even for identical inputs; RRF is the same `1/(k + rank + 1)` in both. `queryMulti()` keeps its PHP fusion precisely for backward compatibility.
+  - Weighted fusion is **positional** upstream, so weights must be a list. A field-keyed map has no unambiguous meaning — duplicate field names are legal — and is rejected explicitly rather than silently mapped in the wrong order.
+  - Returns plain `ZVecDoc[]` rather than `ZVecRerankedDoc[]`: the fusion happened upstream, so there are no per-field source ranks to report.
+  - FFI uses a `zvec_ffi_` prefix (`zvec_ffi_multi_query_*`, `zvec_collection_query_multi`) because upstream's own C API library exports `zvec_multi_query_create` and `zvec_collection_multi_query` with *different* signatures under the bare names.
+  - Out of scope: sparse sub-queries (needs the sparse query-vector setter first), `fromId()` sub-queries, `CallbackParams` (a PHP callback called from C++), and group-by multi-query (upstream has none).
+
 - **Full-collection scans: `ZVec::iterDocs()` / `ZVecDocIterator`** (#226)
   - `iterDocs(?array $outputFields = null, bool $includeVector = true): ZVecDocIterator` returns a forward-only iterator over every document, backed by an isolated snapshot taken at call time. Memory use is constant regardless of collection size. Mirrors the Python SDK's `Collection.iter_docs()` and upstream's `Collection::create_iterator()` (zvec v0.7.0).
   - This closes the gap for export, backup and migration: `fetch()` needs primary keys, `queryByFilter()` needs both a filter and a `topk`, and neither can walk a whole collection.
@@ -70,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - FFI: `zvec_index_params_set_fts()`, `zvec_vector_query_set_fts()`, and `IndexType::FTS` handling in the params factory and `to_index_type()`.
   - Test: `tests/test_fts.phpt` (index creation, OR/AND semantics, lowercase folding, no-match, input validation).
   - The `ngram` and `jieba` tokenizers, the `stemmer` filter, and their `extraParams` keys are now covered by `tests/test_fts_tokenizer_ngram.phpt`, `tests/test_fts_tokenizer_jieba.phpt` and `tests/test_fts_filter_stemmer.phpt`. The `forFts()` docblock listed a `stemmer_en` filter and a non-JSON `stemmer_lang=en` example, neither of which upstream accepts; both are now documented correctly and asserted as rejected.
-  - Hybrid dense + FTS retrieval through `MultiQuery` is not covered yet.
+  - Hybrid dense + FTS retrieval is now available through `ZVec::multiQuery()`, which fuses in C++ rather than in PHP. See #217.
 
 - **DiskANN index type and query params** (#179)
   - `ZVecIndexParams::forDiskAnn(metricType, maxDegree, listSize, pqChunkNum, quantizeType)` — the disk-based graph index, previously missing because only the in-memory Vamana variant was exposed. Mirrors the official Go SDK `NewDiskANNIndexParams`.

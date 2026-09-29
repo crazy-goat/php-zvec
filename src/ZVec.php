@@ -2539,6 +2539,14 @@ class ZVec
             if (!($vq instanceof ZVecVectorQuery)) {
                 throw new ZVecException("All queries must be ZVecVectorQuery instances");
             }
+            // An FTS sub-query has no vector, and this path builds a float buffer
+            // from it -- it used to fail with "Cannot instantiate FFI\CData of
+            // zero size". That is not a usable error, and the fix is not here.
+            if ($vq->vector === [] && ($vq->ftsQueryString !== null || $vq->ftsMatchString !== null)) {
+                throw new ZVecException(
+                    'queryMulti() cannot run FTS sub-queries; use multiQuery() for hybrid FTS + vector search'
+                );
+            }
 
             // For multi-vector, fetch more candidates to give reranker enough data
             $fetchTopk = max($topk * 2, 100);
@@ -2559,11 +2567,161 @@ class ZVec
                 reranker: null // Don't rerank individual queries
             );
 
+            // Keyed by field name, so a second query on the same field would
+            // silently replace the first one's results. Upstream allows
+            // duplicate field names; multiQuery() handles that case.
+            if (array_key_exists($vq->fieldName, $queryResults)) {
+                throw new ZVecException(
+                    "queryMulti() got two sub-queries on field '{$vq->fieldName}'; use multiQuery() instead"
+                );
+            }
             $queryResults[$vq->fieldName] = $docs;
         }
 
         // Apply reranker to merge results
         return $reranker->rerank($queryResults);
+    }
+    /**
+     * Hybrid search across several fields, with the fusion done in C++.
+     *
+     * Unlike {@see queryMulti()}, which runs each sub-query separately through
+     * the legacy scalar path and fuses in PHP, this builds one upstream
+     * MultiQuery. That is what makes hybrid dense + full-text possible: an FTS
+     * sub-query has no vector, and the scalar path could not carry it at all
+     * (it crashed trying to allocate a zero-length float buffer).
+     *
+     *     $docs = $collection->multiQuery(
+     *         [
+     *             (new ZVecVectorQuery('body', []))->setFts('body', 'fox'),
+     *             new ZVecVectorQuery('embedding', $queryVector),
+     *         ],
+     *         new ZVecRrfReRanker(),
+     *         topk: 10,
+     *     );
+     *
+     * $numCandidates is how many hits each sub-query contributes before fusion.
+     * Leave it null to use a value derived from $topk. Bigger values mean
+     * better recall and more work.
+     *
+     * **The fused score is in $doc->getScore(), and it is not comparable with
+     * queryMulti().** Upstream normalises weighted fusion per field with atan
+     * rather than min-max, so the numbers differ from ZVecWeightedReRanker even
+     * for the same inputs. RRF is the same 1/(k + rank + 1) in both.
+     *
+     * The reranker is used for its parameters only, not for its PHP logic —
+     * except ZVecRrfReRanker / ZVecWeightedReRanker, which are the two the
+     * native path understands. A custom ZVecReRanker has no native equivalent;
+     * use queryMulti() for those.
+     *
+     * @param ZVecVectorQuery[] $subQueries
+     * @param ZVecRrfReRanker|ZVecWeightedReRanker $reranker
+     * @param int|null $numCandidates Candidates per sub-query before fusion
+     * @param string[]|null $outputFields null = all fields, [] = none
+     *
+     * @return ZVecDoc[] fused results, best first
+     * @throws ZVecException On FFI error or invalid arguments
+     */
+    public function multiQuery(
+        array $subQueries,
+        ZVecRrfReRanker|ZVecWeightedReRanker $reranker,
+        int $topk = 10,
+        ?int $numCandidates = null,
+        ?string $filter = null,
+        ?array $outputFields = null,
+        bool $includeVector = false,
+        bool $includeDocId = false
+    ): array {
+        $this->checkClosed();
+
+        // Upstream requires at least two sub-queries for fusion to mean anything.
+        if (count($subQueries) < 2) {
+            throw new ZVecException('multiQuery() needs at least 2 sub-queries');
+        }
+        if ($topk <= 0) {
+            throw new ZVecException("topk must be a positive integer, got: {$topk}");
+        }
+        if ($numCandidates !== null && $numCandidates <= 0) {
+            throw new ZVecException("numCandidates must be a positive integer, got: {$numCandidates}");
+        }
+
+        // Weighted fusion is positional upstream, and duplicate field names are
+        // legal, so a field-keyed map cannot be mapped onto it unambiguously.
+        $weighted = $reranker instanceof ZVecWeightedReRanker;
+        if ($weighted) {
+            $configured = $reranker->getWeights();
+            // Weighted fusion is positional upstream, so a field-keyed map has no
+            // defined meaning even when the field names are unique. Say so
+            // before complaining about the count.
+            if (!array_is_list($configured)) {
+                throw new ZVecException(
+                    'multiQuery() needs positional weights (a list) because fusion is positional, '
+                    . 'not a field-keyed map'
+                );
+            }
+            $weights = array_values($configured);
+            if (count($weights) !== count($subQueries)) {
+                throw new ZVecException('Weighted reranker needs exactly one weight per sub-query');
+            }
+        }
+
+        $candidates = $numCandidates ?? max($topk * 2, 100);
+
+        $ffi = self::ffi();
+        $mq = $ffi->zvec_ffi_multi_query_create();
+        try {
+            $seenFields = [];
+            foreach ($subQueries as $sub) {
+                if (!($sub instanceof ZVecVectorQuery)) {
+                    throw new ZVecException('All sub-queries must be ZVecVectorQuery instances');
+                }
+                if ($sub->docId !== null) {
+                    throw new ZVecException(
+                        'multiQuery() does not support fromId() sub-queries yet; fetch the vector first'
+                    );
+                }
+                $seenFields[] = $sub->fieldName;
+                $ffi->zvec_ffi_multi_query_add_sub_query($mq, $sub->getHandle(), $candidates);
+            }
+
+            $ffi->zvec_ffi_multi_query_set_topk($mq, $topk);
+            $ffi->zvec_ffi_multi_query_set_include_vector($mq, $includeVector ? 1 : 0);
+            $ffi->zvec_ffi_multi_query_set_include_doc_id($mq, $includeDocId ? 1 : 0);
+
+            if ($filter !== null) {
+                $ffi->zvec_ffi_multi_query_set_filter($mq, $filter);
+            }
+            if ($outputFields !== null) {
+                [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
+                try {
+                    $ffi->zvec_ffi_multi_query_set_output_fields($mq, $ofArr, $ofCount);
+                } finally {
+                    self::freeCStringArray($ofCStrings);
+                    if ($ofArr !== null) {
+                        FFI::free($ofArr);
+                    }
+                }
+            }
+
+            if ($weighted) {
+                $wArr = $ffi->new("double[" . count($weights) . ']', false);
+                foreach ($weights as $i => $w) {
+                    $wArr[$i] = (float)$w;
+                }
+                try {
+                    $ffi->zvec_ffi_multi_query_set_rerank_weighted($mq, $wArr, count($weights));
+                } finally {
+                    FFI::free($wArr);
+                }
+            } else {
+                $ffi->zvec_ffi_multi_query_set_rerank_rrf($mq, $reranker->getRankConstant());
+            }
+
+            $result = $ffi->new('zvec_query_result_t');
+            self::checkStatus($ffi->zvec_collection_query_multi($this->handle, $mq, FFI::addr($result)));
+            return self::parseQueryResult($result);
+        } finally {
+            $ffi->zvec_ffi_multi_query_free($mq);
+        }
     }
 
     /**

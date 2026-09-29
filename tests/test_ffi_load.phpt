@@ -18,6 +18,17 @@ $requiredFunctions = [
     'zvec_collection_create',
     'zvec_collection_open',
     'zvec_collection_free',
+    'zvec_ffi_multi_query_create',
+    'zvec_ffi_multi_query_free',
+    'zvec_ffi_multi_query_add_sub_query',
+    'zvec_ffi_multi_query_set_topk',
+    'zvec_ffi_multi_query_set_filter',
+    'zvec_ffi_multi_query_set_include_vector',
+    'zvec_ffi_multi_query_set_include_doc_id',
+    'zvec_ffi_multi_query_set_output_fields',
+    'zvec_ffi_multi_query_set_rerank_rrf',
+    'zvec_ffi_multi_query_set_rerank_weighted',
+    'zvec_collection_query_multi',
     'zvec_collection_create_iterator',
     'zvec_doc_iterator_next',
     'zvec_doc_iterator_free',
@@ -148,7 +159,7 @@ try {
 echo "DONE\n";
 ?>
 --EXPECT--
-All 76 FFI symbols resolved successfully
+All 87 FFI symbols resolved successfully
 No FFI::cdef() inline string found in src/ZVec.php
 Header file zvec_ffi_php.h is used as source of truth
 Basic create/insert/optimize works

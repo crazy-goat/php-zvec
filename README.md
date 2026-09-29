@@ -267,7 +267,8 @@ $collection->query(string|ZVecVectorQuery $fieldName, array $queryVector = [], i
 $collection->queryFp16(string $fieldName, array $queryVector, int $topk = 10, ...): ZVecDoc[]
 $collection->queryFp64(string $fieldName, array $queryVector, int $topk = 10, ...): ZVecDoc[]
 $collection->queryVector(ZVecVectorQuery $query): ZVecDoc[]
-$collection->queryMulti(array $vectorQueries, ZVecReRanker $reranker, int $topk = 10, ?string $filter = null, ?array $outputFields = null): ZVecRerankedDoc[]
+$collection->queryMulti(array $vectorQueries, ZVecReRanker $reranker, int $topk = 10, ?string $filter = null, ?array $outputFields = null): ZVecRerankedDoc[]  // dense-only, fused in PHP
+$collection->multiQuery(array $subQueries, ZVecRrfReRanker|ZVecWeightedReRanker $reranker, int $topk = 10, ?int $numCandidates = null, ?string $filter = null, ?array $outputFields = null, bool $includeVector = false, bool $includeDocId = false): ZVecDoc[]  // hybrid FTS + dense, fused in C++
 $collection->queryByFilter(string $filter, int $topk = 100, ?array $outputFields = null): ZVecDoc[]
 $collection->queryById(string $fieldName, string $docId, ...): ZVecDoc[]
 $collection->queryWithReranker(string|ZVecVectorQuery $fieldName, ..., ?ZVecReRanker $reranker = null): ZVecRerankedDoc[]
@@ -764,6 +765,44 @@ $results = $collection->queryMulti(
 );
 ```
 
+### Hybrid search (FTS + dense)
+
+`multiQuery()` is the native path: it builds one upstream `MultiQuery` and
+upstream runs the sub-queries in parallel and fuses them in C++. `queryMulti()`
+cannot do this — it runs each sub-query separately through the legacy scalar
+path, where an FTS sub-query has no vector at all.
+
+An FTS sub-query is an ordinary `ZVecVectorQuery` configured for text search
+(`$fts`), paired with a dense one:
+
+```php
+$docs = $collection->multiQuery(
+    [$fts, new ZVecVectorQuery('embedding', $queryVector)],
+    new ZVecRrfReRanker(),
+    topk: 10,
+    numCandidates: 100,   // hits per sub-query before fusion; default max(topk*2, 100)
+);
+```
+
+- **At least two sub-queries**, and each field must exist and be indexed for
+  the clause type used.
+- `$numCandidates` is the per-sub-query candidate count; larger means better
+  recall and more work. `topk` is how many fused results come back.
+- **The fused score is in `$doc->getScore()` and is not comparable with
+  `queryMulti()`.** Upstream normalises weighted fusion per field with `atan`,
+  not min-max, so the numbers differ from `ZVecWeightedReRanker` even for the
+  same inputs. RRF is the same `1/(k + rank + 1)` in both. This is why
+  `queryMulti()` keeps its PHP fusion for backward compatibility.
+- **Weights must be a positional list**, not a field-keyed map: fusion is
+  positional upstream, and duplicate field names are legal. A map is rejected
+  with an explicit error rather than silently mapped in the wrong order.
+- Returns plain `ZVecDoc[]`, not `ZVecRerankedDoc[]` — the fusion happened
+  upstream, so there are no per-field source ranks to report.
+- `fromId()` sub-queries are not supported yet; fetch the vector first.
+- Two sub-queries on the same field work here (upstream allows it) and are
+  rejected by `queryMulti()`, which keyed its results by field name and would
+  have dropped one.
+
 ### ZVecRerankedDoc
 
 Returned by reranker operations (`queryWithReranker()`, `queryMulti()`).
@@ -844,8 +883,8 @@ $rerankedDoc->getSourceScores(): array       // ['fieldName' => score, ...]
 
 ### Query Param Types
 
-Returned by the `set*Params()` / `setFts()` methods on `ZVecVectorQuery` via its
-`queryParamType` property.
+Returned by the `set*Params()` / full-text-search methods on `ZVecVectorQuery`
+via its `queryParamType` property.
 
 | Constant | Value | Set by |
 |---|---|---|
@@ -966,6 +1005,7 @@ See `tasks/done/` for detailed planning documents.
 - [x] Version API (`getVersion()`, `checkVersion()`)
 - [x] DiskANN I/O backend introspection (`getIoBackendType()`, `getIoBackendDescription()`)
 - [x] Full-collection scans (`iterDocs()` / `ZVecDocIterator`)
+- [x] Native hybrid multi-query (`multiQuery()` — FTS + dense, fusion in C++)
 - [x] `allowedBasePath` security restriction in `init()`
 - [x] Verbose error details with file/line info
 - [x] Collection lifecycle options via `getOptions()`
