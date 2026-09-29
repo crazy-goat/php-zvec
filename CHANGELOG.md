@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - A mismatched index type is left to upstream, which reports it at `ZVec::create()` time naming the field, so there is one source of truth rather than two.
   - FFI: `zvec_schema_add_field_string_with_index()`. The index params are cloned by upstream's `FieldSchema` constructor, so the `ZVecIndexParams` object may be freed as usual.
   - Test: `tests/test_schema_fts_index.phpt` (query without `createIndex()`, introspection before and after reopen, invert via params, the two validation errors, and backward compatibility of the existing arguments).
+
 - **`ZVec::init()` jieba and FTS tuning options** (#221)
   - `?string $jiebaDictDir` sets the folder holding `jieba.dict.utf8` and `hmm_model.utf8` for the jieba FTS tokenizer, and `?float $ftsBruteForceByKeysRatio` (0.0–1.0) the point at which an FTS query stops walking posting lists and scores candidates one by one. Upstream default is 0.05. Both take effect only on the first successful `init()` in a process, like every other option.
   - Read back with `ZVec::getJiebaDictDir()` and `ZVec::getFtsBruteForceByKeysRatio()`. With no option given, the jieba dictionary shipped in `zvec_data/jieba_dict` is still picked up automatically.
@@ -43,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - FFI: `zvec_index_params_set_ivf_rabitq()`, `zvec_vector_query_set_ivf_rabitq_nprobe()`, the index type in `to_index_type()` / `from_index_type()`, an `IVF_RABITQ` case in `ensure_query_params_for_field()` and the group-by switch, and a `case 7` in the legacy `query()` path's `validate_query_param_type()` and `apply_query_params()`. The legacy path reuses the existing `ivfNprobe` argument, having no separate one.
   - `scale_factor` is deliberately not exposed: the upstream engine copies only `nprobe` for this index type, so exposing it would be misleading.
   - Tests: `tests/test_ivf_rabitq_params.phpt` (constants, validation, query-param plumbing) and `tests/test_ivf_rabitq_index.phpt` (real index, both query paths, radius-only through `ensure_query_params_for_field()`, a params-type mismatch, and the dimension rule).
+
 - **DiskANN I/O backend introspection** (#224)
   - `ZVec::getIoBackendType()`, `ZVec::getIoBackendTypeName(int $type)` and `ZVec::getIoBackendDescription()` report the I/O backend zvec picked for DiskANN disk reads. Linux tries `io_uring`, then `libaio`, and falls back to synchronous `pread()`; macOS always uses `pread()`. The value matters a lot for DiskANN throughput and previously could not be observed at all.
   - The choice is process-wide and resolved lazily, so the getters work without `ZVec::init()`. New constants `ZVec::IO_BACKEND_PREAD`, `IO_BACKEND_LIBAIO` and `IO_BACKEND_IO_URING` (`0`/`1`/`2`), matching the upstream C ABI.
@@ -98,6 +100,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The documented test command silently skipped most of the suite** (#215, #188)
+  - `php run-tests.php -n tests/` was documented as *the* way to run the suite, with the rationale that `-n` keeps a pre-installed legacy `zvec` extension from shadowing the FFI classes. That is only half the requirement. `-n` also strips `php.ini`, so wherever FFI is provided by a `conf.d` ini rather than compiled in, FFI disappears with it and **every** test reports `SKIP — reason: FFI extension not available`.
+  - Measured on a glibc host with PHP 8.5.4: 16 passed, **172 skipped**, 1 failed — and the run still printed a green-looking summary. A large skip count is a broken run, not a pass.
+  - The suite now needs both halves: `php run-tests.php -n -d extension=ffi.so tests/`. `-n` disables the legacy extension, `-d extension=ffi.so` keeps FFI available afterwards. If your PHP has FFI compiled in, drop the `-d` flag.
+  - `AGENTS.md` and `build_zvec.sh` updated, with a note that `Tests skipped` must be `0` before a run is trusted.
+  - `.github/scripts/run-tests.sh` already did the right thing and needed no change; the problem was the documentation only.
+
 - **`fetch_zvec_sdk.sh` picked the musl SDK on glibc hosts** (#215)
   - The musl check was `ls /lib/ld-musl-*.so.1`, which also succeeds on a glibc machine that merely has `musl-tools` installed. The musl SDK was then unpacked and every test failed at `ZVec::ffi()` with `libc.musl-x86_64.so.1: cannot open shared object file`.
   - The detection now inspects the loader of the binary that will actually load the SDK (`ldd $(command -v php)`), falling back to `/bin/sh`, and assumes glibc when neither marker is present. Override the probe with `PHP_BINARY`.
@@ -105,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Crash at exit and lost `ZVec::init()` settings with a shared libzvec** (#215)
   - libzvec exports the `GlobalConfig` singleton but keeps its init guard local, so calling the inline `GlobalConfig::Instance()` from our module built a second copy: `init()` settings were silently reset and the object was destroyed twice at exit (`free(): chunks in smallbin corrupted`, SIGABRT). The FFI adapter and the extension now resolve the instance from libzvec via `dlsym`. Test: `tests/bug_0056.phpt`.
   - Release builds of the Linux FFI adapter embed libstdc++; its symbols are now kept private (`-Wl,--exclude-libs,ALL`). Before, the dynamic linker bound part of them to the system libstdc++ that PHP already loads through libxml2/libicu, and `schema()` segfaulted inside `IndexParams::to_string()`.
+
 - **`run-tests.php` still overwrote hand-written `tests/<name>.php` files** (#187) — the temp copy of the extracted test used the old path; it now uses the `.php.tmp-extract` suffix too.
 - **`ZVecFieldSchema::getIndexType()` swapped VAMANA and DISKANN** — the C++ enum order differs from the PHP constants; the value is now mapped back explicitly. Test: `tests/bug_0055.phpt`.
 
@@ -129,29 +139,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Note: a second `set*Params()` call no longer implicitly resets previously set radius/linear/refiner (merge semantics — set `setRadius(0.0)` to restore the default).
   - Added regression test `test_query_params_order.phpt`.
 
-### Fixed
-
 - **Random rotation for INT8/INT4 quantization** (#177)
   - `ZVecIndexParams::setQuantizerEnableRotate(bool)` (fluent) enables random rotation before INT8/INT4 quantization for HNSW, Flat, IVF, and Vamana indexes — reduces quantization error and improves recall on quantized indexes.
   - Mirrors upstream zvec v0.6.0 `QuantizerParam(enable_rotate)` (C API: `zvec_index_params_set_quantizer_enable_rotate`).
-
-### Fixed
 
 - **`queryVector()` with Vamana / HNSW RaBitQ query params** (#193)
   - `ZVecVectorQuery::setVamanaParams()` and `setHnswRabitqParams()` previously created an `HnswQueryParams` object, so `queryVector()` on Vamana/RaBitQ indexes was always rejected by the engine (`query params type does not match the index type of vector field`).
   - FFI: added `zvec_vector_query_set_vamana_ef_search()` (`VamanaQueryParams`) and `zvec_vector_query_set_hnsw_rabitq_ef()` (`HnswRabitqQueryParams`), mirroring `apply_query_params`; the legacy `query()` path was unaffected.
   - Added regression tests `test_vector_query_vamana_params.phpt` and `test_vector_query_rabitq_params.phpt` (RaBitQ runs on Linux x86_64 only).
 
-### Fixed
-
 - **Deprecated index creation warnings** (#169)
   - The FFI bindings’ `createHnswIndex()`, `createHnswRabitqIndex()`, `createFlatIndex()`, and `createIvfIndex()` now emit `E_USER_DEPRECATED` before delegating to the unified `createIndex()` API.
+
 - **Regression gate against zvec v0.6.0** (#175)
   - Full `.phpt` suite verified (FFI mode, `-n`): 0 failures, only expected XFAILs (VECTOR_FP64, upstream-blocked) and the expected RaBitQ platform SKIP (Linux x86_64 only)
   - All 12 legacy `tests/bug_*.php` scripts pass against v0.6.0; cleaned-up statuses for `bug_0005_cleanup_after_failed_ops.php` and `bug_0006_rocksdb_lock.php` (no issues observed on v0.6.0)
   - `test_buffer_retry.phpt` now actually runs (previously it always skipped: the SKIPIF checked `method_exists()` before loading the library — fixed by requiring `src/ZVec.php` first)
   - Legacy `test_installer_platform.php` accepts the `macOS` label prefix on Darwin, matching its `.phpt` counterpart
   - Documented the `-n` requirement (pre-installed legacy extension shadows FFI classes — #188) and the `run-tests.php` legacy-file deletion hazard (#187) in `AGENTS.md` / `README.md`
+
+### Known issues
+
+- **Cross-module `operator new` / `operator delete` mismatch with the prebuilt SDK** (#228)
+  - valgrind reports `Mismatched free() / delete` where objects allocated by `operator new` inside `libzvec.so` are released by `operator delete(void*, unsigned long)` in `libzvec_ffi.so` (seen in `zvec_collection_insert` and `zvec_schema_free`). The SDK carries its `operator new` / `operator delete` as local symbols, so it uses a different allocation routine than the adapter, which shares the dynamic `libstdc++` with PHP.
+  - This is **not** the cause of the exit-time crash fixed above; that one was the duplicate `GlobalConfig` singleton. This one is currently benign — both paths end in the same glibc `free()` on a glibc-allocated chunk, and the full suite passes — but it is undefined behaviour and could corrupt the heap if the two implementations ever diverge (hardened allocators, jemalloc/tcmalloc preloaded under PHP).
+  - Not yet fixed. Candidate approaches are listed in #228; the preferred one is to make the adapter match the SDK's allocation routine. Verified on Linux x86_64 with the glibc SDK; not reproducible against a source build.
 
 ## [0.6.0] - 2026-07-30
 

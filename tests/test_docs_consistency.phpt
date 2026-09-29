@@ -152,6 +152,35 @@ if (!str_contains($mig, 'backward')) {
     $failures++;
 }
 
+// 3b. MIGRATION.md carries a v0.6.0 -> v0.7.0 section that states the new API
+// is additive, so a reader can tell whether their code breaks.
+echo "v0.7.0 section: " . (str_contains($mig, 'Migration Guide: v0.6.0 → v0.7.0') ? "present" : "MISSING") . "\n";
+if (!str_contains($mig, 'Migration Guide: v0.6.0 → v0.7.0')) {
+    $failures++;
+}
+echo "v0.7.0 states additive: " . (str_contains($mig, 'additive') ? "yes" : "NO") . "\n";
+if (!str_contains($mig, 'additive')) {
+    $failures++;
+}
+// Each new public API added in v0.7.0 must appear in the migration guide, so
+// the guide does not silently fall behind the README.
+foreach ([
+    'forIvfRabitq',
+    'setIvfRabitqParams',
+    'twoPassBuild',
+    'setVamanaPrefetch',
+    'jiebaDictDir',
+    'ftsBruteForceByKeysRatio',
+    'getIoBackendType',
+    'indexParams',
+] as $api) {
+    $found = str_contains($mig, $api);
+    echo str_pad($api, 26) . ' ' . ($found ? 'documented' : 'MISSING FROM MIGRATION') . "\n";
+    if (!$found) {
+        $failures++;
+    }
+}
+
 // 4. The zvec SDK version pin is v0.7.0 everywhere it is declared.
 foreach (['build_zvec.sh', 'fetch_zvec_sdk.sh', 'src/Installer.php'] as $f) {
     $c = file_get_contents("$root/$f");
@@ -190,6 +219,16 @@ setHnswPrefetch               1
 setIncludeDocId               1
 migration section: present
 states BC: yes
+v0.7.0 section: present
+v0.7.0 states additive: yes
+forIvfRabitq               documented
+setIvfRabitqParams         documented
+twoPassBuild               documented
+setVamanaPrefetch          documented
+jiebaDictDir               documented
+ftsBruteForceByKeysRatio   documented
+getIoBackendType           documented
+indexParams                documented
 build_zvec.sh          v0.7.0
 fetch_zvec_sdk.sh      v0.7.0
 src/Installer.php      v0.7.0
