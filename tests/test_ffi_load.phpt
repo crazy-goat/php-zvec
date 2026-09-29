@@ -56,6 +56,8 @@ $requiredFunctions = [
     'zvec_index_params_set_hnsw',
     'zvec_index_params_set_flat',
     'zvec_index_params_set_ivf',
+    'zvec_index_params_set_ivf_rabitq',
+    'zvec_vector_query_set_ivf_rabitq_nprobe',
     'zvec_index_params_set_vamana',
     'zvec_index_params_set_invert',
     'zvec_vector_query_create',
@@ -135,7 +137,7 @@ try {
 echo "DONE\n";
 ?>
 --EXPECT--
-All 63 FFI symbols resolved successfully
+All 65 FFI symbols resolved successfully
 No FFI::cdef() inline string found in src/ZVec.php
 Header file zvec_ffi_php.h is used as source of truth
 Basic create/insert/optimize works

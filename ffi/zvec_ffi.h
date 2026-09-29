@@ -198,6 +198,7 @@ void zvec_index_params_set_hnsw(zvec_index_params_t params, int m, int ef_constr
 void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bits, int num_clusters, int m, int ef_construction, int sample_count);
 void zvec_index_params_set_flat(zvec_index_params_t params, int quantize_type);
 void zvec_index_params_set_ivf(zvec_index_params_t params, int n_list, int n_iters, int use_soar, int quantize_type);
+void zvec_index_params_set_ivf_rabitq(zvec_index_params_t params, int nlist, int total_bits, int sample_count);
 void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, int search_list_size, float alpha, int saturate_graph, int use_contiguous_memory, int use_id_map, int quantize_type);
 void zvec_index_params_set_diskann(zvec_index_params_t params, int max_degree, int list_size, int pq_chunk_num);
 void zvec_index_params_set_invert(zvec_index_params_t params, int enable_range, int enable_wildcard);
@@ -323,6 +324,7 @@ void zvec_vector_query_set_vamana_ef_search(zvec_vector_query_t q, int ef_search
 void zvec_vector_query_set_fts(zvec_vector_query_t q, const char* field_name, const char* query_string, const char* match_string, const char* default_operator);
 void zvec_vector_query_set_diskann_list_size(zvec_vector_query_t q, int list_size);
 void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe);
+void zvec_vector_query_set_ivf_rabitq_nprobe(zvec_vector_query_t q, int nprobe);
 void zvec_vector_query_set_flat_mode(zvec_vector_query_t q);
 void zvec_vector_query_set_radius(zvec_vector_query_t q, float radius);
 void zvec_vector_query_set_is_linear(zvec_vector_query_t q, int is_linear);
