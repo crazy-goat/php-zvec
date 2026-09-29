@@ -106,6 +106,14 @@ void zvec_config_data_set_query_thread_count(zvec_config_data_t config, uint32_t
 void zvec_config_data_set_optimize_thread_count(zvec_config_data_t config, uint32_t count);
 void zvec_config_data_set_invert_to_forward_scan_ratio(zvec_config_data_t config, float ratio);
 void zvec_config_data_set_brute_force_by_keys_ratio(zvec_config_data_t config, float ratio);
+void zvec_config_data_set_fts_brute_force_by_keys_ratio(zvec_config_data_t config, float ratio);
+// A wrong folder is fatal upstream: cppjieba calls abort() instead of returning
+// a Status, so the path is checked here before it can reach libzvec.
+void zvec_config_data_set_jieba_dict_dir(zvec_config_data_t config, const char* dir);
+
+// Read back the effective process-wide values (valid after init()).
+float zvec_global_config_get_fts_brute_force_by_keys_ratio(void);
+zvec_status_t zvec_global_config_get_jieba_dict_dir(char* buf, size_t buf_size);
 
 zvec_status_t zvec_ffi_initialize(zvec_config_data_t config);
 zvec_status_t zvec_ffi_shutdown(void);

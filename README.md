@@ -176,9 +176,13 @@ ZVec::init(
     float $bruteForceByKeysRatio = 0.0,
     int $memoryLimitMb = 0,
     ?string $allowedBasePath = null,
-    bool $verboseErrors = false
+    bool $verboseErrors = false,
+    ?string $jiebaDictDir = null,          // folder with jieba.dict.utf8 + hmm_model.utf8
+    ?float $ftsBruteForceByKeysRatio = null  // 0.0-1.0, upstream default 0.05
 ): void
 ZVec::isInitialized(): bool
+ZVec::getFtsBruteForceByKeysRatio(): float
+ZVec::getJiebaDictDir(): string
 ZVec::shutdown(): void
 ZVec::getLastErrorDetails(): array
 ZVec::clearError(): void
@@ -506,6 +510,13 @@ $params = ZVecIndexParams::forFts(
     string[] $filters = ['lowercase'],
     string $extraParams = ''
 ): self
+// Tokenizers: "standard", "ngram", "jieba", "whitespace"
+// Filters:   "lowercase", "ascii_folding", "stemmer"
+// extraParams is a JSON object, e.g. '{"stemmer_lang":"english"}',
+//             '{"ngram_min":2,"ngram_max":3}' or '{"cut_mode":"mix"}'
+// The jieba dictionary ships in zvec_data/jieba_dict next to the library and is
+// used automatically. Lookup order: per-field extraParams jieba_dict_dir, then
+// ZVEC_JIEBA_DICT_DIR, then ZVec::init(jiebaDictDir:), then the bundled copy.
 
 // Invert — keyword-based inverted index
 $params = ZVecIndexParams::forInvert(

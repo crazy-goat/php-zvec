@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`ZVec::init()` jieba and FTS tuning options** (#221)
+  - `?string $jiebaDictDir` sets the folder holding `jieba.dict.utf8` and `hmm_model.utf8` for the jieba FTS tokenizer, and `?float $ftsBruteForceByKeysRatio` (0.0–1.0) the point at which an FTS query stops walking posting lists and scores candidates one by one. Upstream default is 0.05. Both take effect only on the first successful `init()` in a process, like every other option.
+  - Read back with `ZVec::getJiebaDictDir()` and `ZVec::getFtsBruteForceByKeysRatio()`. With no option given, the jieba dictionary shipped in `zvec_data/jieba_dict` is still picked up automatically.
+  - `null` rather than `0.0` as the default for the ratio, because 0.0 is a real value upstream accepts.
+  - Both values are validated in PHP **before** any FFI call. Upstream `GlobalConfig::initialize()` sets its initialized flag before validating, so a rejected value would leave the library marked initialized and make every later `init()` a silent no-op; `NAN` also slips through the upstream range check. A `jiebaDictDir` that lacks the dictionary files is rejected for a worse reason: cppjieba calls `abort()`, killing the process with exit code 134 rather than raising a catchable error.
+  - FFI: `zvec_config_data_set_fts_brute_force_by_keys_ratio()`, `zvec_config_data_set_jieba_dict_dir()`, `zvec_global_config_get_fts_brute_force_by_keys_ratio()`, `zvec_global_config_get_jieba_dict_dir()`. The getters go through `global_config_ptr()`, keeping the #215 singleton rule.
+  - Tests: `tests/test_init_fts_options.phpt` (six validation cases that must leave the library uninitialized, plus an end-to-end jieba FTS query using a custom dictionary) and `tests/test_init_fts_defaults.phpt` (upstream defaults).
+
 - **IVF-RaBitQ index type** (#218)
   - `ZVecIndexParams::forIvfRabitq(metricType, nList, totalBits, sampleCount)` builds the new v0.7.0 IVF variant storing RaBitQ-quantized vectors, and `ZVecVectorQuery::setIvfRabitqParams(nprobe)` sends the matching query params. Mirrors the Python `IvfRabitqIndexParam` / `IvfRabitqQueryParam`.
   - New constants `ZVec::INDEX_TYPE_IVF_RABITQ` and `ZVec::QUERY_PARAM_IVF_RABITQ`, both `7`, matching the upstream enum and C ABI.
