@@ -361,6 +361,10 @@ void zvec_vector_query_set_using_refiner(zvec_vector_query_t q, int refiner);
 
 // Set query vector for fp32 (float)
 void zvec_vector_query_set_vector_fp32(zvec_vector_query_t q, const float* data, uint32_t dim);
+// Sparse query vector. The clause is the raw bytes of each array; upstream
+// sorts the indices and rejects duplicates. Passing count 0 yields an empty
+// sparse vector. Clears any dense vector on the handle.
+void zvec_vector_query_set_sparse_vector(zvec_vector_query_t q, const uint32_t* indices, const float* values, uint32_t count);
 void zvec_vector_query_set_vector_fp64(zvec_vector_query_t q, const double* data, uint32_t dim);
 
 // GroupByVectorQuery setters (extends VectorQuery)

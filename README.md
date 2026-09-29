@@ -667,6 +667,7 @@ $query->setVamanaParams(int $efSearch): self         // Vamana ef_search
 $query->setDiskAnnParams(int $listSize): self        // DiskANN search list size
 $query->setFts(string $fieldName, string $queryString = '', string $matchString = '', string $defaultOperator = FTS_OPERATOR_OR): self
 $query->setRadius(float $radius): self               // Range search radius
+$query->setSparseVector(array $indices, array $values): self  // Sparse query vector; needs no dense vector
 $query->setLinear(bool $linear): self                // Linear scan
 $query->setUsingRefiner(bool $refiner): self         // Two-stage refine
 $query->setTopk(int $topk): self
