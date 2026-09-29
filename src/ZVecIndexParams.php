@@ -200,19 +200,15 @@ class ZVecIndexParams
     }
 
     /**
-     * Create Invert index params
-     *
-     * @throws ZVecException On FFI error
-     */
-    /**
      * Create Full-Text Search index params
      *
      * Inverted index over a STRING column. Mirrors the official Go SDK
      * NewFTSIndexParams(tokenizerName, filters, extraParams).
      *
-     * @param string   $tokenizer   Tokenizer name ("standard", …)
-     * @param string[] $filters     Token filters, e.g. ["lowercase", "stemmer_en"]
-     * @param string   $extraParams Extra params, e.g. "stemmer_lang=en"
+     * @param string   $tokenizer   "standard", "ngram", "jieba" or "whitespace"
+     * @param string[] $filters     Any of "lowercase", "ascii_folding", "stemmer"
+     * @param string   $extraParams JSON object, e.g. '{"stemmer_lang":"english"}',
+     *                              '{"ngram_min":2,"ngram_max":3}', '{"cut_mode":"mix"}'
      *
      * @throws ZVecException On FFI error
      */

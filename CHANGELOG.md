@@ -48,7 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New constants `ZVec::INDEX_TYPE_FTS`, `ZVec::QUERY_PARAM_FTS` (both `11`) plus `FTS_OPERATOR_OR` / `FTS_OPERATOR_AND`.
   - FFI: `zvec_index_params_set_fts()`, `zvec_vector_query_set_fts()`, and `IndexType::FTS` handling in the params factory and `to_index_type()`.
   - Test: `tests/test_fts.phpt` (index creation, OR/AND semantics, lowercase folding, no-match, input validation).
-  - Hybrid dense + FTS retrieval through `MultiQuery`, and stemming filters beyond the tested defaults, are not covered yet.
+  - The `ngram` and `jieba` tokenizers, the `stemmer` filter, and their `extraParams` keys are now covered by `tests/test_fts_tokenizer_ngram.phpt`, `tests/test_fts_tokenizer_jieba.phpt` and `tests/test_fts_filter_stemmer.phpt`. The `forFts()` docblock listed a `stemmer_en` filter and a non-JSON `stemmer_lang=en` example, neither of which upstream accepts; both are now documented correctly and asserted as rejected.
+  - Hybrid dense + FTS retrieval through `MultiQuery` is not covered yet.
 
 - **DiskANN index type and query params** (#179)
   - `ZVecIndexParams::forDiskAnn(metricType, maxDegree, listSize, pqChunkNum, quantizeType)` — the disk-based graph index, previously missing because only the in-memory Vamana variant was exposed. Mirrors the official Go SDK `NewDiskANNIndexParams`.

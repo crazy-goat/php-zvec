@@ -522,6 +522,10 @@ $params = ZVecIndexParams::forFts(
 // The jieba dictionary ships in zvec_data/jieba_dict next to the library and is
 // used automatically. Lookup order: per-field extraParams jieba_dict_dir, then
 // ZVEC_JIEBA_DICT_DIR, then ZVec::init(jiebaDictDir:), then the bundled copy.
+//
+// A bad jieba dictionary path is not a catchable error: cppjieba calls abort(),
+// which kills the process with exit code 134. The bundled copy avoids this, and
+// ZVec::init(jiebaDictDir:) validates that both dictionary files exist.
 
 // Invert — keyword-based inverted index
 $params = ZVecIndexParams::forInvert(
