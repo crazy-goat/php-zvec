@@ -197,6 +197,7 @@ INDEX_TYPE_HNSW           =1 documented
 INDEX_TYPE_IVF            =2 documented
 INDEX_TYPE_FLAT           =3 documented
 INDEX_TYPE_HNSW_RABITQ    =4 documented
+INDEX_TYPE_IVF_RABITQ     =7 documented
 INDEX_TYPE_VAMANA         =5 documented
 INDEX_TYPE_DISKANN        =6 documented
 INDEX_TYPE_INVERT         =10 documented

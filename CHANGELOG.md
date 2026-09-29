@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **IVF-RaBitQ index type** (#218)
+  - `ZVecIndexParams::forIvfRabitq(metricType, nList, totalBits, sampleCount)` builds the new v0.7.0 IVF variant storing RaBitQ-quantized vectors, and `ZVecVectorQuery::setIvfRabitqParams(nprobe)` sends the matching query params. Mirrors the Python `IvfRabitqIndexParam` / `IvfRabitqQueryParam`.
+  - New constants `ZVec::INDEX_TYPE_IVF_RABITQ` and `ZVec::QUERY_PARAM_IVF_RABITQ`, both `7`, matching the upstream enum and C ABI.
+  - **Platform:** upstream supports RaBitQ on Linux x86_64 with AVX2+FMA or AVX-512 only, and rejects an FP64 field, a dimension outside 64–4095, or a metric other than L2/IP/COSINE. `createIndex()` fails with `NOT_SUPPORTED` elsewhere, so `tests/test_ivf_rabitq_index.phpt` skips off that platform and runs everywhere else.
+  - PHP validates `nList > 0`, `1 <= totalBits <= 9` and `sampleCount >= 0` before any FFI call. The upstream core only *logs* an out-of-range `total_bits` at build time, so a bad value would otherwise fail late and quietly.
+  - FFI: `zvec_index_params_set_ivf_rabitq()`, `zvec_vector_query_set_ivf_rabitq_nprobe()`, the index type in `to_index_type()` / `from_index_type()`, an `IVF_RABITQ` case in `ensure_query_params_for_field()` and the group-by switch, and a `case 7` in the legacy `query()` path's `validate_query_param_type()` and `apply_query_params()`. The legacy path reuses the existing `ivfNprobe` argument, having no separate one.
+  - `scale_factor` is deliberately not exposed: the upstream engine copies only `nprobe` for this index type, so exposing it would be misleading.
+  - Tests: `tests/test_ivf_rabitq_params.phpt` (constants, validation, query-param plumbing) and `tests/test_ivf_rabitq_index.phpt` (real index, both query paths, radius-only through `ensure_query_params_for_field()`, a params-type mismatch, and the dimension rule).
+
 - **Full-Text Search (FTS) support** (#180)
   - `ZVecIndexParams::forFts(tokenizer, filters, extraParams)` builds a full-text index over a STRING column; mirrors the official Go SDK `NewFTSIndexParams`. Defaults to the `standard` tokenizer with the `lowercase` filter.
   - `ZVecVectorQuery::setFts(fieldName, queryString, matchString, defaultOperator)` runs an FTS query. `defaultOperator` accepts `ZVec::FTS_OPERATOR_OR` (default) or `FTS_OPERATOR_AND`, case-insensitively.
