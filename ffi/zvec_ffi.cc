@@ -373,6 +373,41 @@ void zvec_config_data_set_brute_force_by_keys_ratio(zvec_config_data_t config, f
     }
 }
 
+void zvec_config_data_set_fts_brute_force_by_keys_ratio(zvec_config_data_t config, float ratio) {
+    if (config) {
+        static_cast<ConfigDataHolder*>(config)->config.fts_brute_force_by_keys_ratio = ratio;
+    }
+}
+
+void zvec_config_data_set_jieba_dict_dir(zvec_config_data_t config, const char* dir) {
+    if (config) {
+        static_cast<ConfigDataHolder*>(config)->config.jieba_dict_dir = dir ? dir : "";
+    }
+}
+
+float zvec_global_config_get_fts_brute_force_by_keys_ratio(void) {
+    auto* gc = global_config_ptr();
+    return gc ? gc->fts_brute_force_by_keys_ratio() : 0.0f;
+}
+
+zvec_status_t zvec_global_config_get_jieba_dict_dir(char* buf, size_t buf_size) {
+    auto* gc = global_config_ptr();
+    if (!gc) {
+        zvec_status_t st = {8, "internal: libzvec GlobalConfig::Instance symbol not found"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    if (!buf || buf_size == 0) {
+        zvec_status_t st = {1, "null buffer"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    std::string dir = gc->jieba_dict_dir();
+    strncpy(buf, dir.c_str(), buf_size - 1);
+    buf[buf_size - 1] = '\0';
+    return ok_status();
+}
+
 zvec_status_t zvec_ffi_initialize(zvec_config_data_t config) {
     auto* gc = global_config_ptr();
     if (!gc) {
