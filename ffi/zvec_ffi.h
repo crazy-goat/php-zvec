@@ -384,6 +384,33 @@ zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, in
                                      int include_vector,
                                      zvec_query_result_t* result);
 
+// Document iterator (zvec v0.7.0 Collection::create_iterator)
+//
+// Full scan over an isolated snapshot taken at creation time. The iterator
+// holds its own reference to the collection, so zvec_collection_free() may be
+// called before zvec_doc_iterator_free(). While an iterator is open,
+// close/destroy/DDL/optimize on the collection return code 5
+// (FAILED_PRECONDITION) and the collection stays open.
+typedef void* zvec_doc_iterator_t;
+
+// has_output_fields = 0: return all scalar fields (output_fields ignored).
+// has_output_fields = 1: return only the listed scalar fields; count 0 (and
+//   output_fields may be NULL) returns no scalar fields, only the PK.
+// include_vector: 1 = include vector fields, 0 = skip them.
+// On error *out is set to NULL.
+zvec_status_t zvec_collection_create_iterator(zvec_collection_t coll,
+                                              int has_output_fields,
+                                              const char** output_fields,
+                                              int output_field_count,
+                                              int include_vector,
+                                              zvec_doc_iterator_t* out);
+// On success *out_doc is a new document owned by the caller (free with
+// zvec_doc_free), or NULL at end of iteration. On error *out_doc is NULL.
+zvec_status_t zvec_doc_iterator_next(zvec_doc_iterator_t it, zvec_doc_t* out_doc);
+// Closes the iterator and releases its snapshot and its collection
+// reference. NULL is a no-op.
+void zvec_doc_iterator_free(zvec_doc_iterator_t it);
+
 // Query
 zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_name,
                                      const float* query_vector, uint32_t dim,

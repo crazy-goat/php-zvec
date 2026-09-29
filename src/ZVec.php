@@ -18,6 +18,7 @@ require_once __DIR__ . '/ZVecVectorQuery.php';
 require_once __DIR__ . '/ZVecGroupByVectorQuery.php';
 require_once __DIR__ . '/ZVecSchema.php';
 require_once __DIR__ . '/ZVecDoc.php';
+require_once __DIR__ . '/ZVecDocIterator.php';
 require_once __DIR__ . '/ZVecReRanker.php';
 require_once __DIR__ . '/ZVecRerankedDoc.php';
 require_once __DIR__ . '/ZVecRrfReRanker.php';
@@ -851,6 +852,66 @@ class ZVec
         }
 
         return self::parseQueryResult($result);
+    }
+
+    /**
+     * Iterate over every document in the collection.
+     *
+     * Unlike fetch() this needs no primary keys, and unlike queryByFilter() no
+     * filter and no topk — it is the full-scan path, intended for export,
+     * backup and migration. Memory use is constant regardless of collection
+     * size.
+     *
+     *     foreach ($collection->iterDocs() as $pk => $doc) { ... }
+     *
+     * The scan runs over an isolated snapshot taken now, so later writes are
+     * invisible to it. On a writable collection each call seals the current
+     * writing segment, which may create a small segment.
+     *
+     * While the returned iterator is open, close(), destroy(), schema DDL and
+     * optimize() throw ZVecException (FAILED_PRECONDITION); the iterator closes
+     * itself when exhausted, so a completed foreach needs no cleanup.
+     *
+     * @param string[]|null $outputFields null = all scalar fields, [] = primary
+     *                                    key only. Vector fields are not allowed
+     *                                    here and are rejected upstream.
+     * @param bool $includeVector Whether vector fields are returned
+     *
+     * @throws ZVecException On FFI error or when the collection is closed
+     */
+    public function iterDocs(?array $outputFields = null, bool $includeVector = true): ZVecDocIterator
+    {
+        $this->checkClosed();
+        if ($outputFields !== null) {
+            foreach ($outputFields as $field) {
+                if (!is_string($field) || $field === '') {
+                    throw new ZVecException('outputFields must contain only non-empty strings');
+                }
+            }
+        }
+
+        $ffi = self::ffi();
+        [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields ?? []);
+        $out = $ffi->new('zvec_doc_iterator_t');
+        try {
+            self::checkStatus($ffi->zvec_collection_create_iterator(
+                $this->handle,
+                $outputFields === null ? 0 : 1,
+                $ofArr,
+                $ofCount,
+                $includeVector ? 1 : 0,
+                FFI::addr($out),
+            ));
+        } finally {
+            self::freeCStringArray($ofCStrings);
+            // toCStringArray() allocates the char*[N] array unmanaged but frees
+            // only the strings, so release the array itself here.
+            if ($ofArr !== null) {
+                FFI::free($ofArr);
+            }
+        }
+
+        return new ZVecDocIterator($this, $out);
     }
 
     /**
@@ -2793,6 +2854,7 @@ class_alias(ZVecIndexParams::class, 'ZVecIndexParams');
 \class_alias(ZVecQueryInterface::class, 'ZVecQueryInterface');
 class_alias(ZVecVectorQuery::class, 'ZVecVectorQuery');
 class_alias(ZVecGroupByVectorQuery::class, 'ZVecGroupByVectorQuery');
+class_alias(ZVecDocIterator::class, 'ZVecDocIterator');
 \class_alias(ZVecReRanker::class, 'ZVecReRanker');
 class_alias(ZVecRerankedDoc::class, 'ZVecRerankedDoc');
 class_alias(ZVecRrfReRanker::class, 'ZVecRrfReRanker');
