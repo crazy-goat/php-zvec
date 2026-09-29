@@ -45,6 +45,9 @@ $requiredFunctions = [
     'zvec_get_version_major',
     'zvec_get_version_minor',
     'zvec_get_version_patch',
+    'zvec_get_io_backend_type',
+    'zvec_get_io_backend_type_name',
+    'zvec_get_io_backend_description',
     'zvec_get_last_error_details',
     'zvec_clear_error',
     'zvec_error_code_to_string',
@@ -132,7 +135,7 @@ try {
 echo "DONE\n";
 ?>
 --EXPECT--
-All 60 FFI symbols resolved successfully
+All 63 FFI symbols resolved successfully
 No FFI::cdef() inline string found in src/ZVec.php
 Header file zvec_ffi_php.h is used as source of truth
 Basic create/insert/optimize works
