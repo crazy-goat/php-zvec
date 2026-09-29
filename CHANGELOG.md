@@ -128,6 +128,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`setRadius()` / `setLinear()` / `setUsingRefiner()` failed on a DiskANN field** (#216)
+  - All three threw `query params type does not match the index type of vector field[v], expected DISKANN but got HNSW`. The message blamed HNSW, but the adapter was the one sending HNSW params.
+  - `ensure_query_params_for_field()` had no `IndexType::DISKANN` case, so it fell through to a hardcoded HNSW fallback. The fallback ran even when the index type *had* been resolved, so it converted "I do not handle this index type" into "these are HNSW params", which upstream then rejects.
+  - Radius and linear are supported by the DiskANN core upstream, so they were broken purely by the wrong param type. Both work now; the same holds for `setDiskAnnParams(300)->setRadius(0.5)`, which is the workaround this bug forced on users.
+  - The refiner is an upstream DiskANN limitation, but it now surfaces upstream's own error instead of the misleading type mismatch.
+  - The `default:` branch no longer falls back to HNSW. An index type with no case gets **no** query params, which makes upstream use its own defaults and skip its params-type check — that fails far less often than guessing, and it also covers index types added upstream after this adapter was written. The trade-off: radius/linear/refiner are not applied in that case, so each new index type needs its own branch. The group-by switch got the same treatment.
+  - Test: `tests/bug_0057.phpt`. Verified that HNSW, IVF, Flat and Vamana still filter by radius correctly.
+
 - **A failed `destroy()` left the PHP object with a dangling handle** (#222)
   - `zvec_collection_destroy()` erased the handle from the collections registry even when upstream returned an error, deleting the C++ `Collection` while the PHP object kept the raw pointer. The next method call on it operated on freed memory — reachable by destroying a read-only collection, which upstream rejects with `INVALID_ARGUMENT`, and later by destroying while a document iterator is open.
   - The registry entry is now erased only on success. On failure upstream leaves the collection untouched, so the handle stays valid and the object remains open and usable.
