@@ -57,6 +57,16 @@ class ZVecVectorQuery implements ZVecQueryInterface
     public ?string $filter = null;
 
     /**
+     * @var int[] Sparse query indices, set by setSparseVector()
+     */
+    public array $sparseIndices = [];
+
+    /**
+     * @var float[] Sparse query values, set by setSparseVector()
+     */
+    public array $sparseValues = [];
+
+    /**
      * @param float[] $vector Dense vector data
      * @throws ZVecException
      */
@@ -118,6 +128,79 @@ class ZVecVectorQuery implements ZVecQueryInterface
     public function setFp64(bool $fp64 = true): self
     {
         $this->useFp64 = $fp64;
+        return $this;
+    }
+
+    /**
+     * Set a sparse query vector from parallel index and value arrays.
+     *
+     * Sparse similarity scores are not normalised the way dense ones are, so a
+     * radius on a sparse field compares against the sparse score directly and can
+     * be negative. Without this, a query built for a sparse field carried a
+     * dense payload, which upstream converted into a single 0-index entry — every
+     * document scored 0.0, above any -radius threshold, and radius filtering
+     * silently did nothing.
+     *
+     * Indices need not be sorted; upstream sorts them and rejects duplicates.
+     *
+     * @param int[] $indices Zero-based dimension index per entry
+     * @param float[] $values One weight per index, same order
+     *
+     * @throws ZVecException On mismatched or otherwise invalid input
+     */
+    public function setSparseVector(array $indices, array $values): self
+    {
+        if ($indices === []) {
+            throw new ZVecException('Sparse query vector needs at least one index');
+        }
+        if (count($indices) !== count($values)) {
+            throw new ZVecException(sprintf(
+                'Sparse vector needs one value per index, got %d indices and %d values',
+                count($indices),
+                count($values)
+            ));
+        }
+
+        $indices = array_values($indices);
+        $values = array_values($values);
+        $count = count($indices);
+        foreach ($indices as $i => $index) {
+            if (!is_int($index) || $index < 0) {
+                throw new ZVecException("Sparse index at position $i must be a non-negative integer");
+            }
+        }
+        foreach ($values as $i => $value) {
+            if (!is_int($value) && !is_float($value)) {
+                throw new ZVecException("Sparse value at position $i must be a number");
+            }
+            if (is_float($value) && is_nan($value)) {
+                throw new ZVecException("Sparse value at position $i must not be NAN");
+            }
+        }
+
+        $ffi = self::ffi();
+        $idxArr = $ffi->new("uint32_t[$count]", false);
+        $valArr = $ffi->new("float[$count]", false);
+        foreach ($indices as $i => $index) {
+            $idxArr[$i] = $index;
+        }
+        foreach ($values as $i => $value) {
+            $valArr[$i] = (float)$value;
+        }
+        try {
+            $ffi->zvec_vector_query_set_sparse_vector($this->handle, $idxArr, $valArr, $count);
+        } finally {
+            FFI::free($idxArr);
+            FFI::free($valArr);
+        }
+
+        // The handle now holds a sparse clause, so a later setSparseVector() or
+        // setVectorFp64() must not be told there is a dense vector here. Callers
+        // that read $vector (e.g. resolveQueryParams) would otherwise take the
+        // dense path and hit "missing query clause".
+        $this->vector = [];
+        $this->sparseIndices = $indices;
+        $this->sparseValues = $values;
         return $this;
     }
 

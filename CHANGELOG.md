@@ -128,6 +128,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Sparse query vectors: radius filtering was a silent no-op** (#210)
+  - `ZVecVectorQuery::setSparseVector(array $indices, array $values)` puts a real sparse clause on the native query handle. Previously there was no way to do so: a query for a sparse field carried a dense payload, upstream converted it into a single 0-index entry, and **every** document scored `0.0` — above any `-radius` threshold, so `setRadius()` could never exclude anything and said nothing.
+  - Sparse similarity is not normalised the way dense scores are, so a sparse score can be negative; `setRadius()` compares against it directly. `setSparseVector()` clears any dense vector on the handle, because leaving one set is what produced the all-zero scores.
+  - FFI: `zvec_vector_query_set_sparse_vector()`. The clause is the raw bytes of each array, which is what upstream's own `zvec_sub_query_set_sparse_indices/values` produce — verified by calling the upstream C API and dumping the resulting `std::string` (12 raw bytes each for three entries, stored inline). Upstream sorts the indices itself and rejects duplicates, so neither is pre-sorted or pre-checked here.
+  - The legacy scalar `query()` path has no dense vector to work with, so a sparse query delegates to `queryVector()` instead of failing on an empty float buffer.
+  - Two findings recorded by `tests/test_sparse_query_vector.phpt` rather than hidden: the radius threshold **does** leak into later queries on a sparse field within the same process (it is asserted, not worked around), and `resetRadiusThreshold()` **cannot** undo it, because it takes a dense vector and fails with "missing query clause" on a sparse field. Both are follow-ups on #200's thread-local threshold, not on this change.
+  - Indices need not be sorted; duplicate indices are rejected by upstream.
+
 - **`setRadius()` / `setLinear()` / `setUsingRefiner()` failed on a DiskANN field** (#216)
   - All three threw `query params type does not match the index type of vector field[v], expected DISKANN but got HNSW`. The message blamed HNSW, but the adapter was the one sending HNSW params.
   - `ensure_query_params_for_field()` had no `IndexType::DISKANN` case, so it fell through to a hardcoded HNSW fallback. The fallback ran even when the index type *had* been resolved, so it converted "I do not handle this index type" into "these are HNSW params", which upstream then rejects.

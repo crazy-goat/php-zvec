@@ -2981,7 +2981,32 @@ void zvec_doc_iterator_free(zvec_doc_iterator_t it) {
     delete static_cast<DocIteratorHolder*>(it);
 }
 
-// --- Native multi-query ---
+void zvec_vector_query_set_sparse_vector(zvec_vector_query_t q, const uint32_t* indices, const float* values, uint32_t count) {
+    if (!q) return;
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    if (count == 0) {
+        // An empty sparse vector is legitimate (a document may have none), so
+        // represent it as empty strings rather than leaving a dense clause.
+        holder->query.target_.set_sparse_vector(std::string(), std::string());
+        holder->query.target_.set_vector(std::string());
+        return;
+    }
+    if (!indices || !values) return;
+    // Upstream takes the two arrays as std::string and memcpy's them in: the
+    // indices string is count*4 raw bytes, the values string count*4 raw bytes.
+    // Verified against the upstream C API's own setter, which produces exactly
+    // this layout. Upstream sorts the indices itself (sanitize_sparse_vector) and
+    // rejects duplicates, so they need not be pre-sorted here.
+    std::string idx(reinterpret_cast<const char*>(indices), count * sizeof(uint32_t));
+    std::string val(reinterpret_cast<const char*>(values), count * sizeof(float));
+    holder->query.target_.set_sparse_vector(std::move(idx), std::move(val));
+    // Clear any dense vector. Leaving one set would make upstream convert the
+    // dense payload into a single 0-index sparse entry, which scores 0.0 against
+    // every document and silently disables radius filtering.
+    holder->query.target_.set_vector(std::string());
+}
+
+
 
 // The zvec_ffi_ prefix is deliberate: upstream's own C API library
 // (libzvec_c_api) exports zvec_multi_query_create, zvec_multi_query_set_topk

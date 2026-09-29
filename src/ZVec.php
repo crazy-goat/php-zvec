@@ -2329,6 +2329,24 @@ class ZVec
 
         $this->checkClosed();
 
+        // A sparse query has no dense vector to hand to the scalar path, which
+        // would fail on an empty float buffer. The native query object already
+        // carries the sparse clause, so run it through the vector path instead
+        // rather than duplicating the sparse marshalling here.
+        if ($fieldName instanceof ZVecVectorQuery && $fieldName->sparseIndices !== []) {
+            $fieldName->setTopk($topk);
+            if ($filter !== null) {
+                $fieldName->setFilter($filter);
+            }
+            if ($includeVector) {
+                $fieldName->setIncludeVector(true);
+            }
+            if ($outputFields !== null) {
+                $fieldName->setOutputFields($outputFields);
+            }
+            return $this->queryVector($fieldName);
+        }
+
         $params = $this->resolveQueryParams(
             $fieldName, $queryVector, $topk, $includeVector, $filter,
             $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
