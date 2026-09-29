@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`ZVecVectorQuery::fromId()` now works in every query entry point** (#219)
+  - `ZVecVectorQuery::fromId('field', 'docId')` existed and was documented, but no entry point could run the query it built. `query()`, `queryWithReranker()`, `queryMulti()` and `groupByQuery()` all threw *"query() with docId not yet implemented"*, and `queryVector()` failed upstream with *"missing query clause"* because the native handle carried no vector.
+  - They now fetch the document, read its vector, and run an ordinary query — the same client-side approach the Python SDK takes, since upstream has no native query-by-document-id. `groupByQuery()` only builds a `float[]` buffer, so it accepts FP32 and INT8 fields and names the actual type for others.
+  - The fetched vector is **not** written back into the query object, so it stays reusable: if the document changes, the next call picks up the new vector. A `.phpt` case runs one object twice to pin that down.
+  - `fromId()` now rejects an empty `$docId` up front, and setting both `docId` and a vector throws `Cannot provide both docId and vector` instead of the old "not yet implemented" message.
+  - `queryById()` is unchanged: the fetch-and-resolve logic moved into a shared private `fetchQueryVector()` used by both, and the two existing queryById tests pass untouched.
+
 - **Native hybrid multi-query: `ZVec::multiQuery()`** (#217)
   - `multiQuery(array $subQueries, ZVecRrfReRanker|ZVecWeightedReRanker $reranker, int $topk = 10, ?int $numCandidates = null, ?string $filter = null, ?array $outputFields = null, bool $includeVector = false, bool $includeDocId = false): ZVecDoc[]` builds one upstream `MultiQuery` and lets zvec run the sub-queries in parallel and fuse them in C++. Mirrors the Python SDK's `Collection.multi_query()`.
   - **This is what makes hybrid dense + full-text work at all.** The existing `queryMulti()` runs each sub-query separately through the legacy scalar path, which knows nothing about an FTS clause: an FTS sub-query has no vector, and building a float buffer from an empty one aborted with `FFI\Exception: Cannot instantiate FFI\CData of zero size`. It also discarded everything living only in the C++ query handle (the FTS clause, DiskANN `listSize`, HNSW prefetch, `setIncludeDocId()`, `setOutputFields()`), and keyed its results by field name so two sub-queries on one field silently dropped the first.

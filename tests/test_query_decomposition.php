@@ -100,16 +100,16 @@ try {
     assert($validationPassed2, 'resolveQueryParams must validate fieldName');
     echo "11. resolveQueryParams validates fieldName\n";
 
-    // Test 12: ZVecVectorQuery with docId throws
+    // Test 12: a docId query that also carries a vector is ambiguous
     $vqDocId = new ZVecVectorQuery('vec', [1.0, 0.0, 0.0, 0.0]);
     $vqDocId->docId = 'some_doc';
     $docIdThrown = false;
     try {
         $coll->query($vqDocId);
     } catch (ZVecException $e) {
-        $docIdThrown = str_contains($e->getMessage(), 'docId not yet implemented');
+        $docIdThrown = str_contains($e->getMessage(), 'Cannot provide both docId and vector');
     }
-    assert($docIdThrown, 'resolveQueryParams must throw for docId');
+    assert($docIdThrown, 'resolveQueryParams must throw when both docId and vector are set');
     echo "12. resolveQueryParams throws for docId\n";
 
     // Test 13: query() with combined outputFields and filter

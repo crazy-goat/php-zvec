@@ -1975,6 +1975,37 @@ class ZVec
         $this->checkClosed();
 
         $ffi = self::ffi();
+
+        // fromId() carries no vector in the native handle, so resolve it here and
+        // set it on the handle. Re-set on every call, so reusing one query object
+        // always uses the document's current vector.
+        if ($query->docId !== null) {
+            if ($query->vector !== []) {
+                throw new ZVecException('Cannot provide both docId and vector');
+            }
+            [$vector, $vectorType] = $this->fetchQueryVector($query->fieldName, $query->docId);
+            $dim = count($vector);
+            if ($vectorType === 'fp16') {
+                throw new ZVecException(
+                    "queryVector() with docId does not support FP16 field '{$query->fieldName}'; use queryById() instead"
+                );
+            }
+            if ($vectorType === 'fp64') {
+                $data = $ffi->new("double[$dim]");
+                foreach ($vector as $i => $value) {
+                    $data[$i] = (float)$value;
+                }
+                $ffi->zvec_vector_query_set_vector_fp64($query->getHandle(), $data, $dim);
+            } else {
+                // int8 travels the fp32 path, as it does in queryById().
+                $data = $ffi->new("float[$dim]");
+                foreach ($vector as $i => $value) {
+                    $data[$i] = (float)$value;
+                }
+                $ffi->zvec_vector_query_set_vector_fp32($query->getHandle(), $data, $dim);
+            }
+        }
+
         $result = $ffi->new('zvec_query_result_t');
         $status = $ffi->zvec_collection_query_vector($this->handle, $query->getHandle(), FFI::addr($result));
         self::checkStatus($status);
@@ -2067,6 +2098,7 @@ class ZVec
         bool $isUsingRefiner = false,
     ): array {
         $useFp64 = false;
+        $docId = $fieldName instanceof ZVecVectorQuery ? $fieldName->docId : null;
 
         if ($fieldName instanceof ZVecVectorQuery) {
             $vq = $fieldName;
@@ -2082,10 +2114,6 @@ class ZVec
             $includeVector = $vq->includeVector ?? $includeVector;
             $filter = $vq->filter ?? $filter;
             $useFp64 = $vq->useFp64;
-
-            if ($vq->docId !== null) {
-                throw new ZVecException("query() with docId not yet implemented. Use queryById() or fetch the vector first.");
-            }
         }
 
         if ($topk <= 0) {
@@ -2093,6 +2121,25 @@ class ZVec
         }
         if (is_string($fieldName) && $fieldName === '') {
             throw new ZVecException('Field name must not be empty');
+        }
+
+        // Resolved here rather than in the caller so that invalid input fails
+        // before any I/O. The fetched vector is deliberately NOT written back
+        // into $vq: the query object stays reusable, and if the document changes
+        // the next call must see the new vector.
+        if ($docId !== null) {
+            if ($queryVector !== []) {
+                throw new ZVecException('Cannot provide both docId and vector');
+            }
+            [$queryVector, $vectorType] = $this->fetchQueryVector($fieldName, $docId);
+            if ($vectorType === 'fp16') {
+                throw new ZVecException(
+                    "query() with docId does not support FP16 field '$fieldName'; use queryById() instead"
+                );
+            }
+            if ($vectorType === 'fp64') {
+                $useFp64 = true;
+            }
         }
 
         return [
@@ -2779,6 +2826,39 @@ class ZVec
      * @return ZVecDoc[]
      * @throws ZVecException On FFI error
      */
+    /**
+     * Fetch $docId and return its vector for $fieldName.
+     *
+     * Upstream has no native "query by document id", so this is the client-side
+     * approach the Python SDK also uses: fetch the document, read the vector,
+     * then run a normal query. Lookup order is fp32, fp64, fp16, int8.
+     *
+     * @return array{0: array, 1: string} [vector, type] where type is
+     *         'fp32'|'fp64'|'fp16'|'int8'
+     * @throws ZVecException When the document or the vector field is missing
+     */
+    private function fetchQueryVector(string $fieldName, string $docId): array
+    {
+        if ($docId === '') {
+            throw new ZVecException('Document ID must not be empty');
+        }
+
+        // includeVector must stay true, or the typed getters below return null.
+        $docs = $this->fetch($docId);
+        if ($docs === []) {
+            throw new ZVecException("Document not found: $docId");
+        }
+
+        foreach (['getVectorFp32' => 'fp32', 'getVectorFp64' => 'fp64', 'getVectorFp16' => 'fp16', 'getVectorInt8' => 'int8'] as $getter => $type) {
+            $vector = $docs[0]->{$getter}($fieldName);
+            if ($vector !== null) {
+                return [$vector, $type];
+            }
+        }
+
+        throw new ZVecException("Vector field '$fieldName' not found in document: $docId");
+    }
+
     public function queryById(
         string $fieldName,
         string $docId,
@@ -2804,32 +2884,9 @@ class ZVec
             throw new ZVecException('Document ID must not be empty');
         }
 
-        $docs = $this->fetch($docId);
-        if (empty($docs)) {
-            throw new ZVecException("Document not found: $docId");
-        }
+        [$vector, $vectorType] = $this->fetchQueryVector($fieldName, $docId);
 
-        $vector = $docs[0]->getVectorFp32($fieldName);
-        $isFp64 = false;
-        $isFp16 = false;
-        $isInt8 = false;
-        if ($vector === null) {
-            $vector = $docs[0]->getVectorFp64($fieldName);
-            $isFp64 = $vector !== null;
-        }
-        if ($vector === null) {
-            $vector = $docs[0]->getVectorFp16($fieldName);
-            $isFp16 = $vector !== null;
-        }
-        if ($vector === null) {
-            $vector = $docs[0]->getVectorInt8($fieldName);
-            $isInt8 = $vector !== null;
-        }
-        if ($vector === null) {
-            throw new ZVecException("Vector field '$fieldName' not found in document: $docId");
-        }
-
-        if ($isFp64) {
+        if ($vectorType === 'fp64') {
             return $this->queryFp64(
                 $fieldName, $vector, $topk, $includeVector, $filter,
                 $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
@@ -2837,12 +2894,11 @@ class ZVec
             );
         }
 
-        if ($isFp16) {
+        if ($vectorType === 'fp16') {
             return $this->queryFp16(
                 $fieldName, $vector, $topk, $includeVector, $filter
             );
         }
-
         return $this->query(
             $fieldName,
             $vector,
@@ -2884,6 +2940,7 @@ class ZVec
         $this->checkClosed();
 
         // Handle ZVecVectorQuery object
+        $docId = $fieldName instanceof ZVecVectorQuery ? $fieldName->docId : null;
         if ($fieldName instanceof ZVecVectorQuery) {
             $vq = $fieldName;
             $fieldName = $vq->fieldName;
@@ -2896,10 +2953,6 @@ class ZVec
             $isUsingRefiner = $vq->isUsingRefiner;
             $includeVector = $vq->includeVector ?? $includeVector;
             $filter = $vq->filter ?? $filter;
-
-            if ($vq->docId !== null) {
-                throw new ZVecException("groupByQuery() with docId not yet implemented. Use queryById() or fetch the vector first.");
-            }
         }
 
         if ($groupCount <= 0) {
@@ -2913,6 +2966,21 @@ class ZVec
         }
         if ($groupByField === '') {
             throw new ZVecException('Group by field must not be empty');
+        }
+
+        // Same client-side resolution as query()/queryVector(), after the
+        // validation above so bad arguments fail before any I/O. Group-by only
+        // builds a float[] buffer, so fp64 fields are not supported here.
+        if ($docId !== null) {
+            if ($queryVector !== []) {
+                throw new ZVecException('Cannot provide both docId and vector');
+            }
+            [$queryVector, $vectorType] = $this->fetchQueryVector($fieldName, $docId);
+            if ($vectorType !== 'fp32' && $vectorType !== 'int8') {
+                throw new ZVecException(
+                    "groupByQuery() with docId supports only FP32 vector fields, field '$fieldName' is $vectorType"
+                );
+            }
         }
 
         $ffi = self::ffi();

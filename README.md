@@ -649,8 +649,10 @@ $stats->toArray(): array                  // ['doc_count' => N, 'index_completen
 ```php
 $query = new ZVecVectorQuery('embedding', [0.1, 0.2, 0.3, ...]);
 
-// Also create from document ID:
-$query = ZVecVectorQuery::fromId('embedding', 'doc_1');
+// Also create from document ID -- the vector is fetched when the query runs,
+// so this works with query(), queryVector(), queryWithReranker() and
+// groupByQuery() alike:
+$results = $collection->query(ZVecVectorQuery::fromId('embedding', 'doc_1')->setTopk(5));
 
 // Query parameters
 $query->setFp64(bool $fp64 = true): self            // Use FP64 precision
@@ -1069,7 +1071,7 @@ For production deployments, build the FFI adapter yourself with `./build_zvec.sh
 - **Platform**: Pre-built for Linux x86_64/aarch64 (glibc and musl) and macOS arm64 (macOS 15 or newer — the upstream SDK is built for 15.0). No macOS x86_64 build (upstream ships no SDK for it).
 - **alterColumn()**: Requires `nullable` to be explicitly specified when changing data type. Cannot rename AND change type in one call. Only scalar numeric types (INT32, INT64, UINT32, UINT64, FLOAT, DOUBLE) are supported for type changes.
 - **GroupByVectorQuery**: Does not support HNSW, IVF, Flat, or Vamana query parameters (`setTopk()`, `setHnswParams()`, etc. throw ZVecException).
-- **queryById()**: Uses `fetch()` internally to get the source vector, then performs a second query. Not a single round-trip to the C++ layer.
+- **queryById()** and **`ZVecVectorQuery::fromId()`**: both fetch the source document's vector client-side and then run a normal query, because upstream has no native "query by document id" — the Python SDK does the same. So neither is a single round-trip to the C++ layer. The source document is normally the first result but is not removed from it. `fromId()` works with `query()`, `queryVector()`, `queryWithReranker()`, `queryMulti()` and `groupByQuery()`; FP16 fields need `queryById()`, which has a dedicated half-precision path.
 
 ### Known Security Limitations
 
