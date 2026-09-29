@@ -1289,6 +1289,20 @@ zvec_status_t zvec_collection_create_index(zvec_collection_t coll, const char* f
     return MAKE_STATUS(c->create_index(field_name, index_params, opts));
 }
 
+zvec_status_t zvec_schema_add_field_string_with_index(zvec_schema_t schema, const char* name, int nullable, zvec_index_params_t params) {
+    if (!schema || !name || !params) {
+        return MAKE_STATUS(Status(StatusCode::INVALID_ARGUMENT, "null schema, name or index params"));
+    }
+    auto* s = static_cast<CollectionSchema*>(schema);
+    auto index_params = static_cast<IndexParamsHolder*>(params)->build();
+    if (!index_params) {
+        return MAKE_STATUS(Status(StatusCode::INVALID_ARGUMENT, "Invalid or unsupported index type"));
+    }
+    // FieldSchema's constructor clones index_params, so the caller's ZVecIndexParams
+    // stays valid and frees its own handle whenever it goes out of scope.
+    return MAKE_STATUS(s->add_field(std::make_shared<FieldSchema>(name, DataType::STRING, (bool)nullable, index_params)));
+}
+
 // --- Doc ---
 
 zvec_doc_t zvec_doc_create(const char* pk) {

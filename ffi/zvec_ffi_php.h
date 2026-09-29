@@ -171,6 +171,7 @@ void zvec_index_params_set_quantize_type(zvec_index_params_t params, int quantiz
 void zvec_index_params_set_quantizer_enable_rotate(zvec_index_params_t params, int enable_rotate);
 void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type);
 zvec_status_t zvec_collection_create_index(zvec_collection_t coll, const char* field_name, zvec_index_params_t params, uint32_t concurrency);
+zvec_status_t zvec_schema_add_field_string_with_index(zvec_schema_t schema, const char* name, int nullable, zvec_index_params_t params);
 
 zvec_doc_t zvec_doc_create(const char* pk);
 void zvec_doc_free(zvec_doc_t doc);

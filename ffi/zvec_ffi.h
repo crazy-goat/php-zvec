@@ -216,6 +216,15 @@ void zvec_index_params_set_quantizer_enable_rotate(zvec_index_params_t params, i
 void zvec_index_params_set_metric_type(zvec_index_params_t params, int metric_type);
 zvec_status_t zvec_collection_create_index(zvec_collection_t coll, const char* field_name, zvec_index_params_t params, uint32_t concurrency);
 
+// Adds a STRING field carrying an explicit scalar index (FTS or INVERT), so the
+// index exists from the first insert instead of a later create_index() call.
+// params is consumed by this call and may be freed right afterwards. Declared
+// here rather than next to zvec_schema_add_field_string because the
+// zvec_index_params_t typedef comes later in this header.
+// A vector index type is not rejected here: upstream reports it at create time
+// with a clearer message, and one source of truth is preferable.
+zvec_status_t zvec_schema_add_field_string_with_index(zvec_schema_t schema, const char* name, int nullable, zvec_index_params_t params);
+
 // Doc
 zvec_doc_t zvec_doc_create(const char* pk);
 void zvec_doc_free(zvec_doc_t doc);

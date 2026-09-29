@@ -274,7 +274,7 @@ $schema->setMaxDocCountPerSegment(int $count): self
 
 // Scalar fields
 $schema->addInt64(string $name, bool $nullable = false, bool $withInvertIndex = false): self
-$schema->addString(string $name, bool $nullable = false, bool $withInvertIndex = false): self
+$schema->addString(string $name, bool $nullable = false, bool $withInvertIndex = false, ?ZVecIndexParams $indexParams = null): self
 $schema->addFloat(string $name, bool $nullable = true): self
 $schema->addDouble(string $name, bool $nullable = true): self
 $schema->addBool(string $name, bool $nullable = false, bool $withInvertIndex = false): self
@@ -510,6 +510,11 @@ $params = ZVecIndexParams::forFts(
     string[] $filters = ['lowercase'],
     string $extraParams = ''
 ): self
+// The same index can be declared up front, so it exists from the first insert
+// instead of via a later createIndex() call:
+//   $schema->addString('body', indexParams: ZVecIndexParams::forFts());
+//   $schema->addString('tag',  indexParams: ZVecIndexParams::forInvert());
+//
 // Tokenizers: "standard", "ngram", "jieba", "whitespace"
 // Filters:   "lowercase", "ascii_folding", "stemmer"
 // extraParams is a JSON object, e.g. '{"stemmer_lang":"english"}',
