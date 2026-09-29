@@ -2627,13 +2627,28 @@ static void ensure_query_params_for_field(Collection* c, SearchQuery& query, con
                     case IndexType::VAMANA:
                         query.target_.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         return;
+                    case IndexType::DISKANN:
+                        // DiskAnnQueryParams only takes list_size; radius and the
+                        // flags come from the common QueryParams base.
+                        query.target_.query_params_ = std::make_shared<DiskAnnQueryParams>();
+                        query.target_.query_params_->set_radius(holder->radius_);
+                        query.target_.query_params_->set_is_linear(holder->is_linear_);
+                        query.target_.query_params_->set_is_using_refiner(holder->is_using_refiner_);
+                        return;
                     default:
-                        break;
+                        // An index type we do not handle. Leaving query_params_ null
+                        // lets upstream use its own defaults and skip its params-type
+                        // check, which fails far less often than guessing HNSW: the
+                        // guess was rejected outright for DISKANN before this case
+                        // existed, and for any index type added upstream later.
+                        // Trade-off: radius/linear/refiner are not applied in that
+                        // case. Each new index type needs its own branch here.
+                        return;
                 }
             }
         }
-        // Fallback: use HNSW params if can't determine index type
-        query.target_.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+        // Could not read the schema or the field. Same reasoning as above: no
+        // params beats the wrong ones.
     }
 }
 
@@ -2699,8 +2714,16 @@ zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, cons
                     case IndexType::VAMANA:
                         holder->query.target_.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         break;
+                    case IndexType::DISKANN:
+                        holder->query.target_.query_params_ = std::make_shared<DiskAnnQueryParams>();
+                        holder->query.target_.query_params_->set_radius(holder->radius_);
+                        holder->query.target_.query_params_->set_is_linear(holder->is_linear_);
+                        holder->query.target_.query_params_->set_is_using_refiner(holder->is_using_refiner_);
+                        break;
                     default:
-                        holder->query.target_.query_params_ = std::make_shared<HnswQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        // See ensure_query_params_for_field(): an unhandled index
+                        // type gets no params rather than wrong ones, so the user
+                        // sees upstream's real "not supported" message.
                         break;
                 }
             }
