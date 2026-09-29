@@ -1061,6 +1061,7 @@ struct IndexParamsHolder {
     bool vamana_saturate_graph_;
     bool vamana_use_contiguous_memory_;
     bool vamana_use_id_map_;
+    bool vamana_two_pass_build_;
     std::string fts_tokenizer_name_;
     std::vector<std::string> fts_filters_;
     std::string fts_extra_params_;
@@ -1079,6 +1080,7 @@ struct IndexParamsHolder {
           quantizer_enable_rotate_(false),
           vamana_max_degree_(64), vamana_search_list_size_(100), vamana_alpha_(1.2f),
           vamana_saturate_graph_(false), vamana_use_contiguous_memory_(false), vamana_use_id_map_(false),
+          vamana_two_pass_build_(false),
           // Upstream DiskAnnIndexParams defaults: max_degree 100, list_size 50, pq_chunk_num 0.
           diskann_max_degree_(100), diskann_list_size_(50), diskann_pq_chunk_num_(0),
           fts_tokenizer_name_("standard"), fts_filters_({"lowercase"}), fts_extra_params_() {}
@@ -1107,7 +1109,9 @@ struct IndexParamsHolder {
                 params = std::make_shared<IvfRabitqIndexParams>(metric_type_, ivf_rabitq_nlist_, rabitq_total_bits_, rabitq_sample_count_);
                 break;
             case IndexType::VAMANA:
-                params = std::make_shared<VamanaIndexParams>(metric_type_, vamana_max_degree_, vamana_search_list_size_, vamana_alpha_, vamana_saturate_graph_, vamana_use_contiguous_memory_, vamana_use_id_map_, quantize_type_);
+                // Pass an empty QuantizerParam; the rotate branch below still
+                // overwrites it when setQuantizerEnableRotate() was used.
+                params = std::make_shared<VamanaIndexParams>(metric_type_, vamana_max_degree_, vamana_search_list_size_, vamana_alpha_, vamana_saturate_graph_, vamana_use_contiguous_memory_, vamana_use_id_map_, quantize_type_, QuantizerParam{}, vamana_two_pass_build_);
                 break;
             case IndexType::DISKANN:
                 params = std::make_shared<DiskAnnIndexParams>(metric_type_, diskann_max_degree_, diskann_list_size_, diskann_pq_chunk_num_, quantize_type_);
@@ -1225,6 +1229,11 @@ void zvec_index_params_set_vamana(zvec_index_params_t params, int max_degree, in
     h->vamana_use_contiguous_memory_ = (bool)use_contiguous_memory;
     h->vamana_use_id_map_ = (bool)use_id_map;
     h->quantize_type_ = to_quantize_type(quantize_type);
+}
+
+void zvec_index_params_set_vamana_two_pass_build(zvec_index_params_t params, int two_pass_build) {
+    if (!params) return;
+    static_cast<IndexParamsHolder*>(params)->vamana_two_pass_build_ = (two_pass_build != 0);
 }
 
 void zvec_index_params_set_diskann(zvec_index_params_t params, int max_degree, int list_size, int pq_chunk_num) {
@@ -2274,11 +2283,16 @@ static void merge_stored_query_settings(const VectorQueryHolder* holder) {
     params->set_radius(holder->radius_);
     params->set_is_linear(holder->is_linear_);
     params->set_is_using_refiner(holder->is_using_refiner_);
-    // Prefetch only exists on HnswQueryParams; re-apply so it is not lost when
-    // a set*Params() call rebuilt query_params_ after setHnswPrefetch().
+    // Prefetch exists on HnswQueryParams and VamanaQueryParams; re-apply so it is
+    // not lost when a set*Params() call rebuilt query_params_ after
+    // setHnswPrefetch() / setVamanaPrefetch(). Both share the stored fields, so the
+    // call order relative to set*Params() does not matter.
     if (auto* hnsw = dynamic_cast<HnswQueryParams*>(params.get())) {
         hnsw->set_prefetch_offset(holder->prefetch_offset_);
         hnsw->set_prefetch_lines(holder->prefetch_lines_);
+    } else if (auto* vamana = dynamic_cast<VamanaQueryParams*>(params.get())) {
+        vamana->set_prefetch_offset(holder->prefetch_offset_);
+        vamana->set_prefetch_lines(holder->prefetch_lines_);
     }
 }
 
@@ -2346,6 +2360,20 @@ void zvec_vector_query_set_hnsw_prefetch(zvec_vector_query_t q, int prefetch_off
     // If no params exist yet, create HNSW ones so the values are actually used.
     if (!holder->query.target_.query_params_) {
         holder->query.target_.query_params_ = std::make_shared<HnswQueryParams>();
+    }
+    merge_stored_query_settings(holder);
+}
+
+void zvec_vector_query_set_vamana_prefetch(zvec_vector_query_t q, int prefetch_offset, int prefetch_lines) {
+    if (!q) return;
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->prefetch_offset_ = prefetch_offset < 0 ? 0 : static_cast<uint32_t>(prefetch_offset);
+    holder->prefetch_lines_ = prefetch_lines < 0 ? 0 : static_cast<uint32_t>(prefetch_lines);
+    // Create Vamana params if none exist yet, so the values are actually used.
+    // Creating HnswQueryParams here would be wrong: upstream rejects params whose
+    // type does not match the field's index type.
+    if (!holder->query.target_.query_params_) {
+        holder->query.target_.query_params_ = std::make_shared<VamanaQueryParams>();
     }
     merge_stored_query_settings(holder);
 }
