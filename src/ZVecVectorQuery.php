@@ -122,10 +122,24 @@ class ZVecVectorQuery implements ZVecQueryInterface
     }
 
     /**
-     * Create a VectorQuery from document ID (find similar documents)
+     * Create a VectorQuery from a document ID (find documents similar to it).
+     *
+     * The vector is fetched when the query runs, not here, so the query object
+     * stays reusable: if the document changes, the next call picks up the new
+     * vector. Works with query(), queryVector(), queryWithReranker(),
+     * queryMulti() and groupByQuery().
+     *
+     * The source document is normally the first result, but is not removed from
+     * it — same as the Python SDK and queryById(). FP16 fields need
+     * queryById(), which has a dedicated half-precision path.
+     *
+     * @throws ZVecException If $docId is an empty string
      */
     public static function fromId(string $fieldName, string $docId): self
     {
+        if ($docId === '') {
+            throw new ZVecException('Document ID must not be empty');
+        }
         $query = new self($fieldName, []);
         $query->docId = $docId;
         return $query;
