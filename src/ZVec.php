@@ -332,7 +332,19 @@ class ZVec
 
     public function __destruct()
     {
-        $this->close();
+        // A destructor must never throw: PHP turns an exception raised during
+        // shutdown into a fatal error. close() only leaves the object open when
+        // upstream refuses the close (FAILED_PRECONDITION, i.e. open iterators);
+        // in that case we still have to drop our registry reference, otherwise
+        // it would be dropped never and the C++ object would outlive us.
+        try {
+            $this->close();
+        } catch (ZVecException) {
+            if (!$this->closed && !$this->destroyed) {
+                self::ffi()->zvec_collection_free($this->handle);
+                $this->closed = true;
+            }
+        }
     }
 
     private function __clone()
@@ -340,6 +352,14 @@ class ZVec
     }
 
     /**
+     * Flushes pending writes and releases the collection's files and lock.
+     *
+     * Idempotent. Throws when upstream refuses the close -- for example while
+     * document iterators are open, in which case the collection stays open and
+     * usable -- and also when the final flush fails, in which case the
+     * collection is closed anyway. Either way the object is not left looking
+     * open while its C++ side is gone.
+     *
      * @throws ZVecException On FFI error
      */
     public function close(): void
@@ -347,8 +367,19 @@ class ZVec
         if ($this->closed || $this->destroyed) {
             return;
         }
-        self::ffi()->zvec_collection_free($this->handle);
+        $ffi = self::ffi();
+        $status = $ffi->zvec_collection_close($this->handle);
+        if ($status->code === self::STATUS_FAILED_PRECONDITION) {
+            // Upstream changed nothing, so keep both the registry entry and the
+            // open state, and surface the error.
+            self::checkStatus($status);
+        }
+        $ffi->zvec_collection_free($this->handle);
         $this->closed = true;
+        // Any other error still means closed: upstream releases its resources
+        // even when the final flush fails. checkStatus() reads thread-local
+        // error details, which zvec_collection_free() does not touch.
+        self::checkStatus($status);
     }
 
     /**
@@ -387,11 +418,15 @@ class ZVec
             try {
                 self::checkStatus($ffi->zvec_collection_destroy($newHandle));
             } catch (\Throwable $e) {
-                // Free the reopened handle to prevent orphaned C++ object in g_collections
+                // Destroy failed, so the reopened handle is still registered and
+                // has to be released explicitly. On success the C function has
+                // already erased the entry.
                 $ffi->zvec_collection_free($newHandle);
                 throw $e;
             }
         } else {
+            // A failed destroy throws from checkStatus() before either the free
+            // or the state update, so the object stays open and usable.
             self::checkStatus(self::ffi()->zvec_collection_destroy($this->handle));
             self::ffi()->zvec_collection_free($this->handle);
             $this->closed = true;
@@ -1140,6 +1175,9 @@ class ZVec
      * Value: 67108864 (64 MB)
      */
     public const DEFAULT_MAX_BUFFER_SIZE = 67108864; // 64 MB
+
+    /** zvec::StatusCode::FAILED_PRECONDITION — upstream refused the operation and changed nothing. */
+    private const STATUS_FAILED_PRECONDITION = 5;
 
     /**
      * Schema buffer size: 8192 bytes.

@@ -160,6 +160,14 @@ void zvec_schema_add_field_array_double(zvec_schema_t schema, const char* name, 
 // Collection lifecycle
 zvec_status_t zvec_collection_create(const char* path, zvec_schema_t schema, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
 zvec_status_t zvec_collection_open(const char* path, int read_only, int enable_mmap, uint32_t max_buffer_size, zvec_collection_t* out);
+// Calls zvec::Collection::close(): flushes pending writes and releases the
+// files and the collection lock. Does NOT touch the handle registry -- the
+// caller must still call zvec_collection_free().
+// Returns 5 (FAILED_PRECONDITION) while iterators are open, in which case the
+// collection stays open and usable. Any other result means it is closed, even
+// on error: upstream releases its resources when the final flush fails.
+// A NULL handle returns code 1.
+zvec_status_t zvec_collection_close(zvec_collection_t coll);
 void zvec_collection_free(zvec_collection_t coll);
 zvec_status_t zvec_collection_flush(zvec_collection_t coll);
 zvec_status_t zvec_collection_optimize(zvec_collection_t coll, uint32_t concurrency);

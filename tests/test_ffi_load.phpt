@@ -18,6 +18,7 @@ $requiredFunctions = [
     'zvec_collection_create',
     'zvec_collection_open',
     'zvec_collection_free',
+    'zvec_collection_close',
     'zvec_collection_flush',
     'zvec_collection_optimize',
     'zvec_collection_destroy',
@@ -144,7 +145,7 @@ try {
 echo "DONE\n";
 ?>
 --EXPECT--
-All 72 FFI symbols resolved successfully
+All 73 FFI symbols resolved successfully
 No FFI::cdef() inline string found in src/ZVec.php
 Header file zvec_ffi_php.h is used as source of truth
 Basic create/insert/optimize works

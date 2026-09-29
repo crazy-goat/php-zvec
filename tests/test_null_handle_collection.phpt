@@ -24,24 +24,28 @@ echo "PASS: zvec_collection_flush(null) returned code={$status->code}\n";
 $status = $ffi->zvec_collection_optimize(null, 0);
 echo "PASS: zvec_collection_optimize(null, 0) returned code={$status->code}\n";
 
-// 4. zvec_collection_destroy(null) — should return error
+// 4. zvec_collection_close(null) — should return error, not segfault
+$status = $ffi->zvec_collection_close(null);
+echo "PASS: zvec_collection_close(null) returned code={$status->code}\n";
+
+// 5. zvec_collection_destroy(null) — should return error
 $status = $ffi->zvec_collection_destroy(null);
 echo "PASS: zvec_collection_destroy(null) returned code={$status->code}\n";
 
-// 5. zvec_collection_schema(null, ..., ...) — should return error
+// 6. zvec_collection_schema(null, ..., ...) — should return error
 $buf = $ffi->new("char[256]");
 $status = $ffi->zvec_collection_schema(null, $buf, 256);
 echo "PASS: zvec_collection_schema(null) returned code={$status->code}\n";
 
-// 6. zvec_collection_path(null, ..., ...) — should return error
+// 7. zvec_collection_path(null, ..., ...) — should return error
 $status = $ffi->zvec_collection_path(null, $buf, 256);
 echo "PASS: zvec_collection_path(null) returned code={$status->code}\n";
 
-// 7. zvec_collection_stats(null, ..., ...) — should return error
+// 8. zvec_collection_stats(null, ..., ...) — should return error
 $status = $ffi->zvec_collection_stats(null, $buf, 256);
 echo "PASS: zvec_collection_stats(null) returned code={$status->code}\n";
 
-// 8. zvec_collection_query_vector(null, null, null) — should return error
+// 9. zvec_collection_query_vector(null, null, null) — should return error
 $result = $ffi->new('zvec_query_result_t');
 $ffi->zvec_query_result_free(\FFI::addr($result)); // ensure clean
 $status = $ffi->zvec_collection_query_vector(null, null, \FFI::addr($result));
@@ -54,6 +58,7 @@ PASS: Starting null handle tests for collection
 PASS: zvec_collection_free(null) is no-op
 PASS: zvec_collection_flush(null) returned code=%d
 PASS: zvec_collection_optimize(null, 0) returned code=%d
+PASS: zvec_collection_close(null) returned code=%d
 PASS: zvec_collection_destroy(null) returned code=%d
 PASS: zvec_collection_schema(null) returned code=%d
 PASS: zvec_collection_path(null) returned code=%d

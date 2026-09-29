@@ -443,10 +443,11 @@ and runner output.
 - Schema/collection handles are freed in destructors (`$ownsHandle` flag)
 
 **Collection Lifecycle:**
-- `close()` - closes handle but keeps data on disk (can reopen)
+- `close()` - calls upstream `Collection::close()` (flush + release files/lock), keeps data on disk, idempotent, and throws `ZVecException` if upstream refuses
 - `destroy()` - removes entire directory (cannot reopen, object invalid)
-- `__destruct()` calls `close()` automatically if not already closed
+- `__destruct()` calls `close()` automatically, and never throws — on failure it falls back to dropping the handle so the C++ object is not leaked
 - After `destroy()`, any method call causes **segfault** (handle invalidated)
+- A **failed** `close()` or `destroy()` must leave the object open and usable. Do not free the handle before the status is known: the C++ object is only safe to drop once upstream says the operation succeeded, or once it says the collection is closed regardless
 
 ### Memory Leak Regression Tests
 

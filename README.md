@@ -211,7 +211,7 @@ $collection = ZVec::open(string $path, bool $readOnly = false, bool $enableMmap 
 $collection = ZVec::createWith(string $path, ZVecSchema $schema, ZVecCollectionOptions $options): self
 $collection = ZVec::openWith(string $path, ZVecCollectionOptions $options): self
 
-$collection->close(): void
+$collection->close(): void                     // flushes + releases the lock; idempotent; throws ZVecException if upstream refuses (e.g. iterators are open)
 $collection->destroy(): void
 $collection->flush(): void
 $collection->optimize(int $concurrency = 0): void
