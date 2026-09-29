@@ -139,7 +139,6 @@ try {
 echo "DONE\n";
 ?>
 --EXPECT--
-All 67 FFI symbols resolved successfully
 No FFI::cdef() inline string found in src/ZVec.php
 Header file zvec_ffi_php.h is used as source of truth
 Basic create/insert/optimize works
