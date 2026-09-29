@@ -6,6 +6,13 @@ Two binding modes are available:
 - **Native PHP extension** (`php-ext/`) — compiled C++ extension, no FFI overhead (recommended)
 - **FFI bindings** (`php/` + `ffi/`) — pure PHP via FFI, no compilation needed beyond the shared library
 
+**Bundled zvec version: `v0.7.0`.** zvec itself is not compiled from source — we
+link against the official prebuilt SDK published by
+[alibaba/zvec](https://github.com/alibaba/zvec/releases) and compile only our
+adapter. See [MIGRATION.md](MIGRATION.md#migration-guide-v060--v070) for what
+changed in this version, and note the one thing that will break your workflow:
+the test-suite command now needs an extra flag.
+
 ## Overview
 
 zvec-php provides PHP bindings for the zvec vector database through FFI (Foreign Function Interface). It allows you to create collections, insert documents with vectors, perform similarity searches, and manage indexes - all from PHP.
@@ -46,7 +53,7 @@ in `lib/`: our small FFI adapter (`libzvec_ffi`, from this project's GitHub Rele
 and the official prebuilt zvec SDK library (`libzvec`, from
 [alibaba/zvec releases](https://github.com/alibaba/zvec/releases), pinned SHA-256).
 The version is auto-detected from Composer's `installed.json`. If omitted,
-specify it explicitly: `vendor/bin/zvec-install v0.4.10`.
+specify it explicitly: `vendor/bin/zvec-install v0.7.0`.
 
 Supported platforms (all pre-built):
 - **Linux x86_64 / aarch64 (glibc 2.28+)** — `libzvec_ffi-linux-{x86_64,aarch64}.tar.gz`
@@ -77,11 +84,14 @@ Requires CMake 3.14+ and a C++17 compiler. zvec itself is no longer built from s
 ### 3. Verify installation (FFI mode)
 
 ```bash
-php run-tests.php -n tests/
+php run-tests.php -n -d extension=ffi.so tests/
 ```
 
-> **Note:** The `-n` flag (no php.ini) is required to avoid a legacy
-> pre-installed `zvec` PHP extension shadowing the FFI classes (#188).
+> **Note:** The goal is FFI enabled *and* the legacy `zvec` extension
+> disabled. `-n` (no php.ini) handles the second, but it also strips any
+> conf.d ini that provides FFI — on such a machine the suite then reports every
+> test as SKIP. `-d extension=ffi.so` restores FFI afterwards. Check that
+> `Tests skipped` is `0`; a run with skips is a broken run, not a pass (#188).
 
 ### Alternative: Build the native PHP extension
 
@@ -829,15 +839,17 @@ Returned by the `set*Params()` / `setFts()` methods on `ZVecVectorQuery` via its
 
 ### .phpt test suite (FFI mode)
 ```bash
-php run-tests.php -n tests/
+php run-tests.php -n -d extension=ffi.so tests/
 ```
 
-> **Note:** Run with `-n` (no php.ini). A legacy pre-installed `zvec` PHP
-> extension (v0.4.10) shadows the FFI classes and breaks the suite (#188).
+> **Note:** `-n` disables php.ini, which avoids a legacy pre-installed `zvec`
+> extension shadowing the FFI classes (#188) but can also take FFI with it. If
+> your PHP has FFI compiled in, plain `-n` is enough; otherwise add
+> `-d extension=ffi.so`. Either way `Tests skipped` must be `0`.
 
 ### Integration tests
 ```bash
-php run-tests.php -n tests/
+php run-tests.php -n -d extension=ffi.so tests/
 ```
 
 ## Project Structure
