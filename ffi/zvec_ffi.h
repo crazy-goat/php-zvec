@@ -66,6 +66,18 @@ int zvec_get_version_major(void);
 int zvec_get_version_minor(void);
 int zvec_get_version_patch(void);
 
+// DiskANN I/O backend (process-wide, probed lazily; no zvec_init() needed).
+// Values match zvec::ailego::IOBackendType and are part of the upstream C ABI.
+#define ZVEC_IO_BACKEND_PREAD    0
+#define ZVEC_IO_BACKEND_LIBAIO   1
+#define ZVEC_IO_BACKEND_IO_URING 2
+int zvec_get_io_backend_type(void);
+// Returns a static string literal owned by the adapter: "pread", "libaio",
+// "io_uring", or "unknown" for any other value.
+const char* zvec_get_io_backend_type_name(int type);
+// Returns a thread_local buffer, overwritten by the next call in this thread.
+const char* zvec_get_io_backend_description(void);
+
 // Global init (call once before any other operation)
 // log_type: 0=console, 1=file
 // log_level: 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=FATAL

@@ -14,8 +14,38 @@ STAMP_FILE="$SDK_DIR/.zvec_sdk_version"
 OS="$(uname -s)"
 ARCH="$(uname -m)"
 
+# Detect the libc the SDK must match. Do NOT test for the mere presence of
+# /lib/ld-musl-*.so.1: glibc distributions that also ship the musl package
+# (Ubuntu/Debian with musl-tools installed) pass that check, and we would then
+# download a musl SDK that a glibc process cannot dlopen -- it fails at runtime
+# with "libc.musl-x86_64.so.1: cannot open shared object file".
+#
+# The authoritative signal is the loader of the binary that will load the SDK.
+# For local development that is php; fall back to the dynamic loader itself.
 is_musl() {
-    ls /lib/ld-musl-*.so.1 >/dev/null 2>&1
+    command -v ldd >/dev/null 2>&1 || return 1
+
+    # Prefer the binary that will actually load the SDK. `command -v` yields an
+    # absolute path; a bare "php" is only a valid argument to ldd when a php
+    # happens to sit in the current directory, so resolve it first.
+    local probe
+    probe="$(command -v "${PHP_BINARY:-php}" 2>/dev/null)" || probe=""
+    if [ -z "$probe" ]; then
+        # No php available (e.g. a pure build container): ask the dynamic linker.
+        probe="/bin/sh"
+    fi
+
+    local deps
+    deps="$(ldd "$probe" 2>/dev/null)" || return 1
+    # musl-linked binaries list libc.musl-*.so.1 and no plain libc.so.
+    if printf '%s' "$deps" | grep -qi musl; then
+        return 0
+    fi
+    if printf '%s' "$deps" | grep -q 'libc\.so'; then
+        return 1
+    fi
+    # Neither marker: cannot tell, so assume the mainstream glibc SDK.
+    return 1
 }
 
 case "$OS-$ARCH" in
