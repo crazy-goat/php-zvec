@@ -1052,6 +1052,7 @@ struct IndexParamsHolder {
     int rabitq_total_bits_;
     int rabitq_num_clusters_;
     int rabitq_sample_count_;
+    int ivf_rabitq_nlist_;
     bool hnsw_use_contiguous_memory_;
     bool quantizer_enable_rotate_;
     int vamana_max_degree_;
@@ -1073,6 +1074,7 @@ struct IndexParamsHolder {
           ivf_n_list_(1024), ivf_n_iters_(10), ivf_use_soar_(false),
           invert_enable_range_(true), invert_enable_wildcard_(false),
           rabitq_total_bits_(7), rabitq_num_clusters_(16), rabitq_sample_count_(0),
+          ivf_rabitq_nlist_(1024),
           hnsw_use_contiguous_memory_(false),
           quantizer_enable_rotate_(false),
           vamana_max_degree_(64), vamana_search_list_size_(100), vamana_alpha_(1.2f),
@@ -1098,6 +1100,11 @@ struct IndexParamsHolder {
                 break;
             case IndexType::INVERT:
                 params = std::make_shared<InvertIndexParams>(invert_enable_range_, invert_enable_wildcard_);
+                break;
+            case IndexType::IVF_RABITQ:
+                // No quantize_type argument: the upstream constructor always sets
+                // QuantizeType::RABITQ itself.
+                params = std::make_shared<IvfRabitqIndexParams>(metric_type_, ivf_rabitq_nlist_, rabitq_total_bits_, rabitq_sample_count_);
                 break;
             case IndexType::VAMANA:
                 params = std::make_shared<VamanaIndexParams>(metric_type_, vamana_max_degree_, vamana_search_list_size_, vamana_alpha_, vamana_saturate_graph_, vamana_use_contiguous_memory_, vamana_use_id_map_, quantize_type_);
@@ -1131,6 +1138,7 @@ static IndexType to_index_type(int v) {
         case 4: return IndexType::HNSW_RABITQ;
         case 5: return IndexType::VAMANA;
         case 6: return IndexType::DISKANN;
+        case 7: return IndexType::IVF_RABITQ;
         case 10: return IndexType::INVERT;
         case 11: return IndexType::FTS;
         default: return IndexType::UNDEFINED;
@@ -1146,6 +1154,7 @@ static int from_index_type(IndexType t) {
         case IndexType::IVF: return 2;
         case IndexType::FLAT: return 3;
         case IndexType::HNSW_RABITQ: return 4;
+        case IndexType::IVF_RABITQ: return 7;
         case IndexType::VAMANA: return 5;
         case IndexType::DISKANN: return 6;
         case IndexType::INVERT: return 10;
@@ -1195,6 +1204,14 @@ void zvec_index_params_set_hnsw_rabitq(zvec_index_params_t params, int total_bit
     h->rabitq_num_clusters_ = num_clusters;
     h->hnsw_m_ = m;
     h->hnsw_ef_construction_ = ef_construction;
+    h->rabitq_sample_count_ = sample_count;
+}
+
+void zvec_index_params_set_ivf_rabitq(zvec_index_params_t params, int nlist, int total_bits, int sample_count) {
+    if (!params) return;
+    auto* h = static_cast<IndexParamsHolder*>(params);
+    h->ivf_rabitq_nlist_ = nlist;
+    h->rabitq_total_bits_ = total_bits;
     h->rabitq_sample_count_ = sample_count;
 }
 
@@ -2367,6 +2384,14 @@ void zvec_vector_query_set_ivf_nprobe(zvec_vector_query_t q, int nprobe) {
     merge_stored_query_settings(holder);
 }
 
+void zvec_vector_query_set_ivf_rabitq_nprobe(zvec_vector_query_t q, int nprobe) {
+    if (!q) return;
+    auto* holder = static_cast<VectorQueryHolder*>(q);
+    holder->query.target_.query_params_ = std::make_shared<IvfRabitqQueryParams>(nprobe);
+    // merge_stored_query_settings() re-applies radius, linear and refiner.
+    merge_stored_query_settings(holder);
+}
+
 void zvec_vector_query_set_flat_mode(zvec_vector_query_t q) {
     if (!q) return;
     auto* holder = static_cast<VectorQueryHolder*>(q);
@@ -2535,6 +2560,9 @@ static void ensure_query_params_for_field(Collection* c, SearchQuery& query, con
                     case IndexType::HNSW_RABITQ:
                         query.target_.query_params_ = std::make_shared<HnswRabitqQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         return;
+                    case IndexType::IVF_RABITQ:
+                        query.target_.query_params_ = std::make_shared<IvfRabitqQueryParams>(10, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        return;
                     case IndexType::VAMANA:
                         query.target_.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         return;
@@ -2603,6 +2631,9 @@ zvec_status_t zvec_collection_group_by_query_vector(zvec_collection_t coll, cons
                         break;
                     case IndexType::HNSW_RABITQ:
                         holder->query.target_.query_params_ = std::make_shared<HnswRabitqQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
+                        break;
+                    case IndexType::IVF_RABITQ:
+                        holder->query.target_.query_params_ = std::make_shared<IvfRabitqQueryParams>(10, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
                         break;
                     case IndexType::VAMANA:
                         holder->query.target_.query_params_ = std::make_shared<VamanaQueryParams>(200, holder->radius_, holder->is_linear_, holder->is_using_refiner_);
@@ -2897,6 +2928,7 @@ static zvec_status_t validate_query_param_type(Collection* c, const char* field_
         case 3: expected_index_type = IndexType::FLAT; break;
         case 4: expected_index_type = IndexType::HNSW_RABITQ; break;
         case 5: expected_index_type = IndexType::VAMANA; break;
+        case 7: expected_index_type = IndexType::IVF_RABITQ; break;
     }
     
     if (expected_index_type != IndexType::UNDEFINED && 
@@ -2936,6 +2968,11 @@ static void apply_query_params(SearchQuery& query, int type, int hnsw_ef, int iv
     } else if (type == 5) {
         query.target_.query_params_ = std::make_shared<VamanaQueryParams>(
             hnsw_ef, radius, (bool)is_linear, (bool)is_using_refiner);
+    } else if (type == 7) {
+        // The legacy path has no dedicated nprobe argument for IVF_RABITQ, so it
+        // reuses the one IVF already has.
+        query.target_.query_params_ = std::make_shared<IvfRabitqQueryParams>(
+            ivf_nprobe, radius, (bool)is_linear, (bool)is_using_refiner);
     }
 }
 
