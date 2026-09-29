@@ -259,6 +259,7 @@ $collection->updateBatch(ZVecDoc ...$docs): array     // Returns per-doc status 
 $collection->delete(string ...$pks): void
 $collection->deleteByFilter(string $filter): void
 $collection->fetch(string ...$pks): ZVecDoc[]        // also fetch(array $pks, ?array $outputFields = null, includeVector: bool = true)
+$collection->iterDocs(?array $outputFields = null, bool $includeVector = true): ZVecDocIterator  // full scan over a snapshot; foreach ($it as $pk => $doc)
                                                      // named `outputFields:` supported; named-arg `pks:` and mixing scalar PKs with an array are rejected with a hint
 
 // Search
@@ -328,6 +329,36 @@ $schema::METRIC_MIPSL2 = 4   // Modified Inner Product with L2
 // Note: addFieldBinary(), addFieldArrayString(), etc. are deprecated aliases
 // that emit E_USER_DEPRECATED warnings.
 ```
+
+### ZVecDocIterator
+
+Returned by `iterDocs()`. Scans every document with constant memory, over a
+snapshot taken when the iterator was created — so documents written afterwards
+are not visible to it. This is the full-scan path: no primary keys, no filter,
+no `topk`. Useful for export, backup and migration, which `fetch()` (needs PKs)
+and `queryByFilter()` (needs a filter and a topk) cannot serve.
+
+```php
+foreach ($collection->iterDocs() as $pk => $doc) {
+    fwrite($fh, json_encode(['pk' => $pk, 'id' => $doc->getInt64('id')]) . "\n");
+}
+```
+
+- **Forward-only.** `rewind()` after the first advance throws. Call
+  `iterDocs()` again to scan afresh.
+- **Auto-closes on exhaustion.** A completed `foreach` needs no cleanup. Call
+  `close()` explicitly when breaking out early; it is idempotent, and
+  `isClosed()` reports the state.
+- **Guards the collection.** While one is open, `close()`, `destroy()`,
+  `addColumn*()` / `alterColumn()` / `dropColumn()` and `optimize()` throw
+  `ZVecException` with code `5` (`FAILED_PRECONDITION`). Writes, `flush()` and
+  queries keep working. Close iterators first.
+- **Seals a segment.** On a writable collection each call seals the current
+  writing segment, which may create a small one. A read-only collection is
+  scanned without writing.
+- `outputFields` accepts scalar fields only — `null` means all of them, `[]`
+  means primary key only. Vector or unknown names are rejected by upstream.
+  Nullable fields that are unset come back as `null`, matching `fetch()`.
 
 ### ZVecDoc
 
@@ -868,6 +899,7 @@ zvec-php/
 │   ├── ZVecGroupByVectorQuery.php # Group-by vector query builder
 │   ├── ZVecSchema.php            # Schema definition
 │   ├── ZVecDoc.php               # Document handle
+│   ├── ZVecDocIterator.php       # Full-scan document iterator
 │   ├── ZVecReRanker.php          # Base re-ranker interface
 │   ├── ZVecRerankedDoc.php       # Reranked document class
 │   ├── ZVecRrfReRanker.php       # RRF re-ranker
@@ -933,6 +965,7 @@ See `tasks/done/` for detailed planning documents.
 - [x] Group-by vector query builder (`ZVecGroupByVectorQuery`)
 - [x] Version API (`getVersion()`, `checkVersion()`)
 - [x] DiskANN I/O backend introspection (`getIoBackendType()`, `getIoBackendDescription()`)
+- [x] Full-collection scans (`iterDocs()` / `ZVecDocIterator`)
 - [x] `allowedBasePath` security restriction in `init()`
 - [x] Verbose error details with file/line info
 - [x] Collection lifecycle options via `getOptions()`

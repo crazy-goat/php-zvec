@@ -270,6 +270,11 @@ zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, in
                                      int include_vector,
                                      zvec_query_result_t* result);
 
+typedef void* zvec_doc_iterator_t;
+zvec_status_t zvec_collection_create_iterator(zvec_collection_t coll, int has_output_fields, const char** output_fields, int output_field_count, int include_vector, zvec_doc_iterator_t* out);
+zvec_status_t zvec_doc_iterator_next(zvec_doc_iterator_t it, zvec_doc_t* out_doc);
+void zvec_doc_iterator_free(zvec_doc_iterator_t it);
+
 zvec_status_t zvec_collection_query(zvec_collection_t coll, const char* field_name,
                                      const float* query_vector, uint32_t dim,
                                      int topk, int include_vector,

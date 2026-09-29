@@ -1,6 +1,7 @@
 #include "zvec_ffi.h"
 
 #include <array>
+#include <algorithm>
 #include <cstring>
 #include <optional>
 #include <string>
@@ -2818,6 +2819,143 @@ zvec_status_t zvec_collection_fetch(zvec_collection_t coll, const char** pks, in
         result->docs = nullptr;
     }
     return ok_status();
+}
+
+// --- Doc iterator ---
+
+namespace {
+struct DocIteratorHolder {
+    // Declaration order is destruction order reversed, so `iterator` is
+    // released first -- it hands its slot back to the collection -- and
+    // `collection` last. Upstream requires the collection to outlive its
+    // iterators (create_iterator's release_slot captures the raw pointer), and
+    // ~CollectionImpl blocks until every iterator is closed, which would
+    // deadlock a single-threaded PHP process. Keeping our own shared_ptr copy
+    // also means zvec_collection_free() on the PHP side cannot pull the
+    // collection out from under a live iterator.
+    std::shared_ptr<Collection> collection;
+    std::vector<std::string> nullable_fields;  // requested nullable fields only
+    DocIterator::Ptr iterator;
+};
+}  // namespace
+
+zvec_status_t zvec_collection_create_iterator(zvec_collection_t coll,
+                                              int has_output_fields,
+                                              const char** output_fields,
+                                              int output_field_count,
+                                              int include_vector,
+                                              zvec_doc_iterator_t* out) {
+    if (!out) {
+        zvec_status_t st = {1, "null out pointer"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    *out = nullptr;
+    if (!coll) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    if (output_field_count < 0 || (output_field_count > 0 && !output_fields)) {
+        zvec_status_t st = {1, "invalid output fields"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+
+    // Copy the collection out of the registry so the iterator owns a reference.
+    std::shared_ptr<Collection> owner;
+    {
+        std::unique_lock lock(g_collections_mutex);
+        auto& reg = collections_registry();
+        auto it = reg.find(static_cast<Collection*>(coll));
+        if (it == reg.end()) {
+            zvec_status_t st = {1, "collection handle is not open"};
+            SET_FFI_ERROR(st);
+            return st;
+        }
+        owner = it->second;
+    }
+
+    IteratorOptions opts;
+    opts.include_vector_ = include_vector != 0;
+    if (has_output_fields) {
+        std::vector<std::string> fields;
+        fields.reserve(output_field_count);
+        for (int i = 0; i < output_field_count; i++) {
+            if (!output_fields[i]) {
+                zvec_status_t st = {1, "null output field"};
+                SET_FFI_ERROR(st);
+                return st;
+            }
+            fields.emplace_back(output_fields[i]);
+        }
+        // Assigned even when empty: upstream reads an empty vector as "PK only".
+        opts.output_fields_ = std::move(fields);
+    }
+
+    // Since #192 fetch() reports an absent nullable field as present-and-null.
+    // Iterate consistently, but only for the fields actually requested -- with
+    // outputFields: ['id'], hasField('weight') must stay false.
+    std::vector<std::string> nullable_fields;
+    auto schema_res = owner->schema();
+    if (schema_res.has_value()) {
+        for (const auto& field : schema_res.value().fields()) {
+            if (field && field->nullable()) {
+                if (!has_output_fields) {
+                    nullable_fields.push_back(field->name());
+                } else if (opts.output_fields_ &&
+                           std::find(opts.output_fields_->begin(), opts.output_fields_->end(), field->name()) !=
+                               opts.output_fields_->end()) {
+                    nullable_fields.push_back(field->name());
+                }
+            }
+        }
+    }
+
+    auto res = owner->create_iterator(opts);
+    if (!res.has_value()) {
+        return MAKE_STATUS(res.error());
+    }
+    auto* h = new DocIteratorHolder{std::move(owner), std::move(nullable_fields), std::move(res).value()};
+    *out = static_cast<zvec_doc_iterator_t>(h);
+    return ok_status();
+}
+
+zvec_status_t zvec_doc_iterator_next(zvec_doc_iterator_t it, zvec_doc_t* out_doc) {
+    if (!out_doc) {
+        zvec_status_t st = {1, "null out pointer"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    *out_doc = nullptr;
+    if (!it) {
+        zvec_status_t st = {1, "null handle"};
+        SET_FFI_ERROR(st);
+        return st;
+    }
+    auto* h = static_cast<DocIteratorHolder*>(it);
+    auto res = h->iterator->next();
+    if (!res.has_value()) {
+        return MAKE_STATUS(res.error());
+    }
+    if (!res.value()) {
+        return ok_status();  // end of iteration
+    }
+    // Copy the doc: PHP frees documents with zvec_doc_free, which deletes a
+    // Doc*, so the shared_ptr cannot be handed out.
+    auto* doc = new Doc(*res.value());
+    for (const auto& name : h->nullable_fields) {
+        if (!doc->has(name)) {
+            doc->set_null(name);
+        }
+    }
+    *out_doc = static_cast<zvec_doc_t>(doc);
+    return ok_status();
+}
+
+void zvec_doc_iterator_free(zvec_doc_iterator_t it) {
+    if (!it) return;
+    delete static_cast<DocIteratorHolder*>(it);
 }
 
 // --- Query ---

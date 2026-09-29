@@ -16,6 +16,7 @@ zvec-php/
 ├── src/ZVecGroupByVectorQuery.php # Group-by vector query builder
 ├── src/ZVecSchema.php             # Schema definition (field types, metrics, vectors)
 ├── src/ZVecDoc.php                # Document handle (getters/setters, serialization)
+├── src/ZVecDocIterator.php        # Full-scan document iterator (iterDocs)
 ├── src/ZVecReRanker.php      # Base re-ranker class
 ├── src/ZVecRerankedDoc.php   # Reranked document class
 ├── src/ZVecRrfReRanker.php   # RRF re-ranker
@@ -448,6 +449,7 @@ and runner output.
 - `__destruct()` calls `close()` automatically, and never throws — on failure it falls back to dropping the handle so the C++ object is not leaked
 - After `destroy()`, any method call causes **segfault** (handle invalidated)
 - A **failed** `close()` or `destroy()` must leave the object open and usable. Do not free the handle before the status is known: the C++ object is only safe to drop once upstream says the operation succeeded, or once it says the collection is closed regardless
+- While a `ZVecDocIterator` is open, `close()` / `destroy()` / DDL / `optimize()` throw `FAILED_PRECONDITION`. Close iterators first — they auto-close when exhausted
 
 ### Memory Leak Regression Tests
 

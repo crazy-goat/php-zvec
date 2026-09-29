@@ -51,6 +51,20 @@ $ffi->zvec_query_result_free(\FFI::addr($result)); // ensure clean
 $status = $ffi->zvec_collection_query_vector(null, null, \FFI::addr($result));
 echo "PASS: zvec_collection_query_vector(null) returned code={$status->code}\n";
 
+// 10. zvec_collection_create_iterator(null, ...) — should return error
+$it = $ffi->new('zvec_doc_iterator_t');
+$status = $ffi->zvec_collection_create_iterator(null, 0, null, 0, 1, \FFI::addr($it));
+echo "PASS: zvec_collection_create_iterator(null) returned code={$status->code}\n";
+
+// 11. zvec_doc_iterator_next(null, ...) — should return error
+$doc = $ffi->new('zvec_doc_t');
+$status = $ffi->zvec_doc_iterator_next(null, \FFI::addr($doc));
+echo "PASS: zvec_doc_iterator_next(null) returned code={$status->code}\n";
+
+// 12. zvec_doc_iterator_free(null) — no-op
+$ffi->zvec_doc_iterator_free(null);
+echo "PASS: zvec_doc_iterator_free(null) is no-op\n";
+
 echo "PASS\n";
 ?>
 --EXPECTF--
@@ -64,4 +78,7 @@ PASS: zvec_collection_schema(null) returned code=%d
 PASS: zvec_collection_path(null) returned code=%d
 PASS: zvec_collection_stats(null) returned code=%d
 PASS: zvec_collection_query_vector(null) returned code=%d
+PASS: zvec_collection_create_iterator(null) returned code=%d
+PASS: zvec_doc_iterator_next(null) returned code=%d
+PASS: zvec_doc_iterator_free(null) is no-op
 PASS
