@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/../src/ZVec.php';
 
@@ -136,4 +137,3 @@ try {
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 $path = __DIR__ . '/../test_dbs/e2e_' . uniqid();
@@ -27,7 +28,7 @@ try {
     $d = $fetched[0];
 
     $fp32 = $d->getVectorFp32('fp32');
-    echo 'fp32: ' . implode(',', array_map(fn($v) => round($v, 1), $fp32)) . "\n";
+    echo 'fp32: ' . implode(',', array_map(fn ($v) => round($v, 1), $fp32)) . "\n";
 
     $sv16 = $d->getSparseVectorFp16('sv16');
     echo 'sv16 indices: ' . implode(',', $sv16['indices']) . "\n";
@@ -41,7 +42,11 @@ try {
 
     echo "OK\n";
 } finally {
-    if (isset($coll)) { try { $coll->destroy(); } catch (Exception $e) {} }
+    if (isset($coll)) {
+        try {
+            $coll->destroy();
+        } catch (Exception $e) {
+        }
+    }
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

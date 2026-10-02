@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace CrazyGoat\ZVec;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 require_once __DIR__ . '/ZVec.php';
 require_once __DIR__ . '/ZVecReRanker.php';
@@ -123,7 +125,7 @@ class ZVecWeightedReRanker implements ZVecReRanker
 
             $stats = $fieldStats[$fieldName];
             $range = $stats['max'] - $stats['min'];
-            
+
             if ($range == 0) {
                 $range = 1.0;
             }
@@ -139,14 +141,12 @@ class ZVecWeightedReRanker implements ZVecReRanker
                     $normalizedScore = ($score - $stats['min']) / $range;
                 }
 
-                if (!isset($combinedScores[$pk])) {
-                    $combinedScores[$pk] = [
-                        'combined' => 0.0,
-                        'ranks' => [],
-                        'scores' => [],
-                        'doc' => $doc,
-                    ];
-                }
+                $combinedScores[$pk] ??= [
+                    'combined' => 0.0,
+                    'ranks' => [],
+                    'scores' => [],
+                    'doc' => $doc,
+                ];
 
                 $combinedScores[$pk]['combined'] += $weight * $normalizedScore;
                 $combinedScores[$pk]['ranks'][$fieldName] = $rank;
@@ -155,7 +155,7 @@ class ZVecWeightedReRanker implements ZVecReRanker
         }
 
         $reranked = [];
-        foreach ($combinedScores as $pk => $data) {
+        foreach ($combinedScores as $data) {
             $reranked[] = new ZVecRerankedDoc(
                 $data['doc'],
                 $data['combined'],
@@ -164,7 +164,7 @@ class ZVecWeightedReRanker implements ZVecReRanker
             );
         }
 
-        usort($reranked, fn(ZVecRerankedDoc $a, ZVecRerankedDoc $b) => $b->getCombinedScore() <=> $a->getCombinedScore());
+        usort($reranked, fn (ZVecRerankedDoc $a, ZVecRerankedDoc $b) => $b->getCombinedScore() <=> $a->getCombinedScore());
 
         return array_slice($reranked, 0, $this->topn);
     }

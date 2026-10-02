@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Bug reproduction: Cleanup safety after failed operations
- * 
+ *
  * Expected: Collection can be safely closed/destroyed after failed operations
  * Actual: All scenarios (failed insert → close/destroy, failed insert + DDL → close, mixed failures) pass on zvec v0.6.0
- * 
+ *
  * Status: No issue observed on zvec v0.6.0 (verified 2026-08-08) — close/destroy/DDL stay safe after failed ops
  * Location: php/ZVec.php - cleanup logic
  */
@@ -16,14 +17,14 @@ $success = true;
 
 try {
     ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
-    
+
     // Test 1: Failed insert followed by close
     echo "Test 1: Failed insert -> close\n";
     $schema = new ZVecSchema('test1');
     $schema->addInt64('id', nullable: false)
         ->addVectorFp32('v', dimension: 4);
     $c1 = ZVec::create($path . '_1', $schema);
-    
+
     try {
         // Insert doc without required field to trigger error
         $doc = new ZVecDoc('d1');
@@ -34,7 +35,7 @@ try {
     } catch (ZVecException $e) {
         echo "  Expected error caught: " . substr($e->getMessage(), 0, 50) . "...\n";
     }
-    
+
     // Try to close after failure
     try {
         $c1->close();
@@ -44,14 +45,14 @@ try {
         $success = false;
     }
     exec("rm -rf " . escapeshellarg($path . '_1'));
-    
+
     // Test 2: Failed insert followed by destroy
     echo "Test 2: Failed insert -> destroy\n";
     $schema2 = new ZVecSchema('test2');
     $schema2->addInt64('id', nullable: false)
         ->addVectorFp32('v', dimension: 4);
     $c2 = ZVec::create($path . '_2', $schema2);
-    
+
     try {
         $doc = new ZVecDoc('d1');
         $doc->setVectorFp32('v', [0.1, 0.2, 0.3, 0.4]);
@@ -59,7 +60,7 @@ try {
     } catch (ZVecException $e) {
         // Expected
     }
-    
+
     try {
         $c2->destroy();
         echo "  PASS: Destroy succeeded after failed insert\n";
@@ -68,19 +69,19 @@ try {
         $success = false;
     }
     // No cleanup needed - destroy removes directory
-    
+
     // Test 3: Failed DDL followed by operations
     echo "Test 3: Failed insert -> DDL -> close\n";
     $schema3 = new ZVecSchema('test3');
     $schema3->addInt64('id', nullable: false)
         ->addVectorFp32('v', dimension: 4);
     $c3 = ZVec::create($path . '_3', $schema3);
-    
+
     // Insert some valid data
     $doc = new ZVecDoc('d1');
     $doc->setInt64('id', 1)->setVectorFp32('v', [0.1, 0.2, 0.3, 0.4]);
     $c3->insert($doc);
-    
+
     // Now try invalid insert
     try {
         $badDoc = new ZVecDoc('d2');
@@ -89,7 +90,7 @@ try {
     } catch (ZVecException $e) {
         // Expected
     }
-    
+
     // Try DDL after failure
     try {
         $c3->addColumnFloat('extra');
@@ -98,7 +99,7 @@ try {
         echo "  DDL failed: " . $e->getMessage() . "\n";
         $success = false;
     }
-    
+
     try {
         $c3->close();
         echo "  PASS: Close succeeded after failed insert + DDL\n";
@@ -107,7 +108,7 @@ try {
         $success = false;
     }
     exec("rm -rf " . escapeshellarg($path . '_3'));
-    
+
     // Test 4: Multiple collections with mixed failures
     echo "Test 4: Multiple collections with mixed failures\n";
     $collections = [];
@@ -116,7 +117,7 @@ try {
         $schema->addInt64('id', nullable: false)
             ->addVectorFp32('v', dimension: 4);
         $c = ZVec::create($path . "_multi_$i", $schema);
-        
+
         if ($i === 1) {
             // Make this one fail
             try {
@@ -134,7 +135,7 @@ try {
         }
         $collections[] = $c;
     }
-    
+
     // Close all
     foreach ($collections as $idx => $c) {
         try {
@@ -146,7 +147,7 @@ try {
         }
     }
     exec("rm -rf " . escapeshellarg($path . '_multi_*'));
-    
+
     if ($success) {
         echo "\nPASS: bug_0005 - All cleanup scenarios work correctly\n";
         exit(0);
@@ -154,7 +155,7 @@ try {
         echo "\nFAIL: bug_0005 - Some cleanup scenarios failed\n";
         exit(1);
     }
-    
+
 } catch (Throwable $e) {
     echo "FAIL: Unexpected error: " . $e->getMessage() . "\n";
     echo $e->getTraceAsString() . "\n";
@@ -162,4 +163,3 @@ try {
     exec("rm -rf " . escapeshellarg($path . '_*'));
     exit(1);
 }
-?>

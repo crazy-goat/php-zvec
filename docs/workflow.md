@@ -1,543 +1,231 @@
-# Workflow: Issue → Feature Branch → Implementation → Code Review → PR → CI → Merge
+# Workflow: issue → worktree → code → review → PR → CI → merge → findings → cleanup
 
-This document describes the complete workflow for handling issues in the
-[crazy-goat/php-zvec](https://github.com/crazy-goat/php-zvec) repository
-using `gh`, `git` and **Pi subagents**.
+This is the development process of every `crazy-goat` repository. Project
+commands (build, lint, tests) live in [`AGENTS.md`](../AGENTS.md) and are not
+repeated here. The process is the same for humans and for coding agents.
 
-The main agent acts as an **orchestrator**: it delegates issue triage,
-implementation and code review to subagents, then synthesizes the results,
-while the parent session keeps control of branching, committing, pushing
-and merging.
+Everything is written in **English**: code, comments, commits, docs, issues, PRs.
 
----
+## Rules in short
 
-## Subagent Selection
-
-| Stage | Universal agent (default) | More specialized (task difficulty) |
-|-------|---------------------------|------------------------------------|
-| Issue triage | `explore` or `delegate` | — |
-| API research | `researcher` | `explore` / `context-builder` (repo-local) |
-| Planning (optional) | `planner` | `oracle` (challenge the direction) |
-| Implementation | `coder` | `coder-high`, `worker` (harder/riskier) |
-| Code review | `review` | `review-critical`, `reviewer` (risky/large) |
-
-**Rule of thumb:** always start with the universal agents (`explore`, `coder`,
-`review`). Pick a more specialized agent only when the task difficulty
-justifies it — e.g. `coder-high` for multi-file or risky changes, `worker`
-when following an approved plan, `review-critical` for security- or
-data-sensitive changes.
-
-Each subagent receives a **focused task** with: the exact goal, the scope
-(files/branch), constraints and the expected output shape. Subagents must
-**not commit or push** — that stays in the parent session.
-
-`coder` and `review` subagents also maintain the project knowledge base in
-`docs/helpers/` (FAQ, common mistakes, decisions) and collect out-of-scope
-findings as follow-up issue candidates — see sections 4, 5 and the
-"Knowledge Base" section below.
-
----
-
-## 1. Browse Open Issues (subagent)
-
-Delegate issue triage to a subagent (`explore` or `delegate`):
+- One issue = one worktree = one branch = one pull request.
+- Work is driven by the **lowest open milestone** (`vX.Y.Z`).
+- Every open issue in a milestone has one `type:*` and one `priority:*` label.
+- Merge with **squash** only, and only when CI (`ci-ok`) is green on a branch that is up to date with the default branch.
+- Update `CHANGELOG.md` in every PR that changes user-visible behaviour.
+- The coder and the reviewer are **subagents** with a fresh context. They talk through
+  two scratch files, `findings.md` and `review.md`, in the worktree root. Both are
+  gitignored and never committed.
+- Nothing is pushed before the review accepts the code.
+- **Nothing found on the way is lost.** Findings become issues after the merge (step 7).
 
 ```text
-Task: "List ALL open issues — `--limit 30` is only `gh`'s default value,
-there may be more. Use `gh issue list --state open --limit 100 --json
-number,title,labels` (or paginate with `--page N`) until every open issue
-has been seen. Inspect the most promising ones with
-`gh issue view <NUMBER> --json title,body,labels,state`.
-Recommend the top 3 most impactful issues, each with a one-line
-justification. Do not modify anything."
-
-Criteria:
-- Issues labeled `enhancement`, `bug`, `good-first-issue`
-- Issues about stability, memory leaks, data correctness
-- Issues blocking other tasks
-- Issues most relevant to users (documentation, API coverage)
+1 pick ─▶ 2 worktree ─▶ 3 code ─▶ 4 review ─▶ 5 PR + CI ─▶ 6 merge ─▶ 7 findings ─▶ 8 cleanup
+                         ▲          │ issues     │ CI red     │ conflict
+                         └──────────┴────────────┘            └─▶ rebase, back to 5
 ```
 
-The parent picks one issue from the recommendation and proceeds.
-
----
-
-## 2. Create a Fresh Feature Branch
+## 1. Pick an issue
 
 ```bash
-# Make sure you're on main with the latest changes
-git checkout main
-git pull origin main
-
-# Create a feature branch
-git checkout -b feat/issue-<NUMBER>-<short-description>
+bin/pick-issue.sh                 # top 5 of the lowest open milestone
+bin/pick-issue.sh --top=10        # more candidates
+bin/pick-issue.sh --milestone=v1.2.0
+bin/pick-issue.sh --json          # machine-readable, for agents
 ```
 
-**Branch naming convention:**
-- `feat/issue-<NUMBER>-<kebab-case>` — new feature
-- `fix/issue-<NUMBER>-<kebab-case>` — bug fix
-- `docs/issue-<NUMBER>-<kebab-case>` — documentation
-- `test/issue-<NUMBER>-<kebab-case>` — test migration or additions
+The script needs only `gh`. It finds the **lowest open milestone**, scores its
+open issues from labels, title, age and comment count (it never reads issue
+bodies, so it is cheap for an agent), and prints the top candidates with the
+score breakdown. You still make the final pick. Blocked issues
+(`status:blocked`, `status:needs-info`) are ranked last.
 
----
+- **Release gate:** when the lowest milestone has no open issues left, the script
+  exits with code **3** and prints `RELEASE NEEDED`. Stop. Cut the release first
+  (see [release-workflow.md](release-workflow.md)), then run the script again.
+  Do not take issues from a higher milestone.
+- Read the issue, including **Where to start** and **Definition of done**.
 
-## 3. Research Before Implementation (subagent)
-
-Before coding, delegate API verification to a subagent (`researcher`, or
-`explore` for repository-local checks):
-
-```text
-Task: "Verify the API for issue #<NUMBER> against reference implementations:
-1. zvec documentation (https://zvec.org/en/docs/)
-2. Node.js API (https://zvec.org/api-reference/nodejs/) — exact enum values,
-   parameter names, defaults
-3. Python SDK in `zvec/python/zvec/` — actual implementation details
-4. C++ headers in `zvec/src/include/zvec/db/` — what the C++ layer supports
-Return a concise summary: enum values, signatures, defaults, and any
-intentional deviation the PHP binding must make. Do not modify files."
-```
-
----
-
-## 4. Implement the Change (subagent)
-
-Delegate implementation to a subagent. The universal agent is **`coder`**; for
-harder, multi-file or riskier changes use **`coder-high`** (or `worker` when
-following an approved plan).
-
-```text
-Task: "Implement issue #<NUMBER> on branch <branch>. Requirements: <summary>.
-Follow AGENTS.md conventions: PSR-4 structure, PHP 8.1+ with full type
-declarations, `checkStatus()` after every FFI call, free C strings, `.phpt`
-test with try-finally cleanup and uniqid() temp directory. Run the tests:
-`php run-tests.php -n tests/`. Do NOT commit or push."
-```
-
-**Follow-up candidates:** during implementation the `coder` subagent collects
-findings worth fixing later but out of scope for the current issue (tech
-debt, suspected bugs, API gaps). At the end it reports them to the user and
-asks whether to open them as GitHub issues — **it never creates issues
-without explicit user approval**:
-
-```text
-Final step: "List follow-up candidates found during implementation (out of
-scope, tech debt, potential bugs). For each: short title, one-line
-description, suggested label (e.g. `enhancement`, `bug`). Ask the user
-whether to create them with `gh issue create` and create only those the
-user approves."
-```
-
-**Verify every candidate first:** before reporting, each finding must be
-checked for technical truth (with file:line evidence) and for existing
-GitHub issues — see "Follow-up Candidate Verification" below. Drop findings
-that are FALSE or already tracked.
-
-**Knowledge base:** after implementation the `coder` subagent appends
-non-obvious findings to `docs/helpers/` (common mistakes, decisions, API
-details worth remembering) — see "Knowledge Base (docs/helpers/)" below.
-
-After the subagent finishes, the parent commits and pushes:
+## 2. Create a worktree
 
 ```bash
-git add -A
-git commit -m "feat: implement <short description> (closes #<NUMBER>)"
-git push origin feat/issue-<NUMBER>-<description>
+bin/worktree.sh <issue-number>          # optional 2nd argument: feat|fix|docs|refactor|test|chore
+cd ../<repo>-worktrees/issue-<N>
 ```
 
-**Commit message convention:**
-- Type: `feat`, `fix`, `docs`, `refactor`, `ci`, `test`, `chore`
-- Scope: optional, e.g. `(ffi)`, `(php)`, `(build)`, `(docs)`
-- Reference to issue: `(closes #<NUMBER>)` or `(refs #<NUMBER>)`
+The script fetches the default branch and creates the worktree
+`../<repo>-worktrees/issue-<N>` on branch `<type>/issue-<N>-<slug>`. It also:
 
----
+- creates empty `findings.md` and `review.md` (both gitignored),
+- writes `.env.worktree` with a unique `COMPOSE_PROJECT_NAME` and a free host port for
+  every `${..._PORT:-N}` variable found in a compose file,
+- runs the repo's optional `bin/worktree-setup.sh` (install dependencies, start test
+  containers, and so on).
 
-## 5. Code Review via Subagent
+Load the environment with `set -a && . ./.env.worktree && set +a` before running tests.
 
-After implementation, run a code review using a subagent (separate agent with
-its own context). The universal agent is **`review`**; for security-sensitive,
-large or high-risk changes use **`review-critical`** instead. For very large
-changes you may split the review into parallel lanes (one subagent per
-concern: correctness, memory, tests) and aggregate the results.
+**Every repo must be worktree-safe**, so that several worktrees can run tests at the same
+time. See [Worktree-safe repositories](#worktree-safe-repositories).
 
-The review subagent checks:
+## 3. Code (coder subagent)
 
-- Alignment with project structure (PSR-4, FFI patterns, class naming)
-- Type correctness and signatures (PHP 8.1+, full type declarations)
-- Error handling (FFI status checks, exception propagation)
-- Memory management (C string freeing, handle ownership)
-- Coding style (see `AGENTS.md` conventions)
-- Test coverage (`.phpt` test required for every feature)
-- API compatibility with Node.js/Python SDKs
+- Make the smallest correct change that satisfies the Definition of done.
+- Add or update tests. A bug fix starts with a test that fails.
+- Run the checks from `AGENTS.md` until they pass.
+- Update `CHANGELOG.md` under `[Unreleased]` and the docs.
+- **Commit** with [Conventional Commits](https://www.conventionalcommits.org/)
+  (`fix: handle empty response (#42)`). **Do not push.**
+- On a second or later round, first read `review.md` and fix every open point.
 
-```text
-Task: "Code review the uncommitted/committed changes for issue #<NUMBER>
-(files: <list of files> or `git diff origin/main...HEAD`).
-Check: type correctness, error handling, memory leaks, missing tests,
-outdated documentation. List all issues to fix, ordered by severity.
-Do NOT modify files."
-```
+**Coder output contract.** The coder always reports: (1) the changed files, (2) the
+biggest problem met on the way, and (3) every bug or weak spot noticed, **including ones
+outside this issue's scope**, each with `file:line` and a suggested fix. Items (2) and (3)
+are appended to `findings.md` (entries with role `coder`), not only written in the chat.
+Do not fix out-of-scope findings in this PR.
 
-**Follow-up candidates:** findings that are out of scope for the current
-issue (style debt, potential improvements, minor bugs) are reported back as
-follow-up issue candidates — at the end the subagent asks the user whether
-to create them with `gh issue create` and creates only those the user
-approves (same rule as for the `coder` subagent, section 4). Each candidate
-is verified before reporting (technical truth + duplicate check) — see
-"Follow-up Candidate Verification" below.
+## 4. Review (review subagent)
 
-### Follow-up Candidate Verification
+A separate agent with a fresh context reviews the branch diff against the default branch.
+It checks correctness, error handling, missing tests, outdated docs, unrelated changes,
+leftovers (debug code, commented-out code), and that everything is in English.
 
-Before any follow-up candidate is reported to the user, the subagent
-verifies it:
+- It reads `review.md` first. For every earlier point it writes: **fixed**, **still
+  present**, or **not a real problem** (with evidence). Then it looks for new problems.
+- New in-scope problems go to `review.md`. New out-of-scope problems go to
+  `findings.md` (role `review`), as in step 3.
+- **Every point gets an answer**, including nits. Silence is not an answer.
+- A point first seen in round 2 or later escaped round 1, which usually means a check
+  is missing, so prefer adding a test over only fixing the line.
+- Open points left → go back to **step 3**. No open points → the review accepts.
 
-1. **Technical truth** — check the actual source code; cite file:line
-evidence. Verdicts: `CONFIRMED` / `PARTIALLY TRUE` / `FALSE`. Drop FALSE
-findings.
-2. **Duplicate check on GitHub** — list EVERY issue, open and closed:
-   there may be more than 30 (`--limit 30` is only `gh`'s default):
-   ```bash
-   gh issue list --state all --limit 100 --json number,title,state
-   # if exactly 100 are returned, paginate until a page returns fewer:
-   gh issue list --state all --limit 100 --page 2 --json number,title,state
-   ```
-   plus keyword search: `gh search issues "<keywords>"`. If an existing
-   issue already covers the finding → verdict `ALREADY TRACKED` with the
-   issue number; do not propose a new issue (unless the overlap is only
-   tangential — then say so explicitly and reference the existing issue).
-3. **Report** — one line per finding: verdict, one-line evidence (file:line),
-   suggested label.
+A finding entry has: role, `file:line`, what is wrong, severity, and a suggested fix.
 
-Example report line:
+## 5. Push, open the pull request, wait for CI
 
-```text
-CONFIRMED (not tracked): src/ZVecVectorQuery.php:136,162 —
-setVamanaParams()/setHnswRabitqParams() create HnswQueryParams →
-queryVector() rejected by engine (query.cc:173) — label: bug, priority:high
-```
-
-**Knowledge base:** the `review` subagent also appends recurring mistakes and
-notable decisions to `docs/helpers/` (see "Knowledge Base (docs/helpers/)"
-below).
-
----
-
-## 6. Fix Issues Found in Code Review
-
-For each problem found, either fix it directly in the parent or delegate the
-fixes back to the `coder` subagent:
-
-```text
-Task: "Apply the fixes from code review: <list of issues>. Follow AGENTS.md.
-Run `php run-tests.php -n tests/` after fixing. Do NOT commit or push."
-```
-
-Then commit and push:
+Only after the review accepts:
 
 ```bash
-git add -A
-git commit -m "fix: <description of fix>"
-git push origin feat/issue-<NUMBER>-<description>
-```
-
-**All issues must be fixed – even the least significant ones.**
-
----
-
-## 7. Repeat Code Review
-
-After fixing, invoke the review subagent (`review` / `review-critical`)
-again on the updated diff.
-
-Repeat steps 5→6 until the subagent reports no issues.
-
-> **Acceptance criteria:** The subagent responds: "Code looks good, no issues
-> to fix."
-
----
-
-## 8. Build and Test Locally
-
-Before opening a PR, verify that the project builds and all tests pass:
-
-### If C++ changes were made (FFI layer):
-
-```bash
-# Build zvec C++ library (skips if already built for this version)
-./build_zvec_lib.sh v0.6.0
-
-# Build FFI shared library
-./build_ffi.sh
-```
-
-### If only PHP changes were made:
-
-The FFI shared library must already exist. If not, run `./build_zvec.sh`.
-
-### Run all tests:
-
-```bash
-# Run all .phpt tests (always with -n: a legacy pre-installed zvec PHP extension
-# shadows the FFI classes and breaks the suite — see issue #188)
-php run-tests.php -n tests/
-
-# Run specific test file
-php run-tests.php -n tests/test_<feature>.phpt
-
-# Run with verbose output
-php run-tests.php -n -v tests/
-```
-
-> **Warning:** `run-tests.php` unlinks legacy tracked `tests/<name>.php` files
-> that share a basename with a `.phpt` file (issue #187). Back them up first
-> or restore with `git checkout -- tests/` after a run. Conversely the same
-> restore reverts any local edits to those files — keep fixes re-applied.
-
-> **Note:** If you see database errors, clean up stale test directories:
-> ```bash
-> ls test_dbs/
-> rm -rf test_dbs/*/
-> ```
-
-### Verify test databases cleaned up:
-
-```bash
-ls test_dbs/
-# Should be empty (except .gitignore)
-```
-
-**Only open the PR when all tests pass locally.**
-
----
-
-## 9. Update CHANGELOG.md
-
-```bash
-# Edit CHANGELOG.md:
-# - Add entry under [Unreleased] section
-# - Follow Keep a Changelog format (https://keepachangelog.com/en/1.1.0/)
-# - Use appropriate section: Added, Changed, Fixed, Removed, Deprecated
-# - Include issue number, e.g. (#123)
-```
-
-This can also be delegated to a `coder` subagent along with a final
-`review` pass over the docs change.
-
----
-
-## 10. Create a Pull Request
-
-```bash
-# Create a PR from the feature branch to main
-gh pr create \
-  --title "feat: <short description> (closes #<NUMBER>)" \
-  --body "## Description
-
-Closes #<NUMBER>
-
-## Changes
-
-- <list of changes>
-
-## Testing
-
-- [ ] Builds locally (FFI, PHP)
-- [ ] All .phpt tests pass
-- [ ] No test database leftovers
-
-## Code Review
-
-- [ ] Passed subagent code review
-- [ ] All review comments addressed" \
-  --base main \
-  --assignee @me
-```
-
-> **Note:** If you don't use `gh`, create the PR manually via GitHub UI.
-
----
-
-## 11. Wait for CI
-
-```bash
-# Check PR status
-gh pr view --json statusCheckRollup
-
-# Wait for all checks to finish
+git push -u origin HEAD
+gh pr create --fill --body "Closes #<N>"
 gh pr checks --watch
 ```
 
-CI workflow (`.github/workflows/build.yml`) runs:
+- The PR title is a Conventional Commit. With squash merge it becomes the commit message.
+- Use the PR template. Put `Closes #<N>` in the description.
+- The required check is `ci-ok`. If CI fails, read the log (`gh run view --log-failed`),
+  and go back to **step 3**. Do not disable or skip a check to make it green.
+- PRs from first-time contributors need a maintainer to approve the workflow run.
 
-1. **setup-zvec** — builds the zvec C++ library from source or downloads pre-built
-2. **build-ext** — builds the PHP extension (`php-ext/`) and runs tests
-3. **build-ffi** — builds the FFI shared library (`ffi/`) and runs PHP FFI tests
+## 6. Merge
 
-> **Note:** The CI workflow triggers on pull requests to `main`, but only for
-> builds from the same repository (not forks), due to the `if` condition:
-> `github.event.pull_request.head.repo.full_name == github.repository`
-
----
-
-## 12. Handle CI Failures
-
-If CI fails:
+When `ci-ok` is green:
 
 ```bash
-# 1. See which checks failed
-gh pr checks
-
-# 2. View logs
-gh run view --log --job <job-name>
-```
-
-Then:
-
-3. Delegate investigation of the failure to an `explore` subagent (give it
-   the failing job name and log excerpt)
-4. Fix the issues — delegate to `coder` (or `coder-high` if complex)
-5. Run code review via subagent again (repeat steps 5-7)
-6. Run tests locally
-
-```bash
-php run-tests.php -n tests/
-
-# 7. Commit the fixes
-git add -A
-git commit -m "fix: <description of CI fix>"
-git push origin feat/issue-<NUMBER>-<description>
-
-# 8. Wait for CI to re-run
-gh pr checks --watch
-```
-
-**Repeat until all CI checks pass.**
-
----
-
-## 13. Merge PR and Close Issue
-
-```bash
-# Merge PR (squash merge recommended for clean history)
 gh pr merge --squash --delete-branch
-
-# Close the issue (automatic if commit contains "closes #<NUMBER>")
-# Alternatively:
-gh issue close <NUMBER>
 ```
 
----
-
-## 14. Switch Back to main
+The ruleset requires the branch to be **up to date** with the default branch, so `ci-ok`
+has run on exactly the code that lands. If the default branch moved on, update the
+branch and wait for `ci-ok` again (**step 5**):
 
 ```bash
-git checkout main
-git pull origin main
+gh pr update-branch            # merges the default branch into the PR branch
 ```
 
-Done. Ready to start the next cycle from step 1.
+On a conflict, merge or rebase the default branch into the worktree branch, resolve the
+conflicts, run the checks, push, and go back to **step 5**.
 
-## Knowledge Base (docs/helpers/)
+Then check that the issue was closed (`gh issue view <N> --json state`). When the merge
+empties the milestone, go to [release-workflow.md](release-workflow.md) after step 8.
 
-`coder` and `review` subagents maintain a persistent knowledge base in
-`docs/helpers/` so that lessons learned carry over to future tasks:
+## 7. Follow-up findings
 
-- `docs/helpers/faq.md` — frequently asked questions, recurring pitfalls
-  (FFI memory leaks, `test_dbs/` cleanup, the `-n` flag) and their solutions
-- `docs/helpers/decisions.md` — important decisions with rationale
-  (API compatibility with Node.js/Python SDKs, naming, deviations)
-- `docs/helpers/README.md` — structure and rules for the knowledge base
+Run this step **after every merge**, also for small PRs. It turns `findings.md` into
+tracked issues, without duplicates.
 
-Subagents **read** the knowledge base before starting a task and **append**
-short entries after finishing (one topic, the problem, the
-solution/decision, optionally an issue/commit reference). In doubt, ask the
-user before adding a new entry.
+1. **Collect** the candidates from `findings.md`, plus the biggest problem the coder
+   reported. Skip findings that were already fixed in this PR.
+2. **Check them with a read-only subagent.** It must not edit files and must not create,
+   edit or close issues. For every candidate it decides:
+   1. **Is it real?** Read the cited lines on the current default branch. Skip it when
+      the behaviour is by design and documented.
+   2. **Is a similar issue already tracked?** Search open **and** closed issues.
+      `gh` lists only 30 items by default, so always pass a limit:
 
----
+      ```bash
+      gh issue list --state open   --limit 200 --json number,title,labels
+      gh issue list --state closed --limit 200 --json number,title,labels
+      gh search issues --repo {owner}/{repo} --limit 50 "<keywords>"
+      ```
 
-## Quick Reference – Full Cycle
+      Overlapping scope counts as similar. Check issues named in `CHANGELOG.md` too.
+   3. **Verdict:** *comment* on the existing issue, *create* a new issue, or *skip*
+      (not real, or by design).
+3. **Act on the verdicts:**
+   - *comment*: add a comment to the existing issue with the new details, `file:line`
+     and the PR link.
+   - *create*: open a new issue **without a milestone**. It stays in the inbox until a
+     maintainer triages it, so `bin/pick-issue.sh` does not pick it up by accident.
 
-```text
-# 1. Pick an issue (subagent: explore/delegate)
-#    Task: "gh issue list --state open --limit 100 (or paginate — 30 is just
-#           the default limit), recommend top 3"
+     ```bash
+     gh issue create --title "<what is wrong>" \
+       --label "type:bug" --label "priority:medium" --label "good first issue" \
+       --body-file finding.md
+     ```
 
-# 2. Feature branch
-git checkout main && git pull origin main
-git checkout -b feat/issue-<NUMBER>-<description>
+     The body follows the issue form: **Description** (what, where as `file:line`,
+     impact, link to the merged PR), **Where to start**, **Definition of done**.
 
-# 3. Research API (subagent: researcher)
-#    Node.js / Python SDK / C++ headers — https://zvec.org/api-reference/nodejs/
+     | The finding is... | Labels |
+     |---|---|
+     | small and clear, a newcomer can fix it | `type:*`, `priority:*`, `good first issue` |
+     | bigger, but not urgent | `type:*`, `priority:*`, `help wanted` |
+     | urgent (data loss, security, crash) | `priority:critical`; tell the maintainer, who assigns the milestone |
+     | needs a decision or more information | `status:needs-info` |
 
-# 4. Implementation (subagent: coder, or coder-high for hard tasks)
-#    Task: "Implement #<NUMBER>, follow AGENTS.md, add .phpt test,
-#           run php run-tests.php -n tests/, do NOT commit"
-git add -A && git commit -m "feat: implement <desc> (closes #<NUMBER>)"
-git push origin feat/issue-<NUMBER>-<description>
+     A `good first issue` without **Where to start** helps nobody, so fill it in.
+4. **Report** the numbers of the created and commented issues in the final message.
+5. If an automated check could have caught the defect, prefer adding the check (test,
+   linter rule) over only writing an issue.
 
-# 5. Code Review (subagent: review, or review-critical for risky changes)
-#    Task: "Review git diff origin/main...HEAD, list issues, do NOT modify"
-#    ... fix issues (coder) ... repeat until clean
-#    coder/review: collect follow-up candidates → verify (truth + gh
-#                  duplicate check: --state all --limit 100, PAGINATE)
-#                  → ask user → gh issue create
-#    coder/review: append learnings to docs/helpers/ (faq.md, decisions.md)
+## 8. Clean up
 
-# 6. Build and test locally
-./build_zvec_lib.sh v0.6.0
-./build_ffi.sh
-php run-tests.php -n tests/
-
-# 7. Update CHANGELOG.md
-
-# 8. PR
-gh pr create --title "feat: <desc> (closes #<NUMBER>)" --body "..." --base main
-
-# 9. CI
-gh pr checks --watch
-# ... if failures → investigate (explore), fix (coder), review (review),
-#     push → wait for CI (repeat)
-
-# 10. Merge
-gh pr merge --squash --delete-branch
-gh issue close <NUMBER>
-
-# 11. Switch back to main
-git checkout main && git pull origin main
+```bash
+bin/worktree-done.sh <issue-number>     # from the main checkout
 ```
 
----
+The script stops the worktree's containers (`docker compose down -v`), runs the optional
+`bin/worktree-teardown.sh`, removes the worktree, switches the main checkout to the default
+branch, pulls it, and deletes the local branch. `findings.md` and `review.md` disappear
+with the worktree, so run this only after step 7.
 
-## Notes
+## Worktree-safe repositories
 
-- **gh** must be configured and authenticated (`gh auth status`).
-- This project has **no linting/static analysis pipeline** (no php-cs-fixer,
-  phpstan, psalm). Follow conventions manually — see `AGENTS.md`.
-- Subagents do the heavy lifting (triage, research, coding, review); the
-  parent orchestrates, synthesizes and keeps authority over commits, pushes
-  and merges. Subagents must be told explicitly to **not commit or push**.
-- Follow-up issues: `coder`/`review` subagents collect out-of-scope
-  findings, verify each one (technical truth + duplicate check against ALL
-  issues — `--limit 30` is just `gh`'s default, there may be more, so use
-  `--limit 100` and paginate) and only create GitHub issues after explicit
-  user approval.
-- Knowledge base: FAQ, common mistakes and decisions live in
-  `docs/helpers/` (`faq.md`, `decisions.md`) — subagents read it before
-  starting and update it after each task.
-- Subagents run locally and have read/write/edit/bash access. Give them clear
-  instructions: goal, scope, constraints, expected output.
-- The CI builds zvec from source only once per workflow run and caches it
-  as an artifact for downstream jobs (ext + ffi).
-- Pre-built zvec artifacts are stored in GitHub Releases under the
-  `zvec-build-v0.6.0` release tag and downloaded by CI to avoid rebuilding
-  from source on every PR.
-- Test databases are created in `test_dbs/` (git-ignored). Always clean up
-  after test runs: `rm -rf test_dbs/*/`
-- Keep feature branches short-lived. If a rebase is needed:
-  ```bash
-  git fetch origin main
-  git rebase origin/main
-  git push --force-with-lease origin feat/issue-<NUMBER>-<description>
-  ```
-- For release workflow (tagging, CHANGELOG, version bump), see the
-  "Release Workflow" section in `AGENTS.md`. Never push tags — user
-  pushes manually.
+Every repo must allow several worktrees to build and test at the same time.
+
+- **No fixed host ports** in compose files. Write `"${RABBITMQ_PORT:-5672}:5672"`, never
+  `"5672:5672"`. The default keeps the main checkout unchanged; `bin/worktree.sh` puts a
+  free port for each variable into `.env.worktree`. Variable names must contain `PORT`.
+- **No `container_name`.** Names are derived from `COMPOSE_PROJECT_NAME`, which is unique
+  per worktree.
+- Tests read host, port and credentials from environment variables, never from
+  hard-coded values.
+- `.gitignore` contains `/findings.md`, `/review.md` and `/.env.worktree`.
+- Dependencies (`vendor/`, `node_modules/`) live inside the worktree. Put the install step in
+  `bin/worktree-setup.sh`.
+- Optional `bin/worktree-setup.sh` and `bin/worktree-teardown.sh` hold everything specific
+  to the repo (starting test containers, seeding data, and so on).
+
+## Checklist
+
+- [ ] Issue picked with `bin/pick-issue.sh`; it has `type:*`, `priority:*` and a milestone
+- [ ] Work done in a worktree from `bin/worktree.sh`, branch `<type>/issue-<N>-<slug>`
+- [ ] Tests added, all checks pass in the worktree
+- [ ] `CHANGELOG.md` and docs updated
+- [ ] Committed but not pushed before the review accepted
+- [ ] `review.md`: every point answered, no open points
+- [ ] `findings.md`: coder and review findings recorded
+- [ ] PR title is a Conventional Commit and the description has `Closes #<N>`
+- [ ] `ci-ok` is green, PR merged with squash
+- [ ] Findings checked by a subagent; existing issues commented, new issues created without a milestone
+- [ ] `bin/worktree-done.sh` run; main checkout is on a fresh default branch

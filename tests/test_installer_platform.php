@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/../src/Installer.php';
 
@@ -23,4 +24,3 @@ if (str_contains($label, php_uname('m'))) {
 }
 
 echo "PASS: Platform label test completed\n";
-?>

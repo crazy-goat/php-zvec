@@ -6,7 +6,9 @@ namespace CrazyGoat\ZVec;
 
 use FFI;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 /**
  * Document representation with fluent setters and typed getters.
@@ -204,21 +206,21 @@ class ZVecDoc
         if ($count !== count($values)) {
             throw new ZVecException("Indices and values arrays must have the same length");
         }
-        
+
         // Handle empty sparse vector
         if ($count === 0) {
             $ffi->zvec_doc_set_sparse_vector_fp32($this->handle, $field, null, null, 0);
             return $this;
         }
-        
+
         $idxData = $ffi->new("uint32_t[$count]");
         $valData = $ffi->new("float[$count]");
-        
+
         for ($i = 0; $i < $count; $i++) {
             $idxData[$i] = $indices[$i];
             $valData[$i] = $values[$i];
         }
-        
+
         $ffi->zvec_doc_set_sparse_vector_fp32($this->handle, $field, $idxData, $valData, $count);
         return $this;
     }
@@ -723,7 +725,7 @@ class ZVecDoc
         $indicesOut = $ffi->new('uint32_t*');
         $valuesOut = $ffi->new('float*');
         $count = $ffi->new('uint32_t');
-        
+
         if ($ffi->zvec_doc_get_sparse_vector_fp32($this->handle, $field, FFI::addr($indicesOut), FFI::addr($valuesOut), FFI::addr($count))) {
             $indices = [];
             $values = [];
@@ -822,7 +824,7 @@ class ZVecDoc
         $indicesOut = $ffi->new('uint32_t*');
         $valuesOut = $ffi->new('uint16_t*');
         $count = $ffi->new('uint32_t');
-        
+
         if ($ffi->zvec_doc_get_sparse_vector_fp16($this->handle, $field, FFI::addr($indicesOut), FFI::addr($valuesOut), FFI::addr($count))) {
             $indices = [];
             $values = [];

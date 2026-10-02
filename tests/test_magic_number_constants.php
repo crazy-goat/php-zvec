@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 // Verify all new constants have expected values
@@ -27,7 +28,7 @@ $source = file_get_contents(__DIR__ . '/../src/ZVec.php');
 $lines = explode("\n", $source);
 
 // Helper: returns true if line is a PHPDoc comment line
-$isPhpDoc = function(string $line): bool {
+$isPhpDoc = function (string $line): bool {
     $t = trim($line);
     return str_starts_with($t, '*') || str_starts_with($t, '/**');
 };
@@ -110,7 +111,7 @@ foreach ($lines as $i => $line) {
 $valid50 = true;
 foreach ($found50 as $lineNum) {
     $line = $lines[$lineNum - 1];
-    if (strpos($line, 'DEFAULT_HNSW_M') === false && 
+    if (strpos($line, 'DEFAULT_HNSW_M') === false &&
         strpos($line, 'deprecated') === false &&
         strpos($line, '@deprecated') === false) {
         $valid50 = false;
@@ -133,7 +134,7 @@ foreach ($lines as $i => $line) {
 $valid500 = true;
 foreach ($found500 as $lineNum) {
     $line = $lines[$lineNum - 1];
-    if (strpos($line, 'DEFAULT_HNSW_EF_CONSTRUCTION') === false && 
+    if (strpos($line, 'DEFAULT_HNSW_EF_CONSTRUCTION') === false &&
         strpos($line, 'deprecated') === false &&
         strpos($line, '@deprecated') === false) {
         $valid500 = false;
@@ -168,4 +169,3 @@ if ($failed === 0) {
 } else {
     echo "FAILED: $failed test(s) failed\n";
 }
-?>

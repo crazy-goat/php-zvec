@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 $path = __DIR__ . '/../test_dbs/array_' . uniqid();
@@ -33,15 +34,19 @@ try {
     echo 'i64: ' . implode(',', $d->getArrayInt64('i64')) . "\n";
     echo 'u32: ' . implode(',', $d->getArrayUint32('u32')) . "\n";
     echo 'u64: ' . implode(',', $d->getArrayUint64('u64')) . "\n";
-    echo 'f32: ' . implode(',', array_map(fn($v) => round($v, 1), $d->getArrayFloat('f32'))) . "\n";
-    echo 'f64: ' . implode(',', array_map(fn($v) => round($v, 1), $d->getArrayDouble('f64'))) . "\n";
+    echo 'f32: ' . implode(',', array_map(fn ($v) => round($v, 1), $d->getArrayFloat('f32'))) . "\n";
+    echo 'f64: ' . implode(',', array_map(fn ($v) => round($v, 1), $d->getArrayDouble('f64'))) . "\n";
     echo 'strs: ' . implode(',', $d->getArrayString('strs')) . "\n";
     $bools = $d->getArrayBool('bools');
-    echo 'bools: ' . implode(',', array_map(fn($v) => $v ? '1' : '0', $bools)) . "\n";
+    echo 'bools: ' . implode(',', array_map(fn ($v) => $v ? '1' : '0', $bools)) . "\n";
 
     echo "OK\n";
 } finally {
-    if (isset($coll)) { try { $coll->destroy(); } catch (Exception $e) {} }
+    if (isset($coll)) {
+        try {
+            $coll->destroy();
+        } catch (Exception $e) {
+        }
+    }
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

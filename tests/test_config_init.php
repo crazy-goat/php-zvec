@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 // isInitialized should be false before init
@@ -42,4 +43,3 @@ ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 echo "re-init: " . (ZVec::isInitialized() ? '1' : '0') . "\n";
 
 echo "OK\n";
-?>

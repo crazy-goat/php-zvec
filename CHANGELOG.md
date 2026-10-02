@@ -115,6 +115,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Repository standard rolled out** (process and tooling, no API change)
+  - `LICENSE` (MIT, Crazy Goat Software), `docs/workflow.md`, `docs/release-workflow.md`, `CONTRIBUTING.md` and `bin/pick-issue.sh`, `bin/worktree.sh`, `bin/worktree-done.sh`, `bin/worktree-setup.sh`.
+  - `bin/lint.sh` (also `composer lint`) runs PHP-CS-Fixer, PHPStan (level 2), Rector, clang-format, shellcheck and hadolint. The PHP sources were reformatted to PSR-12 and the C++ sources with clang-format (whitespace only), plus a few Rector dead-code simplifications.
+  - CI: `changes`/`docs` jobs skip the heavy jobs for documentation-only pull requests, a `lint` job was added, runs also happen on pushes to `main`, and an aggregate `ci-ok` job is the single required check. Dependabot now watches Composer and GitHub Actions.
+  - The release workflow takes the GitHub Release notes from the matching `CHANGELOG.md` section instead of generating them.
+  - Removed the generated `repomix-output.xml` and the stray `php-ext/configure~` and `php-ext/config.h.in~` files from the repository.
+
 - **zvec v0.7.0, official prebuilt SDK instead of our own zvec builds**
   - The FFI adapter and the PHP extension now link dynamically against `libzvec` from the official [alibaba/zvec](https://github.com/alibaba/zvec/releases) SDK. zvec is no longer compiled from source; `./fetch_zvec_sdk.sh` downloads the SDK (pinned SHA-256) and `./build_zvec.sh` builds only our adapter.
   - Ported `ffi/zvec_ffi.cc` and `php-ext/` to the v0.7.0 C++ API (snake_case methods).

@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 require_once __DIR__ . '/../src/ZVecRrfReRanker.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -119,9 +120,14 @@ try {
 
     // Test 14: query() with all params (outputFields + filter + queryParamType)
     $results14 = $coll->query(
-        'vec', [1.0, 0.0, 0.0, 0.0],
-        topk: 2, includeVector: true, filter: 'category = "A"',
-        outputFields: ['title'], queryParamType: ZVec::QUERY_PARAM_HNSW, hnswEf: 200
+        'vec',
+        [1.0, 0.0, 0.0, 0.0],
+        topk: 2,
+        includeVector: true,
+        filter: 'category = "A"',
+        outputFields: ['title'],
+        queryParamType: ZVec::QUERY_PARAM_HNSW,
+        hnswEf: 200
     );
     assert(count($results14) >= 1, 'query() with all params must return results');
     echo "14. query() with all params works\n";
@@ -132,4 +138,3 @@ try {
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

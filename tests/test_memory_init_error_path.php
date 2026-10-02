@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 // Test error path: init with invalid memoryLimit causes
@@ -39,4 +40,3 @@ if ($delta > 500 * 1024) {
 
 echo "20x error/recovery cycles OK (delta: {$delta} bytes)\n";
 echo "PASS: Init error path does not leak C allocations\n";
-?>

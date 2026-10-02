@@ -34,17 +34,22 @@ CollectionSchema *zvec_schema_get_native(zval *zv) {
 
 static MetricType to_metric_type(uint32_t v) {
     switch (v) {
-        case 1: return MetricType::L2;
-        case 2: return MetricType::IP;
-        case 3: return MetricType::COSINE;
-        default: return MetricType::IP;
+        case 1:
+            return MetricType::L2;
+        case 2:
+            return MetricType::IP;
+        case 3:
+            return MetricType::COSINE;
+        default:
+            return MetricType::IP;
     }
 }
 
 PHP_METHOD(ZVecSchema, __construct) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_STRING(name, name_len)
+    Z_PARAM_STRING(name, name_len)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     intern->schema = new CollectionSchema(std::string(name, name_len));
@@ -53,7 +58,7 @@ PHP_METHOD(ZVecSchema, __construct) {
 PHP_METHOD(ZVecSchema, setMaxDocCountPerSegment) {
     zend_long count;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_LONG(count)
+    Z_PARAM_LONG(count)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     intern->schema->set_max_doc_count_per_segment(static_cast<uint64_t>(count));
@@ -61,13 +66,14 @@ PHP_METHOD(ZVecSchema, setMaxDocCountPerSegment) {
 }
 
 PHP_METHOD(ZVecSchema, addInt64) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_bool nullable = 0, with_invert_index = 0;
     ZEND_PARSE_PARAMETERS_START(1, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_BOOL(nullable)
-        Z_PARAM_BOOL(with_invert_index)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(nullable)
+    Z_PARAM_BOOL(with_invert_index)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     if (with_invert_index) {
@@ -75,20 +81,21 @@ PHP_METHOD(ZVecSchema, addInt64) {
             std::string(name, name_len), DataType::INT64, (bool)nullable,
             std::make_shared<InvertIndexParams>(true)));
     } else {
-        intern->schema->add_field(std::make_shared<FieldSchema>(
-            std::string(name, name_len), DataType::INT64, (bool)nullable));
+        intern->schema->add_field(std::make_shared<FieldSchema>(std::string(name, name_len),
+                                                                DataType::INT64, (bool)nullable));
     }
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addString) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_bool nullable = 0, with_invert_index = 0;
     ZEND_PARSE_PARAMETERS_START(1, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_BOOL(nullable)
-        Z_PARAM_BOOL(with_invert_index)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(nullable)
+    Z_PARAM_BOOL(with_invert_index)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     if (with_invert_index) {
@@ -96,48 +103,51 @@ PHP_METHOD(ZVecSchema, addString) {
             std::string(name, name_len), DataType::STRING, (bool)nullable,
             std::make_shared<InvertIndexParams>(false)));
     } else {
-        intern->schema->add_field(std::make_shared<FieldSchema>(
-            std::string(name, name_len), DataType::STRING, (bool)nullable));
+        intern->schema->add_field(std::make_shared<FieldSchema>(std::string(name, name_len),
+                                                                DataType::STRING, (bool)nullable));
     }
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addFloat) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_bool nullable = 1;
     ZEND_PARSE_PARAMETERS_START(1, 2)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_BOOL(nullable)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(nullable)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
-    intern->schema->add_field(std::make_shared<FieldSchema>(
-        std::string(name, name_len), DataType::FLOAT, (bool)nullable));
+    intern->schema->add_field(std::make_shared<FieldSchema>(std::string(name, name_len),
+                                                            DataType::FLOAT, (bool)nullable));
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addDouble) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_bool nullable = 1;
     ZEND_PARSE_PARAMETERS_START(1, 2)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_BOOL(nullable)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(nullable)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
-    intern->schema->add_field(std::make_shared<FieldSchema>(
-        std::string(name, name_len), DataType::DOUBLE, (bool)nullable));
+    intern->schema->add_field(std::make_shared<FieldSchema>(std::string(name, name_len),
+                                                            DataType::DOUBLE, (bool)nullable));
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addBool) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_bool nullable = 0, with_invert_index = 0;
     ZEND_PARSE_PARAMETERS_START(1, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_BOOL(nullable)
-        Z_PARAM_BOOL(with_invert_index)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(nullable)
+    Z_PARAM_BOOL(with_invert_index)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     if (with_invert_index) {
@@ -145,20 +155,21 @@ PHP_METHOD(ZVecSchema, addBool) {
             std::string(name, name_len), DataType::BOOL, (bool)nullable,
             std::make_shared<InvertIndexParams>(true)));
     } else {
-        intern->schema->add_field(std::make_shared<FieldSchema>(
-            std::string(name, name_len), DataType::BOOL, (bool)nullable));
+        intern->schema->add_field(std::make_shared<FieldSchema>(std::string(name, name_len),
+                                                                DataType::BOOL, (bool)nullable));
     }
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addInt32) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_bool nullable = 0, with_invert_index = 0;
     ZEND_PARSE_PARAMETERS_START(1, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_BOOL(nullable)
-        Z_PARAM_BOOL(with_invert_index)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(nullable)
+    Z_PARAM_BOOL(with_invert_index)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     if (with_invert_index) {
@@ -166,20 +177,21 @@ PHP_METHOD(ZVecSchema, addInt32) {
             std::string(name, name_len), DataType::INT32, (bool)nullable,
             std::make_shared<InvertIndexParams>(true)));
     } else {
-        intern->schema->add_field(std::make_shared<FieldSchema>(
-            std::string(name, name_len), DataType::INT32, (bool)nullable));
+        intern->schema->add_field(std::make_shared<FieldSchema>(std::string(name, name_len),
+                                                                DataType::INT32, (bool)nullable));
     }
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addUint32) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_bool nullable = 0, with_invert_index = 0;
     ZEND_PARSE_PARAMETERS_START(1, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_BOOL(nullable)
-        Z_PARAM_BOOL(with_invert_index)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(nullable)
+    Z_PARAM_BOOL(with_invert_index)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     if (with_invert_index) {
@@ -187,20 +199,21 @@ PHP_METHOD(ZVecSchema, addUint32) {
             std::string(name, name_len), DataType::UINT32, (bool)nullable,
             std::make_shared<InvertIndexParams>(true)));
     } else {
-        intern->schema->add_field(std::make_shared<FieldSchema>(
-            std::string(name, name_len), DataType::UINT32, (bool)nullable));
+        intern->schema->add_field(std::make_shared<FieldSchema>(std::string(name, name_len),
+                                                                DataType::UINT32, (bool)nullable));
     }
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addUint64) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_bool nullable = 0, with_invert_index = 0;
     ZEND_PARSE_PARAMETERS_START(1, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_BOOL(nullable)
-        Z_PARAM_BOOL(with_invert_index)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(nullable)
+    Z_PARAM_BOOL(with_invert_index)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     if (with_invert_index) {
@@ -208,87 +221,88 @@ PHP_METHOD(ZVecSchema, addUint64) {
             std::string(name, name_len), DataType::UINT64, (bool)nullable,
             std::make_shared<InvertIndexParams>(true)));
     } else {
-        intern->schema->add_field(std::make_shared<FieldSchema>(
-            std::string(name, name_len), DataType::UINT64, (bool)nullable));
+        intern->schema->add_field(std::make_shared<FieldSchema>(std::string(name, name_len),
+                                                                DataType::UINT64, (bool)nullable));
     }
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addVectorFp32) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_long dimension, metric_type = 2;
     ZEND_PARSE_PARAMETERS_START(2, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_LONG(dimension)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_LONG(metric_type)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_LONG(dimension)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_LONG(metric_type)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     intern->schema->add_field(std::make_shared<FieldSchema>(
-        std::string(name, name_len), DataType::VECTOR_FP32,
-        static_cast<uint32_t>(dimension), false,
+        std::string(name, name_len), DataType::VECTOR_FP32, static_cast<uint32_t>(dimension), false,
         std::make_shared<HnswIndexParams>(to_metric_type(static_cast<uint32_t>(metric_type)))));
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addVectorInt8) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_long dimension, metric_type = 2;
     ZEND_PARSE_PARAMETERS_START(2, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_LONG(dimension)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_LONG(metric_type)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_LONG(dimension)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_LONG(metric_type)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     intern->schema->add_field(std::make_shared<FieldSchema>(
-        std::string(name, name_len), DataType::VECTOR_INT8,
-        static_cast<uint32_t>(dimension), false,
+        std::string(name, name_len), DataType::VECTOR_INT8, static_cast<uint32_t>(dimension), false,
         std::make_shared<HnswIndexParams>(to_metric_type(static_cast<uint32_t>(metric_type)))));
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addVectorFp64) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_long dimension, metric_type = 2;
     ZEND_PARSE_PARAMETERS_START(2, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_LONG(dimension)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_LONG(metric_type)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_LONG(dimension)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_LONG(metric_type)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     intern->schema->add_field(std::make_shared<FieldSchema>(
-        std::string(name, name_len), DataType::VECTOR_FP64,
-        static_cast<uint32_t>(dimension), false,
+        std::string(name, name_len), DataType::VECTOR_FP64, static_cast<uint32_t>(dimension), false,
         std::make_shared<HnswIndexParams>(to_metric_type(static_cast<uint32_t>(metric_type)))));
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addVectorFp16) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_long dimension, metric_type = 2;
     ZEND_PARSE_PARAMETERS_START(2, 3)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_LONG(dimension)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_LONG(metric_type)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_LONG(dimension)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_LONG(metric_type)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     intern->schema->add_field(std::make_shared<FieldSchema>(
-        std::string(name, name_len), DataType::VECTOR_FP16,
-        static_cast<uint32_t>(dimension), false,
+        std::string(name, name_len), DataType::VECTOR_FP16, static_cast<uint32_t>(dimension), false,
         std::make_shared<HnswIndexParams>(to_metric_type(static_cast<uint32_t>(metric_type)))));
     RETURN_ZVAL(ZEND_THIS, 1, 0);
 }
 
 PHP_METHOD(ZVecSchema, addSparseVectorFp32) {
-    char *name; size_t name_len;
+    char *name;
+    size_t name_len;
     zend_long metric_type = 2;
     ZEND_PARSE_PARAMETERS_START(1, 2)
-        Z_PARAM_STRING(name, name_len)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_LONG(metric_type)
+    Z_PARAM_STRING(name, name_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_LONG(metric_type)
     ZEND_PARSE_PARAMETERS_END();
     auto *intern = Z_ZVEC_SCHEMA_P(ZEND_THIS);
     intern->schema->add_field(std::make_shared<FieldSchema>(
@@ -298,53 +312,58 @@ PHP_METHOD(ZVecSchema, addSparseVectorFp32) {
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zvec_schema___construct, 0, 0, 1)
-    ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_schema_fluent, 0, 1, ZVecSchema, 0)
-    ZEND_ARG_INFO(0, value)
+ZEND_ARG_INFO(0, value)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_schema_add_field, 0, 1, ZVecSchema, 0)
-    ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, nullable, _IS_BOOL, 0, "false")
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, withInvertIndex, _IS_BOOL, 0, "false")
+ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, nullable, _IS_BOOL, 0, "false")
+ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, withInvertIndex, _IS_BOOL, 0, "false")
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_schema_add_float, 0, 1, ZVecSchema, 0)
-    ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, nullable, _IS_BOOL, 0, "true")
+ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, nullable, _IS_BOOL, 0, "true")
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_schema_add_vector, 0, 2, ZVecSchema, 0)
-    ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
-    ZEND_ARG_TYPE_INFO(0, dimension, IS_LONG, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, metricType, IS_LONG, 0, "2")
+ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO(0, dimension, IS_LONG, 0)
+ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, metricType, IS_LONG, 0, "2")
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_zvec_schema_add_sparse, 0, 1, ZVecSchema, 0)
-    ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, metricType, IS_LONG, 0, "2")
+ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, metricType, IS_LONG, 0, "2")
 ZEND_END_ARG_INFO()
 
 static const zend_function_entry zvec_schema_methods[] = {
-    PHP_ME(ZVecSchema, __construct, arginfo_zvec_schema___construct, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, setMaxDocCountPerSegment, arginfo_zvec_schema_fluent, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addInt64, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addString, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addFloat, arginfo_zvec_schema_add_float, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addDouble, arginfo_zvec_schema_add_float, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addBool, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addInt32, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addUint32, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addUint64, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addVectorFp32, arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addVectorFp64, arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addVectorInt8, arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addVectorFp16, arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
-    PHP_ME(ZVecSchema, addSparseVectorFp32, arginfo_zvec_schema_add_sparse, ZEND_ACC_PUBLIC)
-    PHP_FE_END
-};
+    PHP_ME(ZVecSchema, __construct, arginfo_zvec_schema___construct, ZEND_ACC_PUBLIC) PHP_ME(
+        ZVecSchema, setMaxDocCountPerSegment, arginfo_zvec_schema_fluent, ZEND_ACC_PUBLIC)
+        PHP_ME(ZVecSchema, addInt64, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC) PHP_ME(
+            ZVecSchema, addString, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
+            PHP_ME(ZVecSchema, addFloat, arginfo_zvec_schema_add_float, ZEND_ACC_PUBLIC) PHP_ME(
+                ZVecSchema, addDouble, arginfo_zvec_schema_add_float, ZEND_ACC_PUBLIC)
+                PHP_ME(ZVecSchema, addBool, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC) PHP_ME(
+                    ZVecSchema, addInt32, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
+                    PHP_ME(ZVecSchema, addUint32, arginfo_zvec_schema_add_field, ZEND_ACC_PUBLIC)
+                        PHP_ME(ZVecSchema, addUint64, arginfo_zvec_schema_add_field,
+                               ZEND_ACC_PUBLIC)
+                            PHP_ME(ZVecSchema, addVectorFp32, arginfo_zvec_schema_add_vector,
+                                   ZEND_ACC_PUBLIC)
+                                PHP_ME(ZVecSchema, addVectorFp64, arginfo_zvec_schema_add_vector,
+                                       ZEND_ACC_PUBLIC)
+                                    PHP_ME(ZVecSchema, addVectorInt8,
+                                           arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
+                                        PHP_ME(ZVecSchema, addVectorFp16,
+                                               arginfo_zvec_schema_add_vector, ZEND_ACC_PUBLIC)
+                                            PHP_ME(ZVecSchema, addSparseVectorFp32,
+                                                   arginfo_zvec_schema_add_sparse, ZEND_ACC_PUBLIC)
+                                                PHP_FE_END};
 
 void zvec_register_schema(INIT_FUNC_ARGS) {
     zend_class_entry ce;
@@ -358,6 +377,8 @@ void zvec_register_schema(INIT_FUNC_ARGS) {
 
     zend_declare_class_constant_long(zvec_schema_ce, "METRIC_L2", sizeof("METRIC_L2") - 1, 1);
     zend_declare_class_constant_long(zvec_schema_ce, "METRIC_IP", sizeof("METRIC_IP") - 1, 2);
-    zend_declare_class_constant_long(zvec_schema_ce, "METRIC_COSINE", sizeof("METRIC_COSINE") - 1, 3);
-    zend_declare_class_constant_long(zvec_schema_ce, "METRIC_MIPSL2", sizeof("METRIC_MIPSL2") - 1, 4);
+    zend_declare_class_constant_long(zvec_schema_ce, "METRIC_COSINE", sizeof("METRIC_COSINE") - 1,
+                                     3);
+    zend_declare_class_constant_long(zvec_schema_ce, "METRIC_MIPSL2", sizeof("METRIC_MIPSL2") - 1,
+                                     4);
 }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -64,4 +65,3 @@ $ret = $ffi->zvec_field_schema_get_data_type(null);
 echo "PASS: zvec_field_schema_get_data_type(null)=" . var_export($ret, true) . "\n";
 
 echo "PASS\n";
-?>

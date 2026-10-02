@@ -15,8 +15,8 @@ struct zvec_doc_object {
 };
 
 static inline zvec_doc_object *zvec_doc_from_obj(zend_object *obj) {
-    return reinterpret_cast<zvec_doc_object *>(
-        reinterpret_cast<char *>(obj) - XtOffsetOf(zvec_doc_object, std));
+    return reinterpret_cast<zvec_doc_object *>(reinterpret_cast<char *>(obj) -
+                                               XtOffsetOf(zvec_doc_object, std));
 }
 
 #define Z_ZVEC_DOC_P(zv) zvec_doc_from_obj(Z_OBJ_P(zv))

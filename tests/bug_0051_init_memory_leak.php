@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 // 1. Error path FIRST: init with invalid memoryLimit causes
@@ -29,4 +30,3 @@ for ($i = 1; $i <= 3; $i++) {
 }
 
 echo "PASS: BUG-004 init/shutdown cycles complete\n";
-?>

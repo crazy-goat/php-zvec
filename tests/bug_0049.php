@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
@@ -82,4 +83,3 @@ $q->setGroupTopk(5);
 echo "setGroupTopk OK\n";
 
 echo "PASS: Bug 0049 - All setters correctly handled\n";
-?>

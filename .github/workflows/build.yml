@@ -3,13 +3,75 @@ name: Build & Test
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   ZVEC_VERSION: v0.7.0
+  # Composer fetches dists from codeload.github.com, which rate-limits unauthenticated
+  # requests. The automatic token needs no setup and raises the limit.
+  COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
 
 jobs:
+  changes:
+    name: Changes
+    uses: crazy-goat/.github/.github/workflows/changes.yml@main
+    with:
+      # tests/test_docs_consistency.phpt reads README.md, CHANGELOG.md, MIGRATION.md and
+      # AGENTS.md, so a change to them needs the test suite and is not docs-only.
+      docs-regex: '^((CONTRIBUTING|SECURITY)\.md|docs/.*|LICENSE.*|\.github/ISSUE_TEMPLATE/.*|\.github/pull_request_template\.md|\.gitignore)$'
+
+  docs:
+    name: Docs
+    uses: crazy-goat/.github/.github/workflows/docs-check.yml@main
+
+  # Setup only; every check lives in bin/lint.sh (php-cs-fixer, PHPStan, Rector,
+  # clang-format, shellcheck, hadolint).
+  lint:
+    name: lint
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      # Pinned: the versions the image ships would change under us without a commit here.
+      - name: Install clang-format, shellcheck and hadolint
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          PIPX_BIN_DIR="$HOME/.local/bin" pipx install clang-format==23.1.2
+          curl -fsSL https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz \
+            | tar -xJ --strip-components=1 -C "$HOME/.local/bin" shellcheck-v0.11.0/shellcheck
+          curl -fsSL -o "$HOME/.local/bin/hadolint" https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+          chmod +x "$HOME/.local/bin/hadolint"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/clang-format" --version
+          "$HOME/.local/bin/shellcheck" --version
+          "$HOME/.local/bin/hadolint" --version
+
+      - name: Lint
+        run: bin/lint.sh
+
   ffi-linux:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -51,7 +113,8 @@ jobs:
         run: .github/scripts/test-ffi-musl.sh
 
   ffi-macos:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-15
     name: ffi - darwin-aarch64
 
@@ -69,7 +132,8 @@ jobs:
         run: .github/scripts/run-tests.sh
 
   ext:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -104,3 +168,26 @@ jobs:
           path: |
             php-ext/modules/zvec.so
             php-ext/modules/libzvec.so
+
+  ci-ok:
+    name: ci-ok
+    needs: [changes, docs, lint, ffi-linux, ffi-macos, ext]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        env:
+          CODE: ${{ needs.changes.outputs.code }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Code changes: $CODE"
+          echo "Results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in failure|cancelled) exit 1 ;; esac
+          done
+          # Documentation-only changes skip the heavy jobs; code changes need all of them.
+          if [ "$CODE" = "true" ]; then
+            for r in $RESULTS; do
+              [ "$r" = "success" ] || exit 1
+            done
+          fi

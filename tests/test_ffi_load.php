@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -107,22 +108,21 @@ try {
     $schema->addVectorFp32('embedding', dimension: 128, metricType: ZVecSchema::METRIC_IP);
 
     $coll = ZVec::create($path, $schema);
-    
+
     $doc = new ZVecDoc('doc1');
     $doc->setInt64('id', 1);
     $doc->setString('name', 'test');
     $vector = array_fill(0, 128, 0.5);
     $doc->setVectorFp32('embedding', $vector);
     $coll->insert($doc);
-    
+
     $coll->optimize();
-    
+
     echo "Basic create/insert/optimize works\n";
-    
+
     $coll->close();
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }
 
 echo "DONE\n";
-?>

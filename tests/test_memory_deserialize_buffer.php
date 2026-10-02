@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -33,4 +34,3 @@ if ($delta > 500 * 1024) {
 
 echo "100x serialize/deserialize OK (delta: {$delta} bytes)\n";
 echo "PASS: Serialize/deserialize buffer does not leak\n";
-?>

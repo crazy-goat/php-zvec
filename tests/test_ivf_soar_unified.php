@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
@@ -34,7 +35,8 @@ try {
 
     // Test 2: Query with IVF+SOAR
     $results = $c->query(
-        'v', [0.1, 0.2, 0.3, 0.4],
+        'v',
+        [0.1, 0.2, 0.3, 0.4],
         topk: 5,
         queryParamType: ZVec::QUERY_PARAM_IVF,
         ivfNprobe: 3
@@ -57,7 +59,8 @@ try {
 
     // Test 4: Query with IVF without SOAR
     $results2 = $c->query(
-        'v', [0.1, 0.2, 0.3, 0.4],
+        'v',
+        [0.1, 0.2, 0.3, 0.4],
         topk: 5,
         queryParamType: ZVec::QUERY_PARAM_IVF,
         ivfNprobe: 3
@@ -70,4 +73,3 @@ try {
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

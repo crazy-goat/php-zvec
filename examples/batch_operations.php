@@ -2,7 +2,7 @@
 
 /**
  * Example: Per-Document Batch Operations
- * 
+ *
  * Demonstrates insertBatch(), upsertBatch(), and updateBatch() methods
  * which return per-document status instead of throwing on first error.
  */
@@ -56,7 +56,7 @@ foreach ($results as $r) {
     echo "  {$status} {$r['pk']}\n";
 }
 
-$successes = count(array_filter($results, fn($r) => $r['ok']));
+$successes = count(array_filter($results, fn ($r) => $r['ok']));
 echo "  Result: {$successes}/" . count($results) . " succeeded\n\n";
 
 // ==========================================
@@ -82,8 +82,8 @@ foreach ($results as $r) {
     echo "  {$r['pk']}: {$status}{$error}\n";
 }
 
-$successes = count(array_filter($results, fn($r) => $r['ok']));
-$failures = count(array_filter($results, fn($r) => !$r['ok']));
+$successes = count(array_filter($results, fn ($r) => $r['ok']));
+$failures = count(array_filter($results, fn ($r) => !$r['ok']));
 echo "  Summary: {$successes} succeeded, {$failures} failed\n\n";
 
 // ==========================================
@@ -128,8 +128,8 @@ foreach ($results as $r) {
     echo "  {$r['pk']}: {$status}{$error}\n";
 }
 
-$successes = count(array_filter($results, fn($r) => $r['ok']));
-$failures = count(array_filter($results, fn($r) => !$r['ok']));
+$successes = count(array_filter($results, fn ($r) => $r['ok']));
+$failures = count(array_filter($results, fn ($r) => !$r['ok']));
 echo "  Summary: {$successes} succeeded, {$failures} failed\n\n";
 
 // ==========================================

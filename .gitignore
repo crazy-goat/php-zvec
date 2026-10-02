@@ -70,3 +70,13 @@ php-ext/*.dep
 
 # Official prebuilt zvec SDK (./fetch_zvec_sdk.sh)
 sdk/
+
+# Worktree process files
+/findings.md
+/review.md
+/.env.worktree
+
+# Generated dump
+repomix-output.xml
+.php-cs-fixer.cache
+php-ext/*~

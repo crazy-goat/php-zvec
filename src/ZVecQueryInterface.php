@@ -6,7 +6,9 @@ namespace CrazyGoat\ZVec;
 
 use FFI;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 /**
  * Common interface for vector query objects.

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Example 1: Basics - Creating a collection and adding documents
- * 
+ *
  * Demonstrates:
  * - ZVec initialization
  * - Collection schema creation
@@ -48,13 +48,13 @@ try {
     // Adding multiple documents (batch)
     $tablet = new ZVecDoc('prod_002');
     $tablet->setString('name', 'iPad Pro')->setFloat('price', 4999.99)->setVectorFp32('vector', [0.1, 0.9, 0.1, 0.2]);
-    
+
     $phone = new ZVecDoc('prod_003');
     $phone->setString('name', 'iPhone 15')->setFloat('price', 5499.99)->setVectorFp32('vector', [0.2, 0.1, 0.9, 0.1]);
-    
+
     $headphones = new ZVecDoc('prod_004');
     $headphones->setString('name', 'AirPods Pro')->setFloat('price', 1299.99)->setVectorFp32('vector', [0.3, 0.2, 0.1, 0.9]);
-    
+
     $collection->insert($tablet, $phone, $headphones);
     echo "[5] Added 3 documents (batch)\n";
 

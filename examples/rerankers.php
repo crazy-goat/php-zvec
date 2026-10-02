@@ -8,7 +8,7 @@ require_once __DIR__ . '/../src/ZVecWeightedReRanker.php';
 
 /**
  * Rerankers Demo - Multi-Vector Search Result Fusion
- * 
+ *
  * This example demonstrates how to combine results from multiple vector queries
  * using Reciprocal Rank Fusion (RRF) and Weighted scoring.
  */
@@ -26,12 +26,12 @@ try {
            ->addString('title', withInvertIndex: true)
            ->addVectorFp32('semantic_embedding', 4, ZVecSchema::METRIC_IP)
            ->addVectorFp32('keyword_embedding', 4, ZVecSchema::METRIC_IP);
-    
+
     $collection = ZVec::create($path, $schema);
     echo "1. Created collection with two vector fields:\n";
     echo "   - semantic_embedding (for semantic similarity)\n";
     echo "   - keyword_embedding (for keyword matching)\n\n";
-    
+
     // Add documents with different characteristics
     $docs = [
         (new ZVecDoc('doc1'))
@@ -39,37 +39,37 @@ try {
             ->setString('title', 'PHP Vector Database Guide')
             ->setVectorFp32('semantic_embedding', [0.9, 0.8, 0.7, 0.6])
             ->setVectorFp32('keyword_embedding', [0.3, 0.2, 0.1, 0.1]),
-        
+
         (new ZVecDoc('doc2'))
             ->setInt64('id', 2)
             ->setString('title', 'Machine Learning Basics')
             ->setVectorFp32('semantic_embedding', [0.7, 0.9, 0.6, 0.8])
             ->setVectorFp32('keyword_embedding', [0.8, 0.7, 0.6, 0.5]),
-        
+
         (new ZVecDoc('doc3'))
             ->setInt64('id', 3)
             ->setString('title', 'Introduction to PHP')
             ->setVectorFp32('semantic_embedding', [0.5, 0.4, 0.3, 0.2])
             ->setVectorFp32('keyword_embedding', [0.9, 0.8, 0.7, 0.6]),
-        
+
         (new ZVecDoc('doc4'))
             ->setInt64('id', 4)
             ->setString('title', 'Advanced Vector Search')
             ->setVectorFp32('semantic_embedding', [0.8, 0.7, 0.9, 0.6])
             ->setVectorFp32('keyword_embedding', [0.4, 0.3, 0.2, 0.1]),
     ];
-    
+
     $collection->insert(...$docs);
     $collection->optimize();
     echo "2. Inserted " . count($docs) . " documents\n\n";
-    
+
     // Query both vector fields separately
     $semanticVector = [0.8, 0.8, 0.7, 0.7]; // Looking for semantic similarity to "vector databases"
     $keywordVector = [0.8, 0.7, 0.6, 0.5]; // Looking for keyword matches
-    
+
     $semanticResults = $collection->query('semantic_embedding', $semanticVector, topk: 4);
     $keywordResults = $collection->query('keyword_embedding', $keywordVector, topk: 4);
-    
+
     echo "3. Query results from individual fields:\n";
     echo "   Semantic field:\n";
     foreach ($semanticResults as $i => $doc) {
@@ -80,72 +80,72 @@ try {
         echo "     " . ($i + 1) . ". {$doc->getPk()}: score={$doc->getScore()}\n";
     }
     echo "\n";
-    
+
     // Prepare query results for reranking
     $queryResults = [
         'semantic_embedding' => $semanticResults,
         'keyword_embedding' => $keywordResults,
     ];
-    
+
     // 1. RRF ReRanker
     echo "4. RRF (Reciprocal Rank Fusion) ReRanker:\n";
     echo "   - Formula: Score = 1 / (k + rank), k=60\n";
     echo "   - No score normalization needed, works on rankings only\n\n";
-    
+
     $rrfReranker = new ZVecRrfReRanker(topn: 3, rankConstant: 60);
     $rrfResults = $rrfReranker->rerank($queryResults);
-    
+
     echo "   Combined results (top 3):\n";
     foreach ($rrfResults as $i => $result) {
         $title = $result->getDoc()->getString('title');
         $ranks = $result->getSourceRanks();
         echo "   " . ($i + 1) . ". {$result->getPk()}: {$title}\n";
         echo "      Combined score: " . round($result->getCombinedScore(), 4) . "\n";
-        echo "      Source ranks: semantic=" . ($ranks['semantic_embedding'] ?? 'N/A') . 
+        echo "      Source ranks: semantic=" . ($ranks['semantic_embedding'] ?? 'N/A') .
              ", keyword=" . ($ranks['keyword_embedding'] ?? 'N/A') . "\n\n";
     }
-    
+
     // 2. Weighted ReRanker
     echo "5. Weighted ReRanker:\n";
     echo "   - Semantic weight: 0.7 (more important)\n";
     echo "   - Keyword weight: 0.3\n";
     echo "   - Metric: IP (Inner Product)\n\n";
-    
+
     $weightedReranker = new ZVecWeightedReRanker(
         topn: 3,
         metricType: ZVecSchema::METRIC_IP,
         weights: ['semantic_embedding' => 0.7, 'keyword_embedding' => 0.3]
     );
     $weightedResults = $weightedReranker->rerank($queryResults);
-    
+
     echo "   Combined results (top 3):\n";
     foreach ($weightedResults as $i => $result) {
         $title = $result->getDoc()->getString('title');
         $scores = $result->getSourceScores();
         echo "   " . ($i + 1) . ". {$result->getPk()}: {$title}\n";
         echo "      Combined score: " . round($result->getCombinedScore(), 4) . "\n";
-        echo "      Source scores: semantic=" . round($scores['semantic_embedding'] ?? 0, 4) . 
+        echo "      Source scores: semantic=" . round($scores['semantic_embedding'] ?? 0, 4) .
              ", keyword=" . round($scores['keyword_embedding'] ?? 0, 4) . "\n\n";
     }
-    
+
     // 3. Single field reranking (edge case)
     echo "6. Single Field Reranking (edge case):\n";
     $singleReranker = new ZVecRrfReRanker(topn: 2);
     $singleResults = $singleReranker->rerank(['semantic_embedding' => $semanticResults]);
     echo "   RRF on single field returns top 2:\n";
     foreach ($singleResults as $i => $result) {
-        echo "   " . ($i + 1) . ". {$result->getPk()}: score=" . 
+        echo "   " . ($i + 1) . ". {$result->getPk()}: score=" .
              round($result->getCombinedScore(), 4) . "\n";
     }
     echo "\n";
-    
+
     // Key takeaways
     echo "=== Key Takeaways ===\n";
     echo "• RRF is simpler - no score normalization needed\n";
     echo "• Weighted allows fine-tuning importance of each field\n";
     echo "• Both return ZVecRerankedDoc with combined scores and source info\n";
     echo "• Useful for hybrid search (dense + sparse, or multiple embeddings)\n";
-    
+
     $collection->close();
     echo "\nDone! Collection destroyed.\n";
 } finally {

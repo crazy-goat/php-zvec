@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/../src/Installer.php';
 
@@ -31,4 +32,3 @@ if (!str_starts_with($libName, 'libzvec_ffi.')) {
 echo "PASS: libName has correct prefix\n";
 
 echo "PASS: All libName tests completed\n";
-?>

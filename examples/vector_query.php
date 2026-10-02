@@ -2,7 +2,7 @@
 
 /**
  * Example: VectorQuery Object
- * 
+ *
  * Demonstrates the new ZVecVectorQuery class for structured vector queries.
  * This provides a cleaner API compared to passing multiple separate parameters.
  */

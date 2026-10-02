@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Example 3: Document Management
- * 
+ *
  * Demonstrates:
  * - Document update (update)
  * - Upsert (update or insert)
@@ -63,7 +63,7 @@ try {
     $update = new ZVecDoc('item_1');
     $update->setFloat('price', 3499.99); // only price, rest unchanged
     $collection->update($update);
-    
+
     $doc = $collection->fetch('item_1')[0];
     echo "    New price: {$doc->getFloat('price')} USD\n\n";
 
@@ -75,7 +75,7 @@ try {
              ->setFloat('price', 4999.99)
              ->setVectorFp32('features', [0.8, 0.2]);
     $collection->upsert($upsert1);
-    
+
     $doc = $collection->fetch('item_2')[0];
     echo "    Updated: {$doc->getString('product')}, qty={$doc->getInt64('quantity')}\n\n";
 
@@ -88,7 +88,7 @@ try {
              ->setVectorFp32('features', [0.5, 0.5]);
     $collection->upsert($upsert2);
     $collection->optimize();
-    
+
     echo "    Documents after upsert: " . count($collection->queryByFilter('quantity > 0', topk: 100)) . "\n\n";
 
     // 3. Single delete
@@ -101,7 +101,7 @@ try {
     echo "[6] Delete by filter (price < 500):\n";
     $collection->deleteByFilter('price < 500'); // will delete Mouse and Keyboard
     $collection->optimize();
-    
+
     $remaining = $collection->queryByFilter('quantity >= 0', topk: 100);
     echo "    Remaining documents: " . count($remaining) . "\n";
     foreach ($remaining as $doc) {

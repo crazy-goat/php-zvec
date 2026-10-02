@@ -16,8 +16,8 @@ struct zvec_collection_object {
 };
 
 static inline zvec_collection_object *zvec_collection_from_obj(zend_object *obj) {
-    return reinterpret_cast<zvec_collection_object *>(
-        reinterpret_cast<char *>(obj) - XtOffsetOf(zvec_collection_object, std));
+    return reinterpret_cast<zvec_collection_object *>(reinterpret_cast<char *>(obj) -
+                                                      XtOffsetOf(zvec_collection_object, std));
 }
 
 #define Z_ZVEC_COLLECTION_P(zv) zvec_collection_from_obj(Z_OBJ_P(zv))

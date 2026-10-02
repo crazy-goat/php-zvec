@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_ERROR);
 
@@ -59,4 +60,3 @@ try {
     exec("rm -rf " . escapeshellarg($path));
     exec("rm -rf " . escapeshellarg($path . '_2'));
 }
-?>

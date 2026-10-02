@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
@@ -28,8 +29,12 @@ try {
     // =========================================================
     for ($i = 0; $i < 50; $i++) {
         try {
-            $c->query('nonexistent_field', [1.0, 2.0, 3.0, 4.0],
-                topk: 5, outputFields: ['id', 'name']);
+            $c->query(
+                'nonexistent_field',
+                [1.0, 2.0, 3.0, 4.0],
+                topk: 5,
+                outputFields: ['id', 'name']
+            );
             echo "FAIL: query() expected exception (iter $i)\n";
             exit(1);
         } catch (ZVecException $e) {
@@ -41,8 +46,12 @@ try {
     // =========================================================
     // Test 2: query() with outputFields in normal path
     // =========================================================
-    $docs = $c->query('vec', [1.0, 2.0, 3.0, 4.0],
-        topk: 5, outputFields: ['id', 'name']);
+    $docs = $c->query(
+        'vec',
+        [1.0, 2.0, 3.0, 4.0],
+        topk: 5,
+        outputFields: ['id', 'name']
+    );
     if (count($docs) === 5) {
         echo "Test 2: query() outputFields OK (" . count($docs) . " docs)\n";
     } else {
@@ -55,8 +64,12 @@ try {
     // =========================================================
     for ($i = 0; $i < 50; $i++) {
         try {
-            $c->queryFp64('nonexistent_field', [1.0, 2.0, 3.0, 4.0],
-                topk: 5, outputFields: ['id', 'name']);
+            $c->queryFp64(
+                'nonexistent_field',
+                [1.0, 2.0, 3.0, 4.0],
+                topk: 5,
+                outputFields: ['id', 'name']
+            );
             echo "FAIL: queryFp64() expected exception (iter $i)\n";
             exit(1);
         } catch (ZVecException $e) {
@@ -84,9 +97,14 @@ try {
     // =========================================================
     for ($i = 0; $i < 50; $i++) {
         try {
-            $c->groupByQuery('nonexistent_field', [1.0, 2.0, 3.0, 4.0],
-                groupByField: 'name', groupCount: 2, groupTopk: 3,
-                outputFields: ['id', 'name']);
+            $c->groupByQuery(
+                'nonexistent_field',
+                [1.0, 2.0, 3.0, 4.0],
+                groupByField: 'name',
+                groupCount: 2,
+                groupTopk: 3,
+                outputFields: ['id', 'name']
+            );
             echo "FAIL: groupByQuery() expected exception (iter $i)\n";
             exit(1);
         } catch (ZVecException $e) {
@@ -98,9 +116,14 @@ try {
     // =========================================================
     // Test 6: groupByQuery() with outputFields in normal path
     // =========================================================
-    $groups = $c->groupByQuery('vec', [1.0, 2.0, 3.0, 4.0],
-        groupByField: 'name', groupCount: 2, groupTopk: 3,
-        outputFields: ['id']);
+    $groups = $c->groupByQuery(
+        'vec',
+        [1.0, 2.0, 3.0, 4.0],
+        groupByField: 'name',
+        groupCount: 2,
+        groupTopk: 3,
+        outputFields: ['id']
+    );
     if (count($groups) > 0) {
         echo "Test 6: groupByQuery() outputFields OK (" . count($groups) . " groups)\n";
     } else {
@@ -128,4 +151,3 @@ try {
 }
 
 echo "All tests passed!\n";
-?>

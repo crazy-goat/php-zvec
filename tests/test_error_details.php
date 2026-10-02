@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN, verboseErrors: true);
 
@@ -53,4 +54,3 @@ foreach ($expectedStrings as $i => $expected) {
 echo "code strings OK\n";
 
 echo "OK\n";
-?>
