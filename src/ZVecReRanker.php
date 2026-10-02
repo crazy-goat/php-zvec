@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace CrazyGoat\ZVec;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 /**
  * Interface for rerankers that post-process vector search results.
@@ -20,7 +22,7 @@ interface ZVecReRanker
 {
     /**
      * Rerank results from one or more vector queries.
-     * 
+     *
      * @param array $queryResults Results from each vector field query.
      *        Format: [fieldName => ZVecDoc[]] where each ZVecDoc[] is ordered by relevance.
      *        For single-vector queries, this will be [fieldName => ZVecDoc[]].

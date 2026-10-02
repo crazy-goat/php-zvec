@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 $path = __DIR__ . '/../test_dbs/binary_' . uniqid();
@@ -21,7 +22,11 @@ try {
 
     echo "OK\n";
 } finally {
-    if (isset($coll)) { try { $coll->destroy(); } catch (Exception $e) {} }
+    if (isset($coll)) {
+        try {
+            $coll->destroy();
+        } catch (Exception $e) {
+        }
+    }
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -43,4 +44,3 @@ $status = $ffi->zvec_collection_query_vector(null, null, \FFI::addr($result));
 echo "PASS: zvec_collection_query_vector(null) returned code={$status->code}\n";
 
 echo "PASS\n";
-?>

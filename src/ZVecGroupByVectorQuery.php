@@ -6,7 +6,9 @@ namespace CrazyGoat\ZVec;
 
 use FFI;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 /**
  * Group-by query builder for vector search.

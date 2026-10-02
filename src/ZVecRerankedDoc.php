@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace CrazyGoat\ZVec;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 /**
  * Reranked document wrapper with combined score.

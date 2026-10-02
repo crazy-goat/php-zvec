@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -42,7 +43,7 @@ try {
     // ===== 2. fetch() — uses toCStringArray + NEW try-finally =====
     $fetched = $c->fetch('doc1', 'doc2');
     assert(count($fetched) === 2, 'fetch should return 2 docs');
-    $pks = array_map(fn($d) => $d->getPk(), $fetched);
+    $pks = array_map(fn ($d) => $d->getPk(), $fetched);
     assert(in_array('doc1', $pks), 'fetch should contain doc1');
     assert(in_array('doc2', $pks), 'fetch should contain doc2');
     echo "fetch() OK\n";
@@ -109,4 +110,3 @@ try {
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

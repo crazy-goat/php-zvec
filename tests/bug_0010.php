@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
@@ -119,7 +120,11 @@ try {
     echo "FAIL: bug_0010 - " . $e->getMessage() . "\n";
     exit(1);
 } finally {
-    if (isset($coll)) { try { $coll->destroy(); } catch (Exception $e) {} }
+    if (isset($coll)) {
+        try {
+            $coll->destroy();
+        } catch (Exception $e) {
+        }
+    }
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

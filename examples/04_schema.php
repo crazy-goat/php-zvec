@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Example 4: Schema and Index Management
- * 
+ *
  * Demonstrates:
  * - Adding new columns to existing collection
  * - Renaming columns
@@ -51,7 +51,7 @@ try {
     // 1. Adding a column
     echo "[2] Adding 'rating' column (FLOAT):\n";
     $collection->addColumnFloat('rating', nullable: true, defaultExpr: '0');
-    
+
     // Check - fetch existing movie (will have default value)
     $doc = $collection->fetch('movie_1')[0];
     echo "    Movie '{$doc->getString('title')}' has default rating: {$doc->getFloat('rating')}\n\n";
@@ -59,7 +59,7 @@ try {
     // 2. Renaming a column
     echo "[3] Rename 'year' -> 'release_year':\n";
     $collection->renameColumn('year', 'release_year');
-    
+
     $doc = $collection->fetch('movie_1')[0];
     echo "    Inception release year: {$doc->getInt64('release_year')}\n\n";
 
@@ -68,33 +68,33 @@ try {
     $collection->addColumnInt64('value', nullable: true, defaultExpr: '100');
     $doc = $collection->fetch('movie_1')[0];
     echo "    Before change: {$doc->getInt64('value')}\n";
-    
+
     $collection->alterColumn('value', newDataType: ZVec::TYPE_FLOAT, nullable: true);
     $doc = $collection->fetch('movie_1')[0];
     echo "    After change: {$doc->getFloat('value')}\n\n";
 
     // 4. Creating vector indexes
     echo "[5] Managing vector indexes:\n";
-    
+
     // First optimize
     $collection->optimize();
     echo "    - Current index: default\n";
-    
+
     // Create Flat index (accurate but slower)
     $collection->createFlatIndex('vector', metricType: ZVecSchema::METRIC_IP);
     $collection->optimize();
     echo "    - Created Flat index\n";
-    
+
     // Test search
     $results = $collection->query('vector', [0.9, 0.8, 0.7], topk: 2);
     echo "    - Search with Flat: {$results[0]->getString('title')}\n";
-    
+
     // Change to HNSW (faster, approximate)
     $collection->dropIndex('vector');
     $collection->createHnswIndex('vector', metricType: ZVecSchema::METRIC_IP, m: 16, efConstruction: 100);
     $collection->optimize();
     echo "    - Changed to HNSW index\n";
-    
+
     $results = $collection->query('vector', [0.9, 0.8, 0.7], topk: 2);
     echo "    - Search with HNSW: {$results[0]->getString('title')}\n\n";
 

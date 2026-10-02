@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/../src/Installer.php';
 
@@ -54,4 +55,3 @@ if ($result === null) {
 }
 
 echo "PASS: All resolveAssetName tests completed\n";
-?>

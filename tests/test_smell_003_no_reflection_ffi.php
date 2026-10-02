@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 // Test 1: ZVec::ffi() is callable (public)
@@ -79,4 +80,3 @@ try {
 }
 
 echo "PASS: SMELL-003 - all tests passed\n";
-?>

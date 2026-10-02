@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SEC-012: Explicit SSL verification in embedding API requests.
  *

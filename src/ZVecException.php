@@ -7,7 +7,9 @@ namespace CrazyGoat\ZVec;
 use RuntimeException;
 use Throwable;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 /**
  * Exception thrown by all ZVec operations on FFI error.

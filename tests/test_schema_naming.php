@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
@@ -11,7 +12,9 @@ try {
 
     $schema2 = new ZVecSchema('test');
     $schema2->addVectorFp32('vec', dimension: 4, metricType: ZVecSchema::METRIC_IP);
-    set_error_handler(function () { return true; }); // suppress deprecation warning
+    set_error_handler(function () {
+        return true;
+    }); // suppress deprecation warning
     $schema2->addFieldBinary('bin');
     restore_error_handler();
 
@@ -40,7 +43,9 @@ try {
 
     $schema4 = new ZVecSchema('test');
     $schema4->addVectorFp32('vec', dimension: 4, metricType: ZVecSchema::METRIC_IP);
-    set_error_handler(function () { return true; }); // suppress deprecation warnings
+    set_error_handler(function () {
+        return true;
+    }); // suppress deprecation warnings
     $schema4->addFieldArrayInt32('i32');
     $schema4->addFieldArrayInt64('i64');
     $schema4->addFieldArrayUint32('u32');
@@ -104,7 +109,9 @@ try {
     // Test 5 (renumbered): Deprecated methods still produce valid schema (round-trip via deprecated API)
     $schema7 = new ZVecSchema('test');
     $schema7->addVectorFp32('vec', dimension: 4, metricType: ZVecSchema::METRIC_IP);
-    set_error_handler(function () { return true; });
+    set_error_handler(function () {
+        return true;
+    });
     $schema7->addFieldBinary('bin');
     $schema7->addFieldArrayString('tags');
     $schema7->addFieldArrayBool('flags');
@@ -132,13 +139,13 @@ try {
     $d = $fetched[0];
     echo "6 deprecated round-trip bin: " . bin2hex($d->getBinary('bin')) . "\n";
     echo "7 deprecated round-trip tags: " . implode(',', $d->getArrayString('tags')) . "\n";
-    echo "8 deprecated round-trip flags: " . implode(',', array_map(fn($v) => $v ? '1' : '0', $d->getArrayBool('flags'))) . "\n";
+    echo "8 deprecated round-trip flags: " . implode(',', array_map(fn ($v) => $v ? '1' : '0', $d->getArrayBool('flags'))) . "\n";
     echo "9 deprecated round-trip counts: " . implode(',', $d->getArrayInt32('counts')) . "\n";
     echo "10 deprecated round-trip big_ids: " . implode(',', $d->getArrayInt64('big_ids')) . "\n";
     echo "11 deprecated round-trip uids: " . implode(',', $d->getArrayUint32('uids')) . "\n";
     echo "12 deprecated round-trip u64s: " . implode(',', $d->getArrayUint64('u64s')) . "\n";
-    echo "13 deprecated round-trip scores: " . implode(',', array_map(fn($v) => round($v, 1), $d->getArrayFloat('scores'))) . "\n";
-    echo "14 deprecated round-trip vals: " . implode(',', array_map(fn($v) => round($v, 1), $d->getArrayDouble('vals'))) . "\n";
+    echo "13 deprecated round-trip scores: " . implode(',', array_map(fn ($v) => round($v, 1), $d->getArrayFloat('scores'))) . "\n";
+    echo "14 deprecated round-trip vals: " . implode(',', array_map(fn ($v) => round($v, 1), $d->getArrayDouble('vals'))) . "\n";
     $coll7->destroy();
 
     // Test 6 (renumbered): New methods used in a full workflow
@@ -161,4 +168,3 @@ try {
 } finally {
     exec("rm -rf " . escapeshellarg($path) . '*');
 }
-?>

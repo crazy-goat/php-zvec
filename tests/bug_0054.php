@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/../src/ZVec.php';
 
@@ -104,4 +105,3 @@ if ($allOk) {
     echo "\nSome Bug 0054 tests FAILED\n";
     exit(1);
 }
-?>

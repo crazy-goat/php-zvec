@@ -49,7 +49,7 @@ class Installer
             return;
         }
 
-        $version = $version ?? self::detectVersion();
+        $version ??= self::detectVersion();
         if (!preg_match('/^v\d+\.\d+\.\d+(-[\w.-]*\w)?$/', $version)) {
             throw new RuntimeException("Invalid version format: {$version}. Expected semver format (e.g. v0.4.0)");
         }

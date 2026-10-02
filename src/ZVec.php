@@ -6,7 +6,9 @@ namespace CrazyGoat\ZVec;
 
 use FFI;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 require_once __DIR__ . '/ZVecException.php';
 require_once __DIR__ . '/ZVecCollectionOptions.php';
@@ -221,7 +223,7 @@ class ZVec
         }
 
         $parent = dirname($path);
-        if ($parent === '' || $parent === '.') {
+        if ($parent === '.') {
             throw new ZVecException("Invalid collection path: {$path}");
         }
 
@@ -608,7 +610,7 @@ class ZVec
         $dataType = $newDataType ?? 0; // 0 = UNDEFINED (no type change)
         $isNullable = $nullable === null ? 0 : ($nullable ? 1 : 0);
         $rename = $newName ?? '';
-        
+
         self::checkStatus(self::ffi()->zvec_collection_alter_column($this->handle, $columnName, $rename, $dataType, $isNullable, $concurrency));
     }
 
@@ -691,17 +693,26 @@ class ZVec
     /**
      * @throws ZVecException On FFI error
      */
-    public function insert(ZVecDoc ...$docs): void { $this->writeDocs('insert', ...$docs); }
+    public function insert(ZVecDoc ...$docs): void
+    {
+        $this->writeDocs('insert', ...$docs);
+    }
 
     /**
      * @throws ZVecException On FFI error
      */
-    public function upsert(ZVecDoc ...$docs): void { $this->writeDocs('upsert', ...$docs); }
+    public function upsert(ZVecDoc ...$docs): void
+    {
+        $this->writeDocs('upsert', ...$docs);
+    }
 
     /**
      * @throws ZVecException On FFI error
      */
-    public function update(ZVecDoc ...$docs): void { $this->writeDocs('update', ...$docs); }
+    public function update(ZVecDoc ...$docs): void
+    {
+        $this->writeDocs('update', ...$docs);
+    }
 
     /**
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
@@ -736,19 +747,28 @@ class ZVec
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
      * @throws ZVecException On FFI error
      */
-    public function insertBatch(ZVecDoc ...$docs): array { return $this->writeDocsBatch('insert', ...$docs); }
+    public function insertBatch(ZVecDoc ...$docs): array
+    {
+        return $this->writeDocsBatch('insert', ...$docs);
+    }
 
     /**
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
      * @throws ZVecException On FFI error
      */
-    public function upsertBatch(ZVecDoc ...$docs): array { return $this->writeDocsBatch('upsert', ...$docs); }
+    public function upsertBatch(ZVecDoc ...$docs): array
+    {
+        return $this->writeDocsBatch('upsert', ...$docs);
+    }
 
     /**
      * @return array<int, array{pk: string, ok: bool, error: string|null}>
      * @throws ZVecException On FFI error
      */
-    public function updateBatch(ZVecDoc ...$docs): array { return $this->writeDocsBatch('update', ...$docs); }
+    public function updateBatch(ZVecDoc ...$docs): array
+    {
+        return $this->writeDocsBatch('update', ...$docs);
+    }
 
     /**
      * @throws ZVecException On FFI error
@@ -2119,7 +2139,7 @@ class ZVec
         if ($topk <= 0) {
             throw new ZVecException("topk must be a positive integer, got: {$topk}");
         }
-        if (is_string($fieldName) && $fieldName === '') {
+        if ($fieldName === '') {
             throw new ZVecException('Field name must not be empty');
         }
 
@@ -2199,17 +2219,32 @@ class ZVec
                 }
 
                 $status = $ffi->zvec_collection_query_ex(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $topk, $includeVector ? 1 : 0, $filter ?? '',
-                    $ofArr, $ofCount,
-                    $queryParamType, $hnswEf, $ivfNprobe,
-                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                    $this->handle,
+                    $fieldName,
+                    $vecData,
+                    $dim,
+                    $topk,
+                    $includeVector ? 1 : 0,
+                    $filter ?? '',
+                    $ofArr,
+                    $ofCount,
+                    $queryParamType,
+                    $hnswEf,
+                    $ivfNprobe,
+                    $radius,
+                    $isLinear ? 1 : 0,
+                    $isUsingRefiner ? 1 : 0,
                     FFI::addr($result)
                 );
             } else {
                 $status = $ffi->zvec_collection_query(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $topk, $includeVector ? 1 : 0, $filter ?? '',
+                    $this->handle,
+                    $fieldName,
+                    $vecData,
+                    $dim,
+                    $topk,
+                    $includeVector ? 1 : 0,
+                    $filter ?? '',
                     FFI::addr($result)
                 );
             }
@@ -2261,17 +2296,32 @@ class ZVec
                 }
 
                 $status = $ffi->zvec_collection_query_fp64_ex(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $topk, $includeVector ? 1 : 0, $filter ?? '',
-                    $ofArr, $ofCount,
-                    $queryParamType, $hnswEf, $ivfNprobe,
-                    $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                    $this->handle,
+                    $fieldName,
+                    $vecData,
+                    $dim,
+                    $topk,
+                    $includeVector ? 1 : 0,
+                    $filter ?? '',
+                    $ofArr,
+                    $ofCount,
+                    $queryParamType,
+                    $hnswEf,
+                    $ivfNprobe,
+                    $radius,
+                    $isLinear ? 1 : 0,
+                    $isUsingRefiner ? 1 : 0,
                     FFI::addr($result)
                 );
             } else {
                 $status = $ffi->zvec_collection_query_fp64(
-                    $this->handle, $fieldName, $vecData, $dim,
-                    $topk, $includeVector ? 1 : 0, $filter ?? '',
+                    $this->handle,
+                    $fieldName,
+                    $vecData,
+                    $dim,
+                    $topk,
+                    $includeVector ? 1 : 0,
+                    $filter ?? '',
                     FFI::addr($result)
                 );
             }
@@ -2348,25 +2398,50 @@ class ZVec
         }
 
         $params = $this->resolveQueryParams(
-            $fieldName, $queryVector, $topk, $includeVector, $filter,
-            $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
-            $radius, $isLinear, $isUsingRefiner
+            $fieldName,
+            $queryVector,
+            $topk,
+            $includeVector,
+            $filter,
+            $outputFields,
+            $queryParamType,
+            $hnswEf,
+            $ivfNprobe,
+            $radius,
+            $isLinear,
+            $isUsingRefiner
         );
 
         if ($params['useFp64']) {
             return $this->executeQueryFp64(
-                $params['fieldName'], $params['queryVector'], $params['topk'],
-                $params['includeVector'], $params['filter'], $params['outputFields'],
-                $params['queryParamType'], $params['hnswEf'], $params['ivfNprobe'],
-                $params['radius'], $params['isLinear'], $params['isUsingRefiner']
+                $params['fieldName'],
+                $params['queryVector'],
+                $params['topk'],
+                $params['includeVector'],
+                $params['filter'],
+                $params['outputFields'],
+                $params['queryParamType'],
+                $params['hnswEf'],
+                $params['ivfNprobe'],
+                $params['radius'],
+                $params['isLinear'],
+                $params['isUsingRefiner']
             );
         }
 
         return $this->executeQuery(
-            $params['fieldName'], $params['queryVector'], $params['topk'],
-            $params['includeVector'], $params['filter'], $params['outputFields'],
-            $params['queryParamType'], $params['hnswEf'], $params['ivfNprobe'],
-            $params['radius'], $params['isLinear'], $params['isUsingRefiner']
+            $params['fieldName'],
+            $params['queryVector'],
+            $params['topk'],
+            $params['includeVector'],
+            $params['filter'],
+            $params['outputFields'],
+            $params['queryParamType'],
+            $params['hnswEf'],
+            $params['ivfNprobe'],
+            $params['radius'],
+            $params['isLinear'],
+            $params['isUsingRefiner']
         );
     }
 
@@ -2399,8 +2474,13 @@ class ZVec
 
         $result = $ffi->new('zvec_query_result_t');
         $status = $ffi->zvec_collection_query_fp16(
-            $this->handle, $fieldName, $vecData, $dim,
-            $topk, $includeVector ? 1 : 0, $filter ?? '',
+            $this->handle,
+            $fieldName,
+            $vecData,
+            $dim,
+            $topk,
+            $includeVector ? 1 : 0,
+            $filter ?? '',
             FFI::addr($result)
         );
         self::checkStatus($status);
@@ -2462,9 +2542,18 @@ class ZVec
         }
 
         return $this->executeQueryFp64(
-            $fieldName, $queryVector, $topk, $includeVector, $filter,
-            $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
-            $radius, $isLinear, $isUsingRefiner
+            $fieldName,
+            $queryVector,
+            $topk,
+            $includeVector,
+            $filter,
+            $outputFields,
+            $queryParamType,
+            $hnswEf,
+            $ivfNprobe,
+            $radius,
+            $isLinear,
+            $isUsingRefiner
         );
     }
 
@@ -2497,9 +2586,18 @@ class ZVec
         }
 
         $params = $this->resolveQueryParams(
-            $fieldName, $queryVector, $topk, $includeVector, $filter,
-            $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
-            $radius, $isLinear, $isUsingRefiner
+            $fieldName,
+            $queryVector,
+            $topk,
+            $includeVector,
+            $filter,
+            $outputFields,
+            $queryParamType,
+            $hnswEf,
+            $ivfNprobe,
+            $radius,
+            $isLinear,
+            $isUsingRefiner
         );
 
         // Fetch more results for two-stage retrieval
@@ -2507,17 +2605,33 @@ class ZVec
 
         if ($params['useFp64']) {
             $docs = $this->executeQueryFp64(
-                $params['fieldName'], $params['queryVector'], $fetchTopk,
-                $params['includeVector'], $params['filter'], $params['outputFields'],
-                $params['queryParamType'], $params['hnswEf'], $params['ivfNprobe'],
-                $params['radius'], $params['isLinear'], $params['isUsingRefiner']
+                $params['fieldName'],
+                $params['queryVector'],
+                $fetchTopk,
+                $params['includeVector'],
+                $params['filter'],
+                $params['outputFields'],
+                $params['queryParamType'],
+                $params['hnswEf'],
+                $params['ivfNprobe'],
+                $params['radius'],
+                $params['isLinear'],
+                $params['isUsingRefiner']
             );
         } else {
             $docs = $this->executeQuery(
-                $params['fieldName'], $params['queryVector'], $fetchTopk,
-                $params['includeVector'], $params['filter'], $params['outputFields'],
-                $params['queryParamType'], $params['hnswEf'], $params['ivfNprobe'],
-                $params['radius'], $params['isLinear'], $params['isUsingRefiner']
+                $params['fieldName'],
+                $params['queryVector'],
+                $fetchTopk,
+                $params['includeVector'],
+                $params['filter'],
+                $params['outputFields'],
+                $params['queryParamType'],
+                $params['hnswEf'],
+                $params['ivfNprobe'],
+                $params['radius'],
+                $params['isLinear'],
+                $params['isUsingRefiner']
             );
         }
 
@@ -2561,9 +2675,18 @@ class ZVec
         $fetchTopk = max($topk * 2, 100);
 
         $docs = $this->executeQueryFp64(
-            $fieldName, $queryVector, $fetchTopk, $includeVector, $filter,
-            $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
-            $radius, $isLinear, $isUsingRefiner
+            $fieldName,
+            $queryVector,
+            $fetchTopk,
+            $includeVector,
+            $filter,
+            $outputFields,
+            $queryParamType,
+            $hnswEf,
+            $ivfNprobe,
+            $radius,
+            $isLinear,
+            $isUsingRefiner
         );
 
         $queryResults = [$fieldName => $docs];
@@ -2809,8 +2932,11 @@ class ZVec
                 [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
 
                 $status = $ffi->zvec_collection_query_filter_ex(
-                    $this->handle, $filter, $topk,
-                    $ofArr, $ofCount,
+                    $this->handle,
+                    $filter,
+                    $topk,
+                    $ofArr,
+                    $ofCount,
                     FFI::addr($result)
                 );
             } else {
@@ -2821,9 +2947,7 @@ class ZVec
             self::freeCStringArray($ofCStrings);
         }
 
-        $docs = self::parseQueryResult($result);
-
-        return $docs;
+        return self::parseQueryResult($result);
     }
 
     /**
@@ -2906,15 +3030,28 @@ class ZVec
 
         if ($vectorType === 'fp64') {
             return $this->queryFp64(
-                $fieldName, $vector, $topk, $includeVector, $filter,
-                $outputFields, $queryParamType, $hnswEf, $ivfNprobe,
-                $radius, $isLinear, $isUsingRefiner
+                $fieldName,
+                $vector,
+                $topk,
+                $includeVector,
+                $filter,
+                $outputFields,
+                $queryParamType,
+                $hnswEf,
+                $ivfNprobe,
+                $radius,
+                $isLinear,
+                $isUsingRefiner
             );
         }
 
         if ($vectorType === 'fp16') {
             return $this->queryFp16(
-                $fieldName, $vector, $topk, $includeVector, $filter
+                $fieldName,
+                $vector,
+                $topk,
+                $includeVector,
+                $filter
             );
         }
         return $this->query(
@@ -2979,7 +3116,7 @@ class ZVec
         if ($groupTopk <= 0) {
             throw new ZVecException("groupTopk must be a positive integer, got: {$groupTopk}");
         }
-        if (is_string($fieldName) && $fieldName === '') {
+        if ($fieldName === '') {
             throw new ZVecException('Field name must not be empty');
         }
         if ($groupByField === '') {
@@ -3017,12 +3154,23 @@ class ZVec
                 [$ofArr, $ofCount, $ofCStrings] = self::toCStringArray($ffi, $outputFields);
             }
             $status = $ffi->zvec_collection_group_by_query(
-                $this->handle, $fieldName, $vecData, $dim,
-                $groupByField, $groupCount, $groupTopk,
-                $includeVector ? 1 : 0, $filter ?? '',
-                $ofArr, $ofCount,
-                $queryParamType, $hnswEf, $ivfNprobe,
-                $radius, $isLinear ? 1 : 0, $isUsingRefiner ? 1 : 0,
+                $this->handle,
+                $fieldName,
+                $vecData,
+                $dim,
+                $groupByField,
+                $groupCount,
+                $groupTopk,
+                $includeVector ? 1 : 0,
+                $filter ?? '',
+                $ofArr,
+                $ofCount,
+                $queryParamType,
+                $hnswEf,
+                $ivfNprobe,
+                $radius,
+                $isLinear ? 1 : 0,
+                $isUsingRefiner ? 1 : 0,
                 FFI::addr($result)
             );
             self::checkStatus($status);
@@ -3030,9 +3178,7 @@ class ZVec
             self::freeCStringArray($ofCStrings);
         }
 
-        $groups = self::parseGroupResult($result);
-
-        return $groups;
+        return self::parseGroupResult($result);
     }
 
     /**

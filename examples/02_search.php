@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Example 2: Vector Search
- * 
+ *
  * Demonstrates:
  * - Finding similar documents (kNN)
  * - Search with filter (vector + scalar)

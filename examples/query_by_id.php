@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 /**
  * Example: Query by Document ID
- * 
+ *
  * This example demonstrates how to find similar documents by referencing
  * an existing document's embedding rather than providing an explicit vector.
- * 
+ *
  * Usage: php php/example_query_by_id.php
  */
 
@@ -30,7 +30,7 @@ try {
         ->addVectorFp32('embedding', dimension: 4, metricType: ZVecSchema::METRIC_IP);
 
     $collection = ZVec::create($path, $schema);
-    
+
     // Create HNSW index for fast similarity search
     $collection->createHnswIndex(
         fieldName: 'embedding',
@@ -57,7 +57,7 @@ try {
             ->setVectorFp32('embedding', $p[4]);
         $collection->insert($doc);
     }
-    
+
     echo "Inserted " . count($products) . " products\n\n";
 
     $collection->optimize();
@@ -66,7 +66,7 @@ try {
     // Scenario 1: Find similar products to iPhone 15 Pro
     echo "Scenario 1: Find products similar to 'iPhone 15 Pro'\n";
     echo "--------------------------------------------------------\n";
-    
+
     $similar = $collection->queryById(
         fieldName: 'embedding',
         docId: 'prod_001',  // iPhone 15 Pro
@@ -78,15 +78,20 @@ try {
     foreach ($similar as $i => $doc) {
         $name = $doc->getString('name');
         $category = $doc->getString('category');
-        echo sprintf("  %d. %s (%s) - score: %.4f\n", 
-            $i + 1, $name, $category, $doc->getScore());
+        echo sprintf(
+            "  %d. %s (%s) - score: %.4f\n",
+            $i + 1,
+            $name,
+            $category,
+            $doc->getScore()
+        );
     }
     echo "\n";
 
     // Scenario 2: Find similar laptops (filtered by category)
     echo "Scenario 2: Find laptops similar to MacBook Pro\n";
     echo "--------------------------------------------------------\n";
-    
+
     $similarLaptops = $collection->queryById(
         fieldName: 'embedding',
         docId: 'prod_004',  // MacBook Pro
@@ -98,49 +103,53 @@ try {
     echo "Results:\n";
     foreach ($similarLaptops as $i => $doc) {
         $name = $doc->getString('name');
-        echo sprintf("  %d. %s - score: %.4f\n", 
-            $i + 1, $name, $doc->getScore());
+        echo sprintf(
+            "  %d. %s - score: %.4f\n",
+            $i + 1,
+            $name,
+            $doc->getScore()
+        );
     }
     echo "\n";
 
     // Scenario 3: Compare with regular query (using explicit vector)
     echo "Scenario 3: Compare queryById with regular query\n";
     echo "--------------------------------------------------------\n";
-    
+
     // First, fetch the iPhone document
     $iphoneDocs = $collection->fetch('prod_001');
     $iphoneVector = $iphoneDocs[0]->getVectorFp32('embedding');
-    
+
     // Query using the explicit vector
     $resultsVector = $collection->query(
         fieldName: 'embedding',
         queryVector: $iphoneVector,
         topk: 3
     );
-    
+
     // Query using queryById (same thing, but simpler)
     $resultsById = $collection->queryById(
         fieldName: 'embedding',
         docId: 'prod_001',
         topk: 3
     );
-    
+
     echo "Regular query (explicit vector) results:\n";
     foreach ($resultsVector as $doc) {
         echo "  - " . $doc->getString('name') . "\n";
     }
-    
+
     echo "\nqueryById results:\n";
     foreach ($resultsById as $doc) {
         echo "  - " . $doc->getString('name') . "\n";
     }
-    
+
     echo "\nBoth methods return identical results!\n\n";
 
     // Scenario 4: Error handling
     echo "Scenario 4: Error handling\n";
     echo "--------------------------------------------------------\n";
-    
+
     try {
         $collection->queryById('embedding', 'nonexistent_product', topk: 5);
     } catch (ZVecException $e) {
@@ -149,7 +158,7 @@ try {
 
     $collection->close();
     echo "\n=== Example completed successfully ===\n";
-    
+
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }

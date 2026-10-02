@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace CrazyGoat\ZVec;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 require_once __DIR__ . '/ZVecReRanker.php';
 require_once __DIR__ . '/ZVecRerankedDoc.php';
@@ -74,13 +76,11 @@ class ZVecRrfReRanker implements ZVecReRanker
                 $pk = $doc->getPk();
                 $rank = $rank + 1;
 
-                if (!isset($docScores[$pk])) {
-                    $docScores[$pk] = [
-                        'ranks' => [],
-                        'scores' => [],
-                        'doc' => $doc,
-                    ];
-                }
+                $docScores[$pk] ??= [
+                    'ranks' => [],
+                    'scores' => [],
+                    'doc' => $doc,
+                ];
 
                 $docScores[$pk]['ranks'][$fieldName] = $rank;
                 $docScores[$pk]['scores'][$fieldName] = $doc->getScore();
@@ -88,9 +88,9 @@ class ZVecRrfReRanker implements ZVecReRanker
         }
 
         $reranked = [];
-        foreach ($docScores as $pk => $data) {
+        foreach ($docScores as $data) {
             $rrfScore = 0.0;
-            foreach ($data['ranks'] as $fieldName => $rank) {
+            foreach ($data['ranks'] as $rank) {
                 $rrfScore += 1.0 / ($this->rankConstant + $rank);
             }
 
@@ -102,7 +102,7 @@ class ZVecRrfReRanker implements ZVecReRanker
             );
         }
 
-        usort($reranked, fn(ZVecRerankedDoc $a, ZVecRerankedDoc $b) => $b->getCombinedScore() <=> $a->getCombinedScore());
+        usort($reranked, fn (ZVecRerankedDoc $a, ZVecRerankedDoc $b) => $b->getCombinedScore() <=> $a->getCombinedScore());
 
         return array_slice($reranked, 0, $this->topn);
     }

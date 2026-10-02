@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
@@ -32,4 +33,3 @@ $expectedPrefix = "v$major.$minor.$patch";
 echo "version starts with $expectedPrefix: " . (str_starts_with($version, $expectedPrefix) ? '1' : '0') . "\n";
 
 echo "OK\n";
-?>

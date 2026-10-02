@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 $path = __DIR__ . '/../test_dbs/bug_0002_' . uniqid();
@@ -30,7 +31,8 @@ try {
     $c->optimize();
 
     $groups = $c->groupByQuery(
-        'v', [0.5, 0.5, 0.5, 0.5],
+        'v',
+        [0.5, 0.5, 0.5, 0.5],
         groupByField: 'category',
         groupCount: 2,
         groupTopk: 3,
@@ -59,4 +61,3 @@ try {
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

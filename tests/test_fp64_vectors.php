@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
@@ -102,8 +103,13 @@ try {
     echo "HNSW index on FP64 field OK\n";
 
     // Test 12: queryFp64 with HNSW params
-    $results = $c->queryFp64('v', [0.1, 0.2, 0.3, 0.4], topk: 3,
-        queryParamType: ZVec::QUERY_PARAM_HNSW, hnswEf: 100);
+    $results = $c->queryFp64(
+        'v',
+        [0.1, 0.2, 0.3, 0.4],
+        topk: 3,
+        queryParamType: ZVec::QUERY_PARAM_HNSW,
+        hnswEf: 100
+    );
     assert(count($results) === 3, 'Expected 3 results');
     echo "FP64 query with HNSW params OK\n";
 
@@ -111,8 +117,12 @@ try {
     $c->dropIndex('v');
     $c->createFlatIndex('v', metricType: ZVec::METRIC_COSINE);
     $c->optimize();
-    $results = $c->queryFp64('v', [0.1, 0.2, 0.3, 0.4], topk: 3,
-        queryParamType: ZVec::QUERY_PARAM_FLAT);
+    $results = $c->queryFp64(
+        'v',
+        [0.1, 0.2, 0.3, 0.4],
+        topk: 3,
+        queryParamType: ZVec::QUERY_PARAM_FLAT
+    );
     assert(count($results) === 3, 'Expected 3 results');
     assert($results[0]->getPk() === 'doc1', 'Expected doc1 as top result');
     echo "Flat index on FP64 field OK\n";
@@ -121,4 +131,3 @@ try {
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 require_once __DIR__ . '/../src/ZVecRrfReRanker.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -89,4 +90,3 @@ try {
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

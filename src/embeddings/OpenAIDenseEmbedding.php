@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace CrazyGoat\ZVec;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 require_once __DIR__ . '/EmbeddingInterfaces.php';
 
@@ -132,7 +134,7 @@ class OpenAIDenseEmbedding extends ApiEmbeddingFunction implements DenseEmbeddin
             if (!isset($item['embedding']) || !is_array($item['embedding'])) {
                 throw new ZVecException('Invalid response format: missing embedding array');
             }
-            $embeddings[] = array_map(fn($v) => (float) $v, $item['embedding']);
+            $embeddings[] = array_map(fn ($v) => (float) $v, $item['embedding']);
         }
 
         return $embeddings;

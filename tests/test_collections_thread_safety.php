@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -60,7 +61,9 @@ try {
 
     // Close remaining
     foreach ($collections2 as $c) {
-        if ($c) $c->close();
+        if ($c) {
+            $c->close();
+        }
     }
     unset($collections2);
     echo "  Closed all remaining: OK\n";
@@ -93,4 +96,3 @@ try {
 }
 
 echo "All thread safety tests passed\n";
-?>

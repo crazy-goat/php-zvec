@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace CrazyGoat\ZVec;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 require_once __DIR__ . '/../ZVecException.php';
 
@@ -136,7 +138,7 @@ abstract class ApiEmbeddingFunction
     protected function post(string $endpoint, array $data): array
     {
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
-        
+
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -150,35 +152,35 @@ abstract class ApiEmbeddingFunction
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
         ]);
-        
+
         if ($this->proxy !== null) {
             curl_setopt($ch, CURLOPT_PROXY, $this->proxy);
         }
-        
+
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         curl_close($ch);
-        
+
         if ($error !== '') {
             throw new ZVecException("HTTP request failed: $error");
         }
-        
+
         if ($response === false) {
             throw new ZVecException('HTTP request returned false');
         }
-        
+
         $data = json_decode($response, true);
-        
+
         if ($httpCode !== 200) {
             $errorMsg = $data['error']['message'] ?? "HTTP $httpCode";
             throw new ZVecException("API error: $errorMsg", $httpCode);
         }
-        
+
         if ($data === null) {
             throw new ZVecException('Invalid JSON response: ' . $response);
         }
-        
+
         return $data;
     }
 

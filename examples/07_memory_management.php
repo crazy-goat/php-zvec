@@ -23,7 +23,8 @@ ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
  * Get current VmRSS ( Resident Set Size ) in KB from /proc/self/status.
  * This measures native (C/C++) memory usage, not PHP heap.
  */
-function getVmRSS(): int {
+function getVmRSS(): int
+{
     $status = @file_get_contents('/proc/self/status');
     if ($status === false) {
         return 0; // Not on Linux

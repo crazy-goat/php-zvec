@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Basic Embedding Functions Example
- * 
+ *
  * This example demonstrates how to use the embedding functions
  * to convert text into vector representations using external APIs.
  */
@@ -31,32 +31,41 @@ class ExampleMockEmbedding extends ApiEmbeddingFunction implements DenseEmbeddin
         $this->dimension = $dimension;
     }
 
-    protected function getDefaultBaseUrl(): string { return ''; }
-    protected function getHeaders(): array { return []; }
-    public function getDimension(): int { return $this->dimension; }
+    protected function getDefaultBaseUrl(): string
+    {
+        return '';
+    }
+    protected function getHeaders(): array
+    {
+        return [];
+    }
+    public function getDimension(): int
+    {
+        return $this->dimension;
+    }
 
     public function embed(string $input): array
     {
         // Generate deterministic mock vector
         $vector = [];
         $hash = crc32($input);
-        
+
         for ($i = 0; $i < $this->dimension; $i++) {
             $vector[] = (float) (sin($hash + $i * 0.1) * 0.5);
         }
-        
+
         // Normalize
-        $norm = sqrt(array_sum(array_map(fn($x) => $x * $x, $vector)));
+        $norm = sqrt(array_sum(array_map(fn ($x) => $x * $x, $vector)));
         if ($norm > 0) {
-            $vector = array_map(fn($x) => $x / $norm, $vector);
+            $vector = array_map(fn ($x) => $x / $norm, $vector);
         }
-        
+
         return $vector;
     }
 
     public function embedBatch(array $inputs): array
     {
-        return array_map(fn($input) => $this->embed($input), $inputs);
+        return array_map(fn ($input) => $this->embed($input), $inputs);
     }
 }
 
@@ -101,13 +110,13 @@ function cosineSimilarity(array $a, array $b): float
     $dot = 0;
     $normA = 0;
     $normB = 0;
-    
+
     for ($i = 0; $i < count($a); $i++) {
         $dot += $a[$i] * $b[$i];
         $normA += $a[$i] * $a[$i];
         $normB += $b[$i] * $b[$i];
     }
-    
+
     return $dot / (sqrt($normA) * sqrt($normB));
 }
 

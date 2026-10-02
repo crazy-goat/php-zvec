@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 $classes = [
@@ -23,4 +24,3 @@ foreach ($classes as $class) {
 }
 
 echo "PASS: All 10 classes loaded independently via autoloader\n";
-?>

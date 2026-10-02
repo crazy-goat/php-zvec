@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
@@ -56,4 +57,3 @@ $status = $ffi->zvec_doc_serialize(null, \FFI::addr($dataPtr), \FFI::addr($sizeP
 echo "PASS: zvec_doc_serialize(null) returned code={$status->code}\n";
 
 echo "PASS\n";
-?>

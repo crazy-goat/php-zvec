@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/embeddings/EmbeddingInterfaces.php';
 require_once __DIR__ . '/../src/embeddings/OpenAIDenseEmbedding.php';
 require_once __DIR__ . '/../src/embeddings/QwenDenseEmbedding.php';
@@ -29,7 +30,7 @@ if (interface_exists(SparseEmbeddingFunction::class)) {
 // Test 2: Verify OpenAIDenseEmbedding class exists and implements interface
 if (class_exists(OpenAIDenseEmbedding::class)) {
     echo "PASS: OpenAIDenseEmbedding class exists\n";
-    
+
     $reflection = new ReflectionClass(OpenAIDenseEmbedding::class);
     if ($reflection->implementsInterface(DenseEmbeddingFunction::class)) {
         echo "PASS: OpenAIDenseEmbedding implements DenseEmbeddingFunction\n";
@@ -37,7 +38,7 @@ if (class_exists(OpenAIDenseEmbedding::class)) {
         echo "FAIL: OpenAIDenseEmbedding does not implement DenseEmbeddingFunction\n";
         exit(1);
     }
-    
+
     if ($reflection->isSubclassOf(ApiEmbeddingFunction::class)) {
         echo "PASS: OpenAIDenseEmbedding extends ApiEmbeddingFunction\n";
     } else {
@@ -52,7 +53,7 @@ if (class_exists(OpenAIDenseEmbedding::class)) {
 // Test 3: Verify QwenDenseEmbedding class exists and implements interface
 if (class_exists(QwenDenseEmbedding::class)) {
     echo "PASS: QwenDenseEmbedding class exists\n";
-    
+
     $reflection = new ReflectionClass(QwenDenseEmbedding::class);
     if ($reflection->implementsInterface(DenseEmbeddingFunction::class)) {
         echo "PASS: QwenDenseEmbedding implements DenseEmbeddingFunction\n";
@@ -60,7 +61,7 @@ if (class_exists(QwenDenseEmbedding::class)) {
         echo "FAIL: QwenDenseEmbedding does not implement DenseEmbeddingFunction\n";
         exit(1);
     }
-    
+
     if ($reflection->isSubclassOf(ApiEmbeddingFunction::class)) {
         echo "PASS: QwenDenseEmbedding extends ApiEmbeddingFunction\n";
     } else {
@@ -123,7 +124,7 @@ foreach ($requiredMethods as $method) {
 // Test 6: Verify constructor signatures
 $constructor = $openaiReflection->getConstructor();
 $params = $constructor->getParameters();
-$paramNames = array_map(fn($p) => $p->getName(), $params);
+$paramNames = array_map(fn ($p) => $p->getName(), $params);
 
 $expectedParams = ['apiKey', 'model', 'dimensions', 'baseUrl', 'timeout', 'proxy'];
 foreach ($expectedParams as $param) {
@@ -151,4 +152,3 @@ if ($qwenReflection->hasMethod('getModel')) {
 }
 
 echo "\nAll embedding interface tests passed!\n";
-?>

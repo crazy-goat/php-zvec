@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 ZVec::init(logType: ZVec::LOG_CONSOLE, logLevel: ZVec::LOG_WARN);
 
@@ -77,7 +78,7 @@ try {
     $q5 = new ZVecVectorQuery('v', [0.5, 0.5, 0.5, 0.5]);
     $q5->setFilter('price > 30');
     $gResults = $c->groupByQuery($q5, [], groupByField: 'category', groupCount: 2, groupTopk: 2);
-    $totalDocs = array_sum(array_map(fn($g) => count($g['docs']), $gResults));
+    $totalDocs = array_sum(array_map(fn ($g) => count($g['docs']), $gResults));
     if ($totalDocs >= 1) {
         echo "PASS: groupByQuery with ZVecVectorQuery filter returned $totalDocs total doc(s) in " . count($gResults) . " group(s)\n";
     } else {
@@ -92,4 +93,3 @@ try {
 } finally {
     exec("rm -rf " . escapeshellarg($path));
 }
-?>

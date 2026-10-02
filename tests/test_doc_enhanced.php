@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/../src/ZVec.php';
 
@@ -71,7 +72,7 @@ echo "deserialize getInt64('id'): " . ($restored->getInt64('id') ?? 'null') . "\
 echo "deserialize getString('name'): " . ($restored->getString('name') ?? 'null') . "\n";
 echo "deserialize getFloat('score'): " . ($restored->getFloat('score') ?? 'null') . "\n";
 $restoredVec = $restored->getVectorFp32('vec');
-echo "deserialize getVectorFp32: [" . implode(', ', array_map(fn($v) => round($v, 1), $restoredVec ?? [])) . "]\n";
+echo "deserialize getVectorFp32: [" . implode(', ', array_map(fn ($v) => round($v, 1), $restoredVec ?? [])) . "]\n";
 
 echo "\n=== isEmpty / clear ===\n";
 $empty = new ZVecDoc('empty_test');
@@ -110,4 +111,3 @@ $c->destroy();
 exec("rm -rf " . escapeshellarg($path));
 
 echo "\nPASS: All enhanced doc API tests passed\n";
-?>

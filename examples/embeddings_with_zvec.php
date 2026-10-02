@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Embeddings with ZVec Collection Example
- * 
+ *
  * This example demonstrates how to use embedding functions
  * to generate vectors and store them in a ZVec collection for similarity search.
  */
@@ -34,34 +34,43 @@ class DemoEmbedding extends ApiEmbeddingFunction implements DenseEmbeddingFuncti
         $this->dimension = $dimension;
     }
 
-    protected function getDefaultBaseUrl(): string { return ''; }
-    protected function getHeaders(): array { return []; }
-    public function getDimension(): int { return $this->dimension; }
+    protected function getDefaultBaseUrl(): string
+    {
+        return '';
+    }
+    protected function getHeaders(): array
+    {
+        return [];
+    }
+    public function getDimension(): int
+    {
+        return $this->dimension;
+    }
 
     public function embed(string $input): array
     {
         // Simple mock: create vector from text hash
         $vector = [];
         $hash = crc32(strtolower($input));
-        
+
         // Generate semi-random but deterministic vector
         mt_srand($hash);
         for ($i = 0; $i < $this->dimension; $i++) {
             $vector[] = (float) (mt_rand(-1000, 1000) / 1000);
         }
-        
+
         // Normalize
-        $norm = sqrt(array_sum(array_map(fn($x) => $x * $x, $vector)));
+        $norm = sqrt(array_sum(array_map(fn ($x) => $x * $x, $vector)));
         if ($norm > 0) {
-            $vector = array_map(fn($x) => $x / $norm, $vector);
+            $vector = array_map(fn ($x) => $x / $norm, $vector);
         }
-        
+
         return $vector;
     }
 
     public function embedBatch(array $inputs): array
     {
-        return array_map(fn($input) => $this->embed($input), $inputs);
+        return array_map(fn ($input) => $this->embed($input), $inputs);
     }
 }
 
@@ -135,13 +144,13 @@ foreach ($documents as $doc) {
     // Combine title and content for embedding
     $textToEmbed = $doc['title'] . ". " . $doc['content'];
     $embedding = $embedder->embed($textToEmbed);
-    
+
     $zdoc = new ZVecDoc($doc['id']);
     $zdoc->setString('title', $doc['title'])
         ->setString('content', $doc['content'])
         ->setString('category', $doc['category'])
         ->setVectorFp32('embedding', $embedding);
-    
+
     $collection->insert($zdoc);
     echo "  Inserted: {$doc['title']} (embedding dim: " . count($embedding) . ")\n";
 }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace CrazyGoat\ZVec;
 
-if (extension_loaded('zvec')) return;
+if (extension_loaded('zvec')) {
+    return;
+}
 
 require_once __DIR__ . '/EmbeddingInterfaces.php';
 
@@ -105,7 +107,7 @@ class QwenDenseEmbedding extends ApiEmbeddingFunction implements DenseEmbeddingF
             throw new ZVecException('Maximum batch size is 25 inputs for DashScope');
         }
 
-        $texts = array_map(fn($input) => ['text' => $input], $inputs);
+        $texts = array_map(fn ($input) => ['text' => $input], $inputs);
 
         $payload = [
             'model' => $this->model,
@@ -125,7 +127,7 @@ class QwenDenseEmbedding extends ApiEmbeddingFunction implements DenseEmbeddingF
             if (!isset($item['embedding']) || !is_array($item['embedding'])) {
                 throw new ZVecException('Invalid response format: missing embedding array');
             }
-            $embeddings[] = array_map(fn($v) => (float) $v, $item['embedding']);
+            $embeddings[] = array_map(fn ($v) => (float) $v, $item['embedding']);
         }
 
         return $embeddings;

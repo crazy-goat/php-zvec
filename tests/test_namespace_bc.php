@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../src/ZVec.php';
 
 echo "--- Global namespace (BC aliases) ---\n";
@@ -52,4 +53,3 @@ echo ZVecDocNS::class === "CrazyGoat\\\ZVec\\\ZVecDoc" ? "use ZVecDoc: OK\n" : "
 ');
 
 echo "\nAll namespace tests passed!\n";
-?>
