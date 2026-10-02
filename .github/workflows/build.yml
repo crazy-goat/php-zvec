@@ -162,7 +162,7 @@ jobs:
         run: .github/scripts/run-tests.sh
 
       - name: Upload extension artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zvec-php${{ matrix.php-version }}-ubuntu24-${{ runner.arch }}
           path: |
