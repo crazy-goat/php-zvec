@@ -78,3 +78,4 @@ sdk/
 
 # Generated dump
 repomix-output.xml
+.php-cs-fixer.cache
