@@ -40,7 +40,7 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -92,7 +92,7 @@ jobs:
     name: ffi - ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build FFI adapter
         run: .github/scripts/build-ffi-linux.sh ${{ matrix.libc }} "$ZVEC_VERSION"
@@ -119,7 +119,7 @@ jobs:
     name: ffi - darwin-aarch64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # setup-php hangs in Homebrew on macOS runners; Homebrew's php has FFI built in.
       - name: Install PHP
@@ -142,7 +142,7 @@ jobs:
     name: ext - PHP ${{ matrix.php-version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
