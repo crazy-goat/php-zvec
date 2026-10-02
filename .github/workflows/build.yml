@@ -15,6 +15,9 @@ concurrency:
 
 env:
   ZVEC_VERSION: v0.7.0
+  # Composer fetches dists from codeload.github.com, which rate-limits unauthenticated
+  # requests. The automatic token needs no setup and raises the limit.
+  COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
 
 jobs:
   changes:

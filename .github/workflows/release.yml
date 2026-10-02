@@ -137,7 +137,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${{ github.ref_name }}" "$ASSET_NAME" --clobber
+          gh release upload "$GITHUB_REF_NAME" "$ASSET_NAME" --clobber
 
   release-ffi-macos:
     needs: create-release
@@ -173,7 +173,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${{ github.ref_name }}" "$ASSET_NAME" --clobber
+          gh release upload "$GITHUB_REF_NAME" "$ASSET_NAME" --clobber
 
   release-ext:
     needs: create-release
@@ -218,7 +218,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${{ github.ref_name }}" "$ASSET_NAME" --clobber
+          gh release upload "$GITHUB_REF_NAME" "$ASSET_NAME" --clobber
 
   checksums:
     needs: [release-ffi-linux, release-ffi-macos, release-ext]
@@ -235,7 +235,7 @@ jobs:
         run: |
           mkdir -p assets
           cd assets
-          gh release download "${{ github.ref_name }}" \
+          gh release download "$GITHUB_REF_NAME" \
             --repo "${{ github.repository }}" \
             --pattern "*.tar.gz"
           ls -la
@@ -255,6 +255,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${{ github.ref_name }}" \
+          gh release upload "$GITHUB_REF_NAME" \
             assets/checksums.sha256 \
             --clobber

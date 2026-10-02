@@ -1038,10 +1038,10 @@ static bool validate_query_param_type(Collection *c, const std::string &field_na
             break;
     }
     if (expected != IndexType::UNDEFINED && actual != IndexType::UNDEFINED && actual != expected) {
-        zvec_throw_exception(static_cast<int>(StatusCode::INVALID_ARGUMENT),
-                             "Query parameter type mismatch for field '%s': index type does not "
-                             "match query_param_type",
-                             field_name.c_str());
+        zvec_throw_exception(
+            static_cast<int>(StatusCode::INVALID_ARGUMENT),
+            "Query parameter type mismatch for field '%s': index type does not match query_param_type",
+            field_name.c_str());
         return false;
     }
     return true;
@@ -1135,8 +1135,9 @@ PHP_METHOD(ZVec, query) {
         zval *did = zend_read_property(zvec_vector_query_ce, Z_OBJ_P(field_name_zv), "docId",
                                        sizeof("docId") - 1, 1, nullptr);
         if (Z_TYPE_P(did) == IS_STRING) {
-            zvec_throw_exception(0, "query() with docId not yet implemented. Use queryById() or "
-                                    "fetch the vector first.");
+            zvec_throw_exception(
+                0,
+                "query() with docId not yet implemented. Use queryById() or fetch the vector first.");
             RETURN_THROWS();
         }
 
