@@ -17,23 +17,67 @@ jobs:
       contents: write
 
     steps:
+      # Full history: the tag-on-main check below needs it, and the release notes are
+      # read from CHANGELOG.md of the tagged commit.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Verify tag is on main
         run: |
-          git clone --bare "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/repo.git
-          if ! git -C /tmp/repo.git branch --contains "${{ github.sha }}" | grep -qw main; then
-            echo "ERROR: Tag ${{ github.ref_name }} is not on main branch"
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag ${GITHUB_REF_NAME} is not on main branch"
             exit 1
           fi
 
-      - name: Create release if not exists
+      # Merge the `## [X.Y.Z]` section of CHANGELOG.md before tagging.
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            /^## \[/ { found = (index($0, "[" v "]") > 0 || index($0, "[v" v "]") > 0); next }
+            /^\[[^]]+\]: / { found = 0 }
+            found
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md has no non-empty section for ${version}"
+            exit 1
+          fi
+          # GitHub rejects release notes over 125000 characters.
+          python3 - "$GITHUB_REF_NAME" <<'PY'
+          import sys
+          limit = 120000
+          tag = sys.argv[1]
+          text = open('release-notes.md', encoding='utf-8').read()
+          if len(text) > limit:
+              tail = ("\n\n_The notes were shortened because of the GitHub size limit. "
+                      f"See [CHANGELOG.md](https://github.com/crazy-goat/php-zvec/blob/{tag}/CHANGELOG.md) "
+                      "for the full text._\n")
+              text = text[:limit - len(tail)]
+              text = text[:text.rfind('\n')] + tail
+              open('release-notes.md', 'w', encoding='utf-8').write(text)
+              print(f"::warning::Release notes truncated to {len(text)} characters")
+          PY
+
+      # If the release already exists (created by hand), the build jobs only add assets.
+      - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --repo "${{ github.repository }}" \
-            --title "${{ github.ref_name }}" \
-            --generate-notes \
-            || echo "Release already exists"
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists"
+            exit 0
+          fi
+          flags=()
+          case "$GITHUB_REF_NAME" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            --verify-tag \
+            "${flags[@]}"
 
   release-ffi-linux:
     needs: create-release
