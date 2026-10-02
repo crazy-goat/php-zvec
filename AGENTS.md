@@ -2,6 +2,12 @@
 
 PHP FFI bindings for [Alibaba's zvec](https://github.com/alibaba/zvec) vector database.
 
+The development process (issues, worktrees, review, CI, merge) is in
+[docs/workflow.md](docs/workflow.md), the release process in
+[docs/release-workflow.md](docs/release-workflow.md). The default branch is `main`.
+Everything — code, comments, docs, commits, issues — is written in English
+(Polish only as test data).
+
 ## Project Structure
 
 ```
@@ -34,6 +40,7 @@ zvec-php/
 ├── build_ffi.sh              # Builds only the FFI shared library (requires sdk/)
 ├── build_zvec.sh             # Orchestrator: fetch SDK + build FFI shared library
 ├── .github/scripts/          # CI helpers (container builds, test runners)
+├── bin/                      # lint.sh, pick-issue.sh, worktree*.sh, zvec-install
 ├── sdk/                      # Official zvec SDK: include/, lib/libzvec.*, data/ (not committed)
 └── zvec/                     # Optional local clone of upstream sources, for reference only (not committed)
 ```
@@ -243,10 +250,39 @@ try {
 Feature works
 ```
 
-## No Lint/Static Analysis/CI
+## Lint, static analysis and CI
 
-There is currently no php-cs-fixer, phpcs, phpstan, psalm, editorconfig, or CI
-pipeline configured. Follow the conventions below manually.
+```bash
+bin/lint.sh          # check only; runs every step; `composer lint` calls it
+bin/lint.sh --fix    # rector + php-cs-fixer + clang-format first, then the checks
+```
+
+Steps: PHP-CS-Fixer (`--dry-run`, PSR-12, config `.php-cs-fixer.dist.php`), PHPStan
+(`phpstan.neon`, level 2 on `src/`; raise it in small follow-ups, never lower it),
+Rector (`--dry-run`, `rector.php`), clang-format (`--dry-run --Werror` on `ffi/` and
+`php-ext/`, style in `.clang-format`), shellcheck on every tracked shell script and
+hadolint on Dockerfiles (none today). A missing tool is a failure. Needs
+`composer install`, `clang-format` 23 (CI pins `clang-format==23.1.2`), `shellcheck` and
+`hadolint`. Rector skips are documented in `rector.php`; do not "fix" them (for example
+`ZVecDocIterator::$collection` is never read on purpose).
+
+Setting up a fresh worktree: `bin/worktree.sh <issue>` runs `bin/worktree-setup.sh`
+(`composer install`, then `./build_zvec.sh` for the FFI adapter the tests load). Nothing
+binds a host port, so worktrees do not collide.
+
+CI (`.github/workflows/build.yml`) runs on pull requests and pushes to `main`. `changes`
+detects documentation-only changes and `docs` checks them fast. `lint`, the
+`ffi - <platform>` matrix and `ext - PHP 8.4` run only for code changes (README,
+CHANGELOG, MIGRATION and AGENTS count as code because `tests/test_docs_consistency.phpt`
+reads them). `ci-ok` aggregates everything and is the single required check.
+
+## Release notes
+
+Every user-visible or process change gets an entry under `## [Unreleased]` in
+`CHANGELOG.md` (Keep a Changelog). Pushing a `vX.Y.Z` tag runs `release.yml`, which
+builds the FFI adapters and the extension and creates the GitHub Release with the notes
+taken from the matching `## [X.Y.Z]` CHANGELOG section (see `docs/release-workflow.md`).
+Keep the compare links at the bottom of the changelog valid; the docs test checks them.
 
 ## Code Style Guidelines
 

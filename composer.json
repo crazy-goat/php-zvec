@@ -25,5 +25,9 @@
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.2",
         "rector/rector": "^2.6"
+    },
+    "scripts": {
+        "lint": "bin/lint.sh",
+        "lint:fix": "bin/lint.sh --fix"
     }
 }
