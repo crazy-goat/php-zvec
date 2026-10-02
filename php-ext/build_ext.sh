@@ -27,7 +27,7 @@ echo "--- Configuring ---"
 ./configure --enable-zvec
 
 echo "--- Building ---"
-make -j$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+make -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)"
 
 echo "--- Copying zvec shared library next to modules/zvec.so ---"
 if [ -f "$SDK_LIB_SO" ]; then
@@ -48,4 +48,6 @@ echo "Extension: $(pwd)/modules/zvec.so"
 echo "zvec shared library copied to: $(pwd)/modules/"
 echo ""
 echo "Test with:"
-echo "  php -n -d extension=modules/zvec.so -r 'echo \"zvec loaded: \" . (extension_loaded(\"zvec\") ? \"yes\" : \"no\") . \"\\n\";'"
+cat <<'EOF'
+  php -n -d extension=modules/zvec.so -r 'echo "zvec loaded: " . (extension_loaded("zvec") ? "yes" : "no") . "\n";'
+EOF
