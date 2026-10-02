@@ -14,8 +14,8 @@ struct zvec_schema_object {
 };
 
 static inline zvec_schema_object *zvec_schema_from_obj(zend_object *obj) {
-    return reinterpret_cast<zvec_schema_object *>(
-        reinterpret_cast<char *>(obj) - XtOffsetOf(zvec_schema_object, std));
+    return reinterpret_cast<zvec_schema_object *>(reinterpret_cast<char *>(obj) -
+                                                  XtOffsetOf(zvec_schema_object, std));
 }
 
 #define Z_ZVEC_SCHEMA_P(zv) zvec_schema_from_obj(Z_OBJ_P(zv))

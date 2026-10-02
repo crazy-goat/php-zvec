@@ -32,21 +32,19 @@ PHP_MINFO_FUNCTION(zvec) {
     php_info_print_table_end();
 }
 
-zend_module_entry zvec_module_entry = {
-    STANDARD_MODULE_HEADER,
-    PHP_ZVEC_EXTNAME,
-    nullptr,
-    PHP_MINIT(zvec),
-    PHP_MSHUTDOWN(zvec),
-    nullptr,
-    nullptr,
-    PHP_MINFO(zvec),
-    PHP_ZVEC_VERSION,
-    STANDARD_MODULE_PROPERTIES
-};
+zend_module_entry zvec_module_entry = {STANDARD_MODULE_HEADER,
+                                       PHP_ZVEC_EXTNAME,
+                                       nullptr,
+                                       PHP_MINIT(zvec),
+                                       PHP_MSHUTDOWN(zvec),
+                                       nullptr,
+                                       nullptr,
+                                       PHP_MINFO(zvec),
+                                       PHP_ZVEC_VERSION,
+                                       STANDARD_MODULE_PROPERTIES};
 
 #ifdef COMPILE_DL_ZVEC
 extern "C" {
-    ZEND_GET_MODULE(zvec)
+ZEND_GET_MODULE(zvec)
 }
 #endif
