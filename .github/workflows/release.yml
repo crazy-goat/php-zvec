@@ -19,7 +19,7 @@ jobs:
     steps:
       # Full history: the tag-on-main check below needs it, and the release notes are
       # read from CHANGELOG.md of the tagged commit.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -103,7 +103,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build FFI adapter
         run: .github/scripts/build-ffi-linux.sh ${{ matrix.libc }} "$ZVEC_VERSION"
@@ -148,7 +148,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # setup-php hangs in Homebrew on macOS runners; Homebrew's php has FFI built in.
       - name: Install PHP
@@ -188,7 +188,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
