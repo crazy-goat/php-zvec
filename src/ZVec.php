@@ -2802,7 +2802,6 @@ class ZVec
      * use queryMulti() for those.
      *
      * @param ZVecVectorQuery[] $subQueries
-     * @param ZVecRrfReRanker|ZVecWeightedReRanker $reranker
      * @param int|null $numCandidates Candidates per sub-query before fusion
      * @param string[]|null $outputFields null = all fields, [] = none
      *
