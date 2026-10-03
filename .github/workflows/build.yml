@@ -46,6 +46,9 @@ jobs:
         with:
           php-version: '8.4'
           coverage: none
+          # bin/lint.sh runs PHPStan and Rector with no php.ini, so the analysis needs
+          # FFI back explicitly (phpstan.neon analyses FFI\CData); see AGENTS.md.
+          extensions: ffi
           tools: composer:v2
 
       - name: Install dependencies
