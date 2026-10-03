@@ -115,6 +115,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **PHPStan and Rector no longer see the machine's `php.ini`** (#258)
+  - `bin/lint.sh` starts both with `PHPRC` pointing at an ini generated per run, so a copy of the `zvec` PHP extension installed on the machine — the #188 case of a `make install` plus an `extension=` line — can no longer change what the analysis sees. conf.d is still scanned, so an extension installed that way stays available.
+  - `php -n` was tried first and does not work here: PHPStan needs the `Phar` class and Rector needs `PhpToken` from the tokenizer extension, which the CI image provides through conf.d (`lint` failed with `Class "Phar" not found` and `Class "PhpToken" not found`), and `-n` does not reach the processes PHPStan starts for itself anyway — it restarts with `PHP_BINARY -d …` and starts parallel workers, both of which load the machine's `php.ini` again. `PHPRC` is an environment variable and is inherited.
+  - What the replaced `php.ini` took with it is added back explicitly: `extension_dir` (on a Homebrew/pecl setup it is set in `php.ini`, and the conf.d entries name their extension without a path), `memory_limit=-1` instead of the built-in 128M, and FFI (`extension=ffi` in the generated ini, which every one of those processes loads) only where the current PHP has none in that same environment. `phpstan.neon` only ignores undefined FFI methods and properties, not a missing FFI class, so without FFI the analysis would report errors on `src/`.
+  - No step, level or rule changed. PHP-CS-Fixer is untouched: it works on the token stream and never resolves the project's classes.
+  - The CI `lint` job now asks for FFI explicitly, so the analysis has it whether the runner provides it compiled in or through an ini.
+  - `AGENTS.md` documents the flags, and why `php -n` is not the answer here.
+
 - **Repository standard rolled out** (process and tooling, no API change)
   - `LICENSE` (MIT, Crazy Goat Software), `docs/workflow.md`, `docs/release-workflow.md`, `CONTRIBUTING.md` and `bin/pick-issue.sh`, `bin/worktree.sh`, `bin/worktree-done.sh`, `bin/worktree-setup.sh`.
   - `bin/lint.sh` (also `composer lint`) runs PHP-CS-Fixer, PHPStan (level 2), Rector, clang-format, shellcheck and hadolint. The PHP sources were reformatted to PSR-12 and the C++ sources with clang-format (whitespace only), plus a few Rector dead-code simplifications.

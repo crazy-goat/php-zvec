@@ -266,6 +266,51 @@ hadolint on Dockerfiles (none today). A missing tool is a failure. Needs
 `hadolint`. Rector skips are documented in `rector.php`; do not "fix" them (for example
 `ZVecDocIterator::$collection` is never read on purpose).
 
+PHPStan and Rector are run with the machine's `php.ini` replaced by an empty one, for the
+same reason the test suite needs `-n` (#188): this repository also builds a PHP extension
+(`php-ext/`, the legacy `zvec`), and a copy of it can be installed locally and enabled in
+`php.ini`. Both tools work inside a PHP process, so whatever that process has loaded is
+what they see — without the isolation the lint result depends on the machine instead of on
+the working tree, which is how a Rector finding in #246 showed up in CI but not locally.
+
+`php -n` is **not** how this is done, for two reasons:
+
+- PHPStan needs the `Phar` class and Rector needs `PhpToken` from the tokenizer
+  extension. On the CI image those come from conf.d inis, which `-n` drops: the first
+  push of #259 failed `lint` with `Class "Phar" not found` and
+  `Class "PhpToken" not found`.
+- `-n` does not reach the processes PHPStan starts for itself. It restarts with
+  `PHP_BINARY -d …` and starts parallel workers, and those load the machine's
+  `php.ini` again — verified with `ps` while it runs. `PHPRC` is an environment
+  variable, so it is inherited.
+
+conf.d is still scanned, so an extension installed that way stays available — **as long
+as the generated ini carries `extension_dir`**, because those entries name their
+extension without a path and on a Homebrew/pecl setup `extension_dir` is set in
+`php.ini`. `bin/lint.sh` copies it, which is also what makes the FFI fallback work for a
+shared `ffi.so`.
+
+An `extension=zvec.so` line in `php.ini` — the #188 case of a `make install` plus a manual
+line — no longer reaches the tools; one in conf.d still would.
+
+What `bin/lint.sh` does, and how to repeat it by hand:
+
+```bash
+# The ini PHP is told to load instead of the machine's php.ini.
+i="$(mktemp)"; printf 'extension_dir="%s"\n' "$(php -r 'echo ini_get("extension_dir");')" > "$i"
+
+env PHPRC="$i" php -d memory_limit=-1 vendor/bin/phpstan analyse --no-progress
+env PHPRC="$i" php -d memory_limit=-1 vendor/bin/rector process --dry-run
+```
+
+`-d memory_limit=-1` replaces the built-in 128M, because the replaced `php.ini` is where
+the real limit usually is. Where the analysis would have no FFI at all, `extension=ffi`
+goes into the generated ini — `phpstan.neon` ignores undefined FFI methods and properties,
+not a missing FFI class, so without FFI the analysis reports errors on `src/`. The ini is
+what PHPStan's restarted processes load too, which is why FFI is not also passed as `-d`:
+PHP would load it twice and warn. The current PHP is asked whether it has FFI in exactly
+this environment first, so nothing is loaded twice on any machine.
+
 Setting up a fresh worktree: `bin/worktree.sh <issue>` runs `bin/worktree-setup.sh`
 (`composer install`, then `./build_zvec.sh` for the FFI adapter the tests load). Nothing
 binds a host port, so worktrees do not collide.
